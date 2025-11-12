@@ -1,0 +1,309 @@
+<!-- src/app/products/components/product-detail/product-detail.component.html -->
+<div class="product-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando información del producto...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      <h3>Error al cargar el producto</h3>
+      <p>{{ error }}</p>
+    </div>
+    <button routerLink="/products" class="btn btn-primary">
+      Volver a Productos
+    </button>
+  </div>
+
+  <!-- Product Detail -->
+  <div *ngIf="!loading && !error && product" class="product-detail">
+    
+    <!-- Header with Actions -->
+    <div class="product-header">
+      <div class="header-info">
+        <h1 class="product-name">{{ product.name }}</h1>
+        <div class="product-meta">
+          <span class="sku">SKU: {{ product.sku }}</span>
+          <span class="barcode" *ngIf="product.barcode">
+            Código Barras: {{ product.barcode }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="header-actions" *ngIf="canEdit || canManageStock || canDelete">
+        <button 
+          *ngIf="canEdit"
+          (click)="onEditProduct()" 
+          class="btn btn-warning">
+          ✏️ Editar
+        </button>
+        
+        <button
+          *ngIf="canManageStock"
+          (click)="onManageStock()"
+          class="btn btn-info">
+          📦 Gestionar Stock
+        </button>
+        
+        <button 
+          (click)="onToggleActive()" 
+          class="btn btn-secondary">
+          {{ product.isActive ? '🚫 Desactivar' : '✅ Activar' }}
+        </button>
+        
+        <button 
+          (click)="onToggleFeatured()" 
+          class="btn btn-secondary">
+          {{ product.isFeatured ? '⭐ Quitar Destacado' : '⭐ Destacar' }}
+        </button>
+        
+        <button 
+          *ngIf="canDelete"
+          (click)="onDeleteProduct()" 
+          class="btn btn-danger">
+          🗑️ Eliminar
+        </button>
+      </div>
+    </div>
+
+    <!-- Status Badges -->
+    <div class="status-badges">
+      <span class="status-badge" [class]="getStockStatusClass()">
+        {{ getStockStatusText() }}
+      </span>
+      <span class="status-badge" [class.active]="product.isActive">
+        {{ product.isActive ? 'Activo' : 'Inactivo' }}
+      </span>
+      <span class="status-badge featured" *ngIf="product.isFeatured">
+        ⭐ Destacado
+      </span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="product-content">
+      
+      <!-- Images Gallery -->
+      <div class="images-section">
+        <div class="main-image">
+          <img 
+            [src]="selectedImage?.url || 'assets/images/product-placeholder.jpg'" 
+            [alt]="selectedImage?.altText || product.name"
+            class="product-image">
+        </div>
+        
+        <div class="image-thumbnails" *ngIf="productImages.length > 1">
+          <div 
+            *ngFor="let image of productImages"
+            class="thumbnail"
+            [class.active]="selectedImage?._id === image._id"
+            (click)="selectImage(image)">
+            <img [src]="image.url" [alt]="image.altText || product.name">
+            <span *ngIf="image.isPrimary" class="primary-badge">Principal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="info-section">
+        
+        <!-- Navigation Tabs -->
+        <div class="tabs-navigation">
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'details'"
+            (click)="setActiveTab('details')">
+            📋 Información General
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'specifications'"
+            (click)="setActiveTab('specifications')">
+            ⚙️ Especificaciones
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'stock'"
+            (click)="setActiveTab('stock')">
+            📊 Inventario
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'images'"
+            (click)="setActiveTab('images')"
+            *ngIf="productImages.length > 0">
+            🖼️ Imágenes ({{ productImages.length }})
+          </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          
+          <!-- Details Tab -->
+          <div *ngIf="activeTab === 'details'" class="tab-pane">
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Precio de Venta:</label>
+                <span class="price sale-price">${{ product.salePrice | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Precio de Costo:</label>
+                <span class="price cost-price">${{ product.costPrice | number:'1.2-2' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Margen de Ganancia:</label>
+                <span class="profit-margin" [class.negative]="(product.profitMargin || 0) < 0">
+                  {{ product.profitMargin | number:'1.2-2' }}%
+                </span>
+              </div>
+              
+              <div class="info-item">
+                <label>Categoría:</label>
+                <span>{{ product.categoryId?.name || 'N/A' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Marca:</label>
+                <span>{{ product.brandId?.name || 'N/A' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Proveedor:</label>
+                <span>{{ product.supplierId?.name || 'N/A' }}</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Garantía:</label>
+                <span>{{ product.warrantyMonths }} meses</span>
+              </div>
+              
+              <div class="info-item">
+                <label>Ubicación:</label>
+                <span>{{ product.location || 'No especificada' }}</span>
+              </div>
+              
+              <div class="info-item full-width">
+                <label>Descripción:</label>
+                <p class="description">{{ product.description || 'Sin descripción' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specifications Tab -->
+          <div *ngIf="activeTab === 'specifications'" class="tab-pane">
+            <div *ngIf="hasSpecifications()" class="specs-grid">
+              <div *ngFor="let spec of getSpecifications()" class="spec-item">
+                <label>{{ spec.key }}:</label>
+                <span>{{ spec.value || 'N/A' }}</span>
+              </div>
+            </div>
+            
+            <div *ngIf="!hasSpecifications()" class="no-specs">
+              <p>No hay especificaciones técnicas registradas para este producto.</p>
+            </div>
+          </div>
+
+          <!-- Stock Tab -->
+          <div *ngIf="activeTab === 'stock'" class="tab-pane">
+            <div class="stock-info">
+              <div class="stock-item">
+                <label>Stock Total:</label>
+                <span class="stock-value">{{ product.stockQuantity }}</span>
+              </div>
+              
+              <div class="stock-item">
+                <label>Stock Reservado:</label>
+                <span class="stock-value reserved">{{ product.reservedQuantity }}</span>
+              </div>
+              
+              <div class="stock-item">
+                <label>Stock Disponible:</label>
+                <span class="stock-value available">{{ product.availableQuantity || 0 }}</span>
+              </div>
+              
+              <div class="stock-item">
+                <label>Stock Mínimo:</label>
+                <span class="stock-value min-stock">{{ product.minStock }}</span>
+              </div>
+              
+              <div class="stock-item">
+                <label>Stock Máximo:</label>
+                <span class="stock-value max-stock">{{ product.maxStock || 'Sin límite' }}</span>
+              </div>
+            </div>
+
+            <!-- Stock Level Bar -->
+            <div class="stock-level">
+              <label>Nivel de Stock:</label>
+              <div class="level-bar">
+                <div 
+                  class="level-fill"
+                  [class]="getStockLevelClass()"
+                  [style.width.%]="getStockLevelPercentage()">
+                </div>
+              </div>
+              <span class="level-text">
+                {{ product.availableQuantity || 0 }} / {{ product.maxStock || product.stockQuantity }} unidades
+              </span>
+            </div>
+
+            <!-- Stock Alerts -->
+            <div *ngIf="product.stockStatus === 'out-of-stock'" class="stock-alert alert-danger">
+              ⚠️ Producto sin stock disponible
+            </div>
+            
+            <div *ngIf="product.stockStatus === 'low-stock'" class="stock-alert alert-warning">
+              ⚠️ Stock bajo - Por debajo del mínimo establecido
+            </div>
+            
+            <div *ngIf="product.stockStatus === 'over-stock'" class="stock-alert alert-info">
+              ℹ️ Stock excede el máximo recomendado
+            </div>
+          </div>
+
+          <!-- Images Tab -->
+          <div *ngIf="activeTab === 'images'" class="tab-pane">
+            <div class="images-grid">
+              <div 
+                *ngFor="let image of productImages"
+                class="image-card"
+                [class.primary]="image.isPrimary">
+                <img [src]="image.url" [alt]="image.altText || product.name">
+                <div class="image-info">
+                  <span class="alt-text">{{ image.altText || 'Sin descripción' }}</span>
+                  <span class="primary-badge" *ngIf="image.isPrimary">Imagen Principal</span>
+                  <span class="sort-order">Orden: {{ image.sortOrder }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="additional-info">
+      <div class="info-card">
+        <h3>Información del Sistema</h3>
+        <div class="system-info">
+          <div class="system-item">
+            <label>Creado por:</label>
+            <span>{{ product.createdBy?.displayName || 'Sistema' }}</span>
+          </div>
+          <div class="system-item">
+            <label>Fecha de creación:</label>
+            <span>{{ product.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="system-item">
+            <label>Última actualización:</label>
+            <span>{{ product.updatedAt | date:'medium' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

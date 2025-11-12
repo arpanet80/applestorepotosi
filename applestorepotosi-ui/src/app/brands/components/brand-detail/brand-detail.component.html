@@ -1,0 +1,58 @@
+<!-- src/app/brands/components/brand-detail/brand-detail.component.html -->
+<div class="brand-detail" *ngIf="!loading && brand">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ brand.name }}</h1>
+      <span class="status-badge" [class.active]="brand.isActive">
+        {{ brand.isActive ? 'Activa' : 'Inactiva' }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onToggleActive()" class="btn btn-secondary">
+        {{ brand.isActive ? 'Desactivar' : 'Activar' }}
+      </button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Descripción:</strong> {{ brand.description || 'Sin descripción' }}</p>
+      <p><strong>País:</strong> {{ brand.country || '—' }}</p>
+      <p><strong>Sitio web:</strong>
+        <a *ngIf="brand.website" [href]="brand.website" target="_blank" rel="noopener">Visitar</a>
+        <span *ngIf="!brand.website">—</span>
+      </p>
+      <p><strong>URL de soporte:</strong>
+        <a *ngIf="brand.supportUrl" [href]="brand.supportUrl" target="_blank" rel="noopener">Ver</a>
+        <span *ngIf="!brand.supportUrl">—</span>
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Garantía y Soporte</h3>
+      <p><strong>Información de garantía:</strong></p>
+      <p>{{ brand.warrantyInfo || 'No especificada' }}</p>
+    </div>
+
+    <div class="card" *ngIf="brand.logoUrl">
+      <h3>Logo</h3>
+      <img [src]="brand.logoUrl" alt="Logo {{ brand.name }}" class="logo" />
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando marca...</p>
+</div>
+
+<!-- Error -->
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/brands" class="btn btn-primary">Volver al catálogo</button>
+</div>

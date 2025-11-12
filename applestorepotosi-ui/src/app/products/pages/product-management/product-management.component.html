@@ -1,0 +1,222 @@
+<!-- src/app/products/pages/product-management/product-management.component.html -->
+<div class="product-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Gestión de Productos</h1>
+        <p>Panel avanzado para administración de productos</p>
+      </div>
+      
+      <div class="header-actions">
+        <button 
+          (click)="onRefresh()" 
+          class="btn btn-outline"
+          [disabled]="loading">
+          🔄 Actualizar
+        </button>
+        
+        <button 
+          (click)="onBulkAction('export')" 
+          class="btn btn-secondary">
+          📊 Exportar
+        </button>
+        
+        <button 
+          routerLink="/products" 
+          class="btn btn-outline">
+          ← Volver al Catálogo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filters -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <h3>Filtros Avanzados</h3>
+      <div class="filters-info">
+        <span *ngIf="getActiveFiltersCount() > 0" class="active-filters">
+          {{ getActiveFiltersCount() }} filtro(s) activo(s)
+        </span>
+        <button 
+          *ngIf="getActiveFiltersCount() > 0"
+          (click)="clearAllFilters()" 
+          class="btn-clear-filters">
+          🗑️ Limpiar filtros
+        </button>
+      </div>
+    </div>
+
+    <div class="filters-grid">
+      <!-- Search -->
+      <div class="filter-group">
+        <label>Búsqueda</label>
+        <input
+          type="text"
+          placeholder="Buscar por nombre, SKU, descripción..."
+          [value]="searchTerm"
+          (input)="onSearch($any($event.target).value)"
+          class="filter-input">
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label>Estado</label>
+        <select 
+          [value]="statusFilter"
+          (change)="onStatusFilterChange($any($event.target).value)"
+          class="filter-select">
+          <option value="all">Todos los estados</option>
+          <option value="active">Solo activos</option>
+          <option value="inactive">Solo inactivos</option>
+        </select>
+      </div>
+
+      <!-- Stock Filter -->
+      <div class="filter-group">
+        <label>Estado de Stock</label>
+        <select 
+          [value]="stockFilter"
+          (change)="onStockFilterChange($any($event.target).value)"
+          class="filter-select">
+          <option value="all">Todo el stock</option>
+          <option value="in-stock">En stock</option>
+          <option value="low-stock">Stock bajo</option>
+          <option value="out-of-stock">Sin stock</option>
+        </select>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="filter-group">
+        <label>Categoría</label>
+        <select 
+          [value]="categoryFilter"
+          (change)="onCategoryFilterChange($any($event.target).value)"
+          class="filter-select">
+          <option value="">Todas las categorías</option>
+          <option value="1">Smartphones</option>
+          <option value="2">Laptops</option>
+          <option value="3">Tablets</option>
+          <option value="4">Wearables</option>
+          <option value="5">Accessories</option>
+        </select>
+      </div>
+
+      <!-- Brand Filter -->
+      <div class="filter-group">
+        <label>Marca</label>
+        <select 
+          [value]="brandFilter"
+          (change)="onBrandFilterChange($any($event.target).value)"
+          class="filter-select">
+          <option value="">Todas las marcas</option>
+          <option value="1">Apple</option>
+          <option value="2">Samsung</option>
+          <option value="3">Huawei</option>
+          <option value="4">Xiaomi</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando productos...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      <h3>Error al cargar los productos</h3>
+      <p>{{ error }}</p>
+    </div>
+    <button (click)="loadProducts()" class="btn btn-primary">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Management Content -->
+  <div *ngIf="!loading && !error" class="management-content">
+    <!-- Results Header -->
+    <div class="results-header">
+      <div class="results-info">
+        <span class="results-count">
+          Mostrando {{ getDisplayedRange() }} productos
+        </span>
+        
+        <div class="bulk-actions">
+          <span>Acciones masivas:</span>
+          <select (change)="onBulkAction($any($event.target).value)" class="bulk-select">
+            <option value="">Seleccionar acción...</option>
+            <option value="activate">Activar seleccionados</option>
+            <option value="deactivate">Desactivar seleccionados</option>
+            <option value="export">Exportar resultados</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Products List -->
+    <app-product-list
+      [filters]="{
+        search: searchTerm,
+        isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
+        stockStatus: stockFilter === 'all' ? undefined : stockFilter,
+        categoryId: categoryFilter || undefined,
+        brandId: brandFilter || undefined
+      }"
+      [showActions]="true"
+      (productSelected)="onProductSelected($event)"
+      (productEdit)="onProductEdit($event)"
+      (productDelete)="onProductDelete($event)">
+    </app-product-list>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination-section">
+      <div class="pagination">
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage === 1"
+          (click)="onPageChange(currentPage - 1)">
+          ← Anterior
+        </button>
+
+        <div class="pagination-pages">
+          <button 
+            *ngFor="let page of getPages()"
+            class="page-btn"
+            [class.active]="page === currentPage"
+            (click)="onPageChange(page)">
+            {{ page }}
+          </button>
+        </div>
+
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage === totalPages"
+          (click)="onPageChange(currentPage + 1)">
+          Siguiente →
+        </button>
+      </div>
+
+      <div class="pagination-info">
+        Página {{ currentPage }} de {{ totalPages }}
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="products.length === 0" class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h3>No se encontraron productos</h3>
+      <p>
+        No hay productos que coincidan con los filtros aplicados.
+        <button (click)="clearAllFilters()" class="btn-link">
+          Limpiar todos los filtros
+        </button>
+        para ver todos los productos.
+      </p>
+    </div>
+  </div>
+</div>

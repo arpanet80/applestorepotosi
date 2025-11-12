@@ -1,0 +1,53 @@
+<!-- src/app/categories/components/category-list/category-list.component.html -->
+<div class="category-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando categorías...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadCategories()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && categories.length === 0" class="empty">
+    <p>No se encontraron categorías</p>
+  </div>
+
+  <div *ngIf="!loading && !error && categories.length > 0" class="categories-grid">
+    <div
+      *ngFor="let category of categories"
+      class="category-card"
+      [class.inactive]="!category.isActive"
+    >
+      <div class="category-header">
+        <h3 class="category-name" (click)="onSelectCategory(category)">
+          {{ category.name }}
+        </h3>
+        <span class="active-badge" [class.active]="category.isActive">
+          {{ category.isActive ? 'Activa' : 'Inactiva' }}
+        </span>
+      </div>
+
+      <div class="category-info">
+        <div class="info-row">
+          <span class="label">Slug:</span>
+          <span class="value">{{ category.slug }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Padre:</span>
+          <span class="value">{{ category.parentId || '—' }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="showActions()" class="category-actions">
+        <button (click)="onSelectCategory(category)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEditCategory(category)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="toggleActive(category)" class="btn btn-secondary btn-sm">
+          {{ category.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onDeleteCategory(category)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

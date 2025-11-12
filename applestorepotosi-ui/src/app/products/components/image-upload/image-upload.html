@@ -1,0 +1,31 @@
+<!-- Área de drag & drop -->
+<div
+  class="upload-area"
+  (drop)="onDrop($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+>
+  <input
+    type="file"
+    #fileInput
+    [multiple]="multiple"
+    accept="image/*"
+    (change)="onFileSelected($event)"
+    hidden
+  />
+
+  <p class="hint">
+    Arrastra imágenes aquí o
+    <a (click)="fileInput.click()" class="link">selecciona</a>
+  </p>
+</div>
+
+<!-- Preview de miniaturas -->
+<div *ngIf="previews.length" class="preview-grid">
+  <div *ngFor="let preview of previews; let i = index" class="preview-item">
+    <img [src]="preview" alt="Preview {{ i + 1 }}" />
+  </div>
+
+  <!-- ✅ Solo este botón -->
+  <button (click)="cancel()" class="btn-secondary">Cancelar</button>
+</div>

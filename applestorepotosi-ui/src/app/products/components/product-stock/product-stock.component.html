@@ -1,0 +1,295 @@
+<!-- src/app/products/components/product-stock/product-stock.component.html -->
+<div class="product-stock-container">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando información del producto...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      <h3>Error al cargar el producto</h3>
+      <p>{{ error }}</p>
+    </div>
+    <button (click)="loadProduct()" class="btn btn-primary">
+      Reintentar
+    </button>
+    <button (click)="onCancel()" class="btn btn-secondary">
+      Volver al Producto
+    </button>
+  </div>
+
+  <!-- Stock Management -->
+  <div *ngIf="!loading && !error && product" class="stock-management">
+    
+    <!-- Header -->
+    <div class="stock-header">
+      <div class="header-info">
+        <h1>Gestión de Stock</h1>
+        <h2 class="product-name">{{ product.name }}</h2>
+        <div class="product-meta">
+          <span class="sku">SKU: {{ product.sku }}</span>
+          <span class="barcode" *ngIf="product.barcode">
+            Código Barras: {{ product.barcode }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button (click)="onCancel()" class="btn btn-secondary">
+          ← Volver al Producto
+        </button>
+      </div>
+    </div>
+
+    <!-- Stock Summary -->
+    <div class="stock-summary">
+      <div class="summary-card">
+        <div class="summary-item">
+          <label>Stock Total</label>
+          <span class="value total">{{ product.stockQuantity }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <label>Stock Reservado</label>
+          <span class="value reserved">{{ product.reservedQuantity }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <label>Stock Disponible</label>
+          <span class="value available">{{ product.availableQuantity || 0 }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <label>Stock Mínimo</label>
+          <span class="value min-stock">{{ product.minStock }}</span>
+        </div>
+        
+        <div class="summary-item">
+          <label>Stock Máximo</label>
+          <span class="value max-stock">{{ product.maxStock || 'Sin límite' }}</span>
+        </div>
+      </div>
+
+      <!-- Stock Status -->
+      <div class="status-card">
+        <div class="status-info">
+          <span class="status-badge" [class]="getStockStatusClass()">
+            {{ getStockStatusText() }}
+          </span>
+          
+          <!-- Stock Level Bar -->
+          <div class="stock-level">
+            <label>Nivel de Stock:</label>
+            <div class="level-bar">
+              <div 
+                class="level-fill"
+                [class]="getStockLevelClass()"
+                [style.width.%]="getStockLevelPercentage()">
+              </div>
+            </div>
+            <span class="level-text">
+              {{ product.availableQuantity || 0 }} / {{ product.maxStock || product.stockQuantity }} unidades
+            </span>
+          </div>
+
+          <!-- Stock Alerts -->
+          <div *ngIf="product.stockStatus === 'out-of-stock'" class="stock-alert alert-danger">
+            ⚠️ Producto sin stock disponible - Se necesitan {{ product.minStock }} unidades
+          </div>
+          
+          <div *ngIf="product.stockStatus === 'low-stock'" class="stock-alert alert-warning">
+            ⚠️ Stock bajo - Por debajo del mínimo de {{ product.minStock }} unidades
+          </div>
+          
+          <div *ngIf="product.stockStatus === 'over-stock'" class="stock-alert alert-info">
+            ℹ️ Stock excede el máximo recomendado de {{ product.maxStock }} unidades
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operations Navigation -->
+    <div class="operations-nav">
+      <button 
+        class="nav-btn" 
+        [class.active]="activeOperation === 'quick'"
+        (click)="setActiveOperation('quick')">
+        📦 Operaciones Rápidas
+      </button>
+      <button 
+        class="nav-btn" 
+        [class.active]="activeOperation === 'adjust'"
+        (click)="setActiveOperation('adjust')">
+        ⚙️ Ajuste Manual
+      </button>
+      <button 
+        class="nav-btn" 
+        [class.active]="activeOperation === 'history'"
+        (click)="setActiveOperation('history')">
+        📊 Historial de Movimientos
+      </button>
+    </div>
+
+    <!-- Operations Content -->
+    <div class="operations-content">
+      
+      <!-- Quick Operations -->
+      <div *ngIf="activeOperation === 'quick'" class="operation-panel">
+        <h3>Operaciones Rápidas de Stock</h3>
+        
+        <form [formGroup]="stockForm" (ngSubmit)="onQuickOperation()" class="operation-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="operation">Operación</label>
+              <select id="operation" formControlName="operation" class="operation-select">
+                <option value="increment">➕ Incrementar Stock</option>
+                <option value="decrement">➖ Decrementar Stock</option>
+                <option value="reserve">🔒 Reservar Stock</option>
+                <option value="release">🔓 Liberar Stock Reservado</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="quantity">Cantidad</label>
+              <input
+                id="quantity"
+                type="number"
+                formControlName="quantity"
+                min="1"
+                [class.invalid]="isFieldInvalid(stockForm, 'quantity')">
+              <div *ngIf="isFieldInvalid(stockForm, 'quantity')" class="error">
+                {{ getFieldError(stockForm, 'quantity') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reason">Motivo / Referencia</label>
+            <input
+              id="reason"
+              type="text"
+              formControlName="reason"
+              placeholder="Ej: Compra a proveedor, Venta #12345, etc."
+              [class.invalid]="isFieldInvalid(stockForm, 'reason')">
+            <div *ngIf="isFieldInvalid(stockForm, 'reason')" class="error">
+              {{ getFieldError(stockForm, 'reason') }}
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="stockForm.invalid || submitting">
+              <span *ngIf="submitting" class="spinner-small"></span>
+              {{ submitting ? 'Procesando...' : 'Ejecutar Operación' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Manual Adjustment -->
+      <div *ngIf="activeOperation === 'adjust'" class="operation-panel">
+        <h3>Ajuste Manual de Stock</h3>
+        <p class="panel-description">
+          Establece el valor exacto del stock total. Útil para correcciones o inventarios físicos.
+        </p>
+        
+        <form [formGroup]="adjustmentForm" (ngSubmit)="onAdjustStock()" class="adjustment-form">
+          <div class="current-stock">
+            <label>Stock Actual:</label>
+            <span class="current-value">{{ product.stockQuantity }} unidades</span>
+          </div>
+
+          <div class="form-group">
+            <label for="newQuantity">Nuevo Stock Total</label>
+            <input
+              id="newQuantity"
+              type="number"
+              formControlName="newQuantity"
+              min="0"
+              [class.invalid]="isFieldInvalid(adjustmentForm, 'newQuantity')">
+            <div *ngIf="isFieldInvalid(adjustmentForm, 'newQuantity')" class="error">
+              {{ getFieldError(adjustmentForm, 'newQuantity') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="adjustReason">Motivo del Ajuste</label>
+            <input
+              id="adjustReason"
+              type="text"
+              formControlName="reason"
+              placeholder="Ej: Inventario físico, Corrección de error, etc."
+              [class.invalid]="isFieldInvalid(adjustmentForm, 'reason')">
+            <div *ngIf="isFieldInvalid(adjustmentForm, 'reason')" class="error">
+              {{ getFieldError(adjustmentForm, 'reason') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="note">Notas Adicionales (Opcional)</label>
+            <textarea
+              id="note"
+              formControlName="note"
+              placeholder="Información adicional sobre el ajuste..."
+              rows="3"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="adjustmentForm.invalid || submitting">
+              <span *ngIf="submitting" class="spinner-small"></span>
+              {{ submitting ? 'Ajustando...' : 'Ajustar Stock' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Stock History -->
+      <div *ngIf="activeOperation === 'history'" class="operation-panel">
+        <h3>Historial de Movimientos de Stock</h3>
+        
+        <div *ngIf="stockMovements.length === 0" class="empty-history">
+          <p>No hay movimientos de stock registrados para este producto.</p>
+        </div>
+
+        <div *ngIf="stockMovements.length > 0" class="movements-list">
+          <div *ngFor="let movement of stockMovements" class="movement-item">
+            <div class="movement-icon" [class]="'icon-' + getMovementColor(movement.type)">
+              {{ getMovementIcon(movement.type) }}
+            </div>
+            
+            <div class="movement-details">
+              <div class="movement-header">
+                <span class="movement-type" [class]="'type-' + getMovementColor(movement.type)">
+                  {{ getMovementText(movement.type) }}
+                </span>
+                <span class="movement-quantity" [class]="'qty-' + getMovementColor(movement.type)">
+                  {{ getMovementSign(movement.type) }}{{ movement.quantity }}
+                </span>
+              </div>
+              
+              <div class="movement-reason">
+                {{ movement.reason }}
+              </div>
+              
+              <div class="movement-date">
+                {{ movement.timestamp | date:'medium' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Error -->
+    <div *ngIf="error" class="global-error">
+      {{ error }}
+    </div>
+  </div>
+</div>

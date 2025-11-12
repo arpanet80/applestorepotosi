@@ -1,0 +1,92 @@
+<!-- src/app/products/components/product-list/product-list.component.html -->
+<div class="product-list">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando productos...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadProducts()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && products.length === 0" class="empty">
+    <p>No se encontraron productos</p>
+  </div>
+
+  <!-- Products Grid -->
+  <div *ngIf="!loading && !error && products.length > 0" class="products-grid">
+    <div *ngFor="let product of products" 
+         class="product-card"
+         [class.inactive]="!product.isActive">
+      
+      <!-- Product Header -->
+      <div class="product-header">
+        <h3 class="product-name" (click)="onSelectProduct(product)">
+          {{ product.name }}
+        </h3>
+        <div class="product-status">
+          <span class="status-badge" [class]="getStockStatusClass(product)">
+            {{ getStockStatusText(product) }}
+          </span>
+          <span class="active-badge" [class.active]="product.isActive">
+            {{ product.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Product Info -->
+      <div class="product-info">
+        <div class="info-row">
+          <span class="label">SKU:</span>
+          <span class="value">{{ product.sku }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Código Barras:</span>
+          <span class="value">{{ product.barcode || 'N/A' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Precio:</span>
+          <span class="value price">${{ product.salePrice | number:'1.2-2' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Stock:</span>
+          <span class="value stock">
+            {{ product.availableQuantity || 0 }} / {{ product.stockQuantity }}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="label">Marca:</span>
+          <span class="value">{{ product.brandId?.name || 'N/A' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Categoría:</span>
+          <span class="value">{{ product.categoryId?.name || 'N/A' }}</span>
+        </div>
+      </div>
+
+      <!-- Product Actions -->
+      <div *ngIf="showActions()" class="product-actions">
+        <button (click)="onSelectProduct(product)" 
+                class="btn btn-info btn-sm">
+          Ver
+        </button>
+        <button (click)="onEditProduct(product)" 
+                class="btn btn-warning btn-sm">
+          Editar
+        </button>
+        <button (click)="toggleActive(product)" 
+                class="btn btn-secondary btn-sm">
+          {{ product.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onDeleteProduct(product)" 
+                class="btn btn-danger btn-sm">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

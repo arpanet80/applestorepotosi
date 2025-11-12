@@ -1,0 +1,399 @@
+<!-- src/app/products/components/product-form/product-form.component.html -->
+<div class="product-form-container">
+  <!-- Header -->
+  <div class="form-header">
+    <h2>{{ isEditMode ? 'Editar Producto' : 'Crear Nuevo Producto' }}</h2>
+    <p>Complete la información del producto</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando datos del producto...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      {{ error }}
+    </div>
+    <button (click)="isEditMode ? loadProductData() : initForm()" class="btn-retry">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Form -->
+  <form *ngIf="!loading" [formGroup]="productForm" (ngSubmit)="onSubmit()" class="product-form">
+    
+    <!-- Información Básica -->
+    <fieldset class="form-section">
+      <legend>Información Básica</legend>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="sku">SKU *</label>
+          <input
+            id="sku"
+            type="text"
+            formControlName="sku"
+            placeholder="Ej: APL-IPH14-128-BLK"
+            [class.invalid]="isFieldInvalid('sku')">
+          
+          <div class="validation-info">
+            <div *ngIf="skuChecking" class="checking">
+              ⏳ Verificando SKU...
+            </div>
+            <div *ngIf="!skuChecking && skuAvailable && productForm.get('sku')?.valid" class="success">
+              ✅ SKU disponible
+            </div>
+            <div *ngIf="isFieldInvalid('sku')" class="error">
+              {{ getFieldError('sku') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="barcode">Código de Barras</label>
+          <input
+            id="barcode"
+            type="text"
+            formControlName="barcode"
+            placeholder="Ej: 194253708642"
+            [class.invalid]="isFieldInvalid('barcode')">
+          
+          <div class="validation-info">
+            <div *ngIf="barcodeChecking" class="checking">
+              ⏳ Verificando código...
+            </div>
+            <div *ngIf="!barcodeChecking && barcodeAvailable && productForm.get('barcode')?.valid" class="success">
+              ✅ Código disponible
+            </div>
+            <div *ngIf="isFieldInvalid('barcode')" class="error">
+              {{ getFieldError('barcode') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="name">Nombre del Producto *</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Ej: iPhone 14 128GB Negro"
+          [class.invalid]="isFieldInvalid('name')">
+        <div *ngIf="isFieldInvalid('name')" class="error">
+          {{ getFieldError('name') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Descripción detallada del producto..."
+          rows="3"></textarea>
+      </div>
+    </fieldset>
+
+    <!-- Categorización -->
+    <fieldset class="form-section">
+      <legend>Categorización</legend>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="categoryId">Categoría *</label>
+          <select
+            id="categoryId"
+            formControlName="categoryId"
+            [class.invalid]="isFieldInvalid('categoryId')">
+            <option value="">Seleccionar categoría</option>
+            <option *ngFor="let category of categories" [value]="category._id">
+              {{ category.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('categoryId')" class="error">
+            {{ getFieldError('categoryId') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="brandId">Marca *</label>
+          <select
+            id="brandId"
+            formControlName="brandId"
+            [class.invalid]="isFieldInvalid('brandId')">
+            <option value="">Seleccionar marca</option>
+            <option *ngFor="let brand of brands" [value]="brand._id">
+              {{ brand.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('brandId')" class="error">
+            {{ getFieldError('brandId') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="supplierId">Proveedor *</label>
+          <select
+            id="supplierId"
+            formControlName="supplierId"
+            [class.invalid]="isFieldInvalid('supplierId')">
+            <option value="">Seleccionar proveedor</option>
+            <option *ngFor="let supplier of suppliers" [value]="supplier._id">
+              {{ supplier.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('supplierId')" class="error">
+            {{ getFieldError('supplierId') }}
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Especificaciones -->
+    <fieldset class="form-section">
+      <legend>Especificaciones Técnicas</legend>
+      
+      <div formGroupName="specifications" class="specs-grid">
+        <div class="form-group">
+          <label for="color">Color</label>
+          <input
+            id="color"
+            type="text"
+            formControlName="color"
+            placeholder="Ej: Negro, Blanco, Rojo">
+        </div>
+
+        <div class="form-group">
+          <label for="storage">Almacenamiento</label>
+          <input
+            id="storage"
+            type="text"
+            formControlName="storage"
+            placeholder="Ej: 128GB, 256GB">
+        </div>
+
+        <div class="form-group">
+          <label for="memory">Memoria RAM</label>
+          <input
+            id="memory"
+            type="text"
+            formControlName="memory"
+            placeholder="Ej: 8GB, 16GB">
+        </div>
+
+        <div class="form-group">
+          <label for="screenSize">Tamaño de Pantalla</label>
+          <input
+            id="screenSize"
+            type="text"
+            formControlName="screenSize"
+            placeholder="Ej: 6.1\">
+        </div>
+
+        <div class="form-group">
+          <label for="processor">Procesador</label>
+          <input
+            id="processor"
+            type="text"
+            formControlName="processor"
+            placeholder="Ej: A15 Bionic, M1">
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Precios y Stock -->
+    <div class="form-row">
+      <!-- Precios -->
+      <fieldset class="form-section">
+        <legend>Precios</legend>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="costPrice">Precio de Costo *</label>
+            <input
+              id="costPrice"
+              type="number"
+              formControlName="costPrice"
+              min="0"
+              step="0.01"
+              [class.invalid]="isFieldInvalid('costPrice')">
+            <div *ngIf="isFieldInvalid('costPrice')" class="error">
+              {{ getFieldError('costPrice') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="salePrice">Precio de Venta *</label>
+            <input
+              id="salePrice"
+              type="number"
+              formControlName="salePrice"
+              min="0"
+              step="0.01"
+              [class.invalid]="isFieldInvalid('salePrice')">
+            <div *ngIf="isFieldInvalid('salePrice')" class="error">
+              {{ getFieldError('salePrice') }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Información de Margen -->
+        <div *ngIf="productForm.get('costPrice')?.value > 0 && productForm.get('salePrice')?.value > 0" 
+             class="margin-info">
+          <div class="margin-item">
+            <span>Ganancia:</span>
+            <strong [class.negative]="profitAmount < 0">
+              ${{ profitAmount | number:'1.2-2' }}
+            </strong>
+          </div>
+          <div class="margin-item">
+            <span>Margen:</span>
+            <strong [class.negative]="profitMargin < 0">
+              {{ profitMargin | number:'1.2-2' }}%
+            </strong>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Stock -->
+      <fieldset class="form-section">
+        <legend>Inventario</legend>
+        
+        <div class="form-group">
+          <label for="stockQuantity">Stock Inicial</label>
+          <input
+            id="stockQuantity"
+            type="number"
+            formControlName="stockQuantity"
+            min="0"
+            step="1">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="minStock">Stock Mínimo</label>
+            <input
+              id="minStock"
+              type="number"
+              formControlName="minStock"
+              min="0"
+              step="1"
+              placeholder="Alerta cuando baje">
+          </div>
+
+          <div class="form-group">
+            <label for="maxStock">Stock Máximo</label>
+            <input
+              id="maxStock"
+              type="number"
+              formControlName="maxStock"
+              min="0"
+              step="1"
+              placeholder="Límite de almacén">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Ubicación en Almacén</label>
+          <input
+            id="location"
+            type="text"
+            formControlName="location"
+            placeholder="Ej: A1-B2-C3">
+        </div>
+      </fieldset>
+    </div>
+
+    <!-- Configuraciones Adicionales -->
+    <fieldset class="form-section">
+      <legend>Configuraciones Adicionales</legend>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="warrantyMonths">Meses de Garantía</label>
+          <input
+            id="warrantyMonths"
+            type="number"
+            formControlName="warrantyMonths"
+            min="0"
+            step="1">
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive">
+            <span class="checkmark"></span>
+            Producto Activo
+          </label>
+          <small>Los productos inactivos no aparecerán en el catálogo</small>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isFeatured">
+            <span class="checkmark"></span>
+            Producto Destacado
+          </label>
+          <small>Aparecerá en secciones especiales del catálogo</small>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="btn btn-secondary"
+        [disabled]="submitting">
+        Cancelar
+      </button>
+      
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="productForm.invalid || submitting || skuChecking || barcodeChecking">
+        <span *ngIf="submitting" class="spinner-small"></span>
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar Producto' : 'Crear Producto') }}
+      </button>
+    </div>
+
+    <!-- Global Form Error -->
+    <div *ngIf="error" class="form-global-error">
+      {{ error }}
+    </div>
+
+    <!-- Subida de archivos -->
+    <app-image-upload
+      [productId]="''" 
+      [multiple]="true"
+      (uploaded)="onImagesUploaded($event)">
+    </app-image-upload>
+
+    <!-- Preview nuevas imágenes -->
+    <div *ngIf="newImageFiles.length">
+    <h4>Imágenes a agregar</h4>
+    <div class="image-grid">
+      <div *ngFor="let file of newImageFiles; let i = index" class="image-item">
+        <img [src]="file | objectUrl" /> <!-- ✅ usa el pipe -->
+      </div>
+    </div>
+  </div>
+
+    <!-- Imágenes existentes (edit) -->
+    <div *ngIf="isEditMode && existingImages.length">
+      <h4>Imágenes actuales</h4>
+      <div class="image-grid">
+        <div *ngFor="let img of existingImages" class="image-item">
+          <img [src]="img.url" />
+          <button type="button" (click)="onRemoveImage(img)">❌</button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</div>

@@ -1,0 +1,30 @@
+<!-- src/app/brands/components/logo-upload/logo-upload.component.html -->
+<div
+  class="upload-area"
+  (drop)="onDrop($event)"
+  (dragover)="onDragOver($event)"
+>
+  <input
+    type="file"
+    #fileInput
+    accept="image/jpeg,image/jpg,image/png,image/webp"
+    (change)="onFileSelected($event)"
+    hidden
+  />
+
+  <div class="upload-prompt">
+    <p class="hint">
+      Arrastra el logo aquí o
+      <a (click)="fileInput.click()" class="link">selecciona</a>
+    </p>
+    <small>Formatos: JPG, PNG, WebP · Máx 4 MB</small>
+  </div>
+</div>
+
+<!-- Preview -->
+<div *ngIf="preview" class="preview-box">
+  <img [src]="preview" alt="Logo preview" class="preview-img" />
+  <div class="preview-actions">
+    <button (click)="cancel()" class="btn-remove">❌ Cancelar</button>
+  </div>
+</div>

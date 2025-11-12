@@ -1,0 +1,113 @@
+<!-- src/app/categories/pages/categories-page/categories-page.component.html -->
+<div class="categories-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Catálogo de Categorías</h1>
+        <p>Administra las categorías disponibles en la tienda</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateCategory()" class="btn btn-primary">➕ Nueva Categoría</button>
+        <button *ngIf="canManage" (click)="onManageCategories()" class="btn btn-secondary">⚙️ Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+  <div *ngIf="stats" class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total">📂</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total Categorías</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon active">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.active }}</span>
+          <span class="stat-label">Activas</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon tree">🌳</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.withParent }}</span>
+          <span class="stat-label">Con Padre</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar categoría por nombre o slug..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass('all')" (click)="onFilterChange('all')">Todas</button>
+      <button [class]="getFilterClass('active')" (click)="onFilterChange('active')">Activas</button>
+      <button [class]="getFilterClass('inactive')" (click)="onFilterChange('inactive')">Inactivas</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando categorías...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar categorías</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadCategories()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="categories-section">
+    <app-category-list
+      [filters]="{ search: searchTerm, isActive: activeFilter === 'all' ? undefined : activeFilter === 'active' }"
+      [showActions]="true"
+      (categorySelected)="onSelectCategory($event)"
+      (categoryEdit)="onEditCategory($event)"
+      (categoryDelete)="onDeleteCategory($event)"
+    ></app-category-list>
+
+    <div *ngIf="categories.length === 0" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <h3>No se encontraron categorías</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all'">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; activeFilter = 'all'; loadCategories()" class="btn-link">muestra todas</button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all'">
+        No hay categorías registradas.
+        <button *ngIf="canCreate" (click)="onCreateCategory()" class="btn-link">Crear la primera</button>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="treeNodes.length; else noTree">
+  <app-category-tree
+    [nodes]="treeNodes"
+    [showActions]="true"
+    (nodeEdit)="onEditCategory($event)"
+    (nodeDelete)="onDeleteCategory($event)"
+    (nodeAddChild)="onCreateChildCategory($event)">
+  </app-category-tree>
+</div>
+
+<ng-template #noTree>
+  <p class="empty-tree">Cargando árbol de categorías...</p>
+</ng-template>

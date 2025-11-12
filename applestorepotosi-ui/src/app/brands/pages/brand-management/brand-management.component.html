@@ -1,0 +1,40 @@
+<!-- src/app/brands/pages/brand-management/brand-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Marcas</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nueva Marca</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando marcas...</div>
+
+  <table *ngIf="!loading && brands.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>País</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let brand of brands">
+        <td>{{ brand.name }}</td>
+        <td>{{ brand.country || '—' }}</td>
+        <td>
+          <span class="badge" [class.active]="brand.isActive">
+            {{ brand.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(brand)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(brand)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && brands.length === 0" class="empty">
+    No hay marcas registradas.
+    <button (click)="onCreate()" class="btn-link">Crear la primera</button>
+  </div>
+</div>

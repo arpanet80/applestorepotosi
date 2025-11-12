@@ -1,0 +1,239 @@
+<!-- src/app/products/pages/products-page/products-page.component.html -->
+<div class="products-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Catálogo de Productos</h1>
+        <p>Gestiona y explora todos los productos disponibles</p>
+      </div>
+      
+      <div class="header-actions">
+        <button 
+          *ngIf="canCreate"
+          (click)="onCreateProduct()" 
+          class="btn btn-primary">
+          ➕ Nuevo Producto
+        </button>
+        
+        <button 
+          *ngIf="canManage"
+          (click)="onManageProducts()" 
+          class="btn btn-secondary">
+          ⚙️ Gestión Avanzada
+        </button>
+        
+        <button 
+          (click)="onRefresh()" 
+          class="btn btn-outline"
+          [disabled]="loading">
+          🔄 Actualizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div *ngIf="stats" class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total">📦</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total Productos</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon active">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.active }}</span>
+          <span class="stat-label">Activos</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon featured">⭐</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.featured }}</span>
+          <span class="stat-label">Destacados</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon low-stock">⚠️</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.lowStock }}</span>
+          <span class="stat-label">Stock Bajo</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon out-of-stock">❌</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.outOfStock }}</span>
+          <span class="stat-label">Sin Stock</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls Section -->
+  <div class="controls-section">
+    <!-- Search -->
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar productos por nombre, SKU o descripción..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input">
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="filter-buttons">
+        <button 
+          [class]="getFilterButtonClass('all')"
+          (click)="onFilterChange('all')">
+          Todos
+        </button>
+        
+        <button 
+          [class]="getFilterButtonClass('active')"
+          (click)="onFilterChange('active')">
+          Activos
+        </button>
+        
+        <button 
+          [class]="getFilterButtonClass('inactive')"
+          (click)="onFilterChange('inactive')">
+          Inactivos
+        </button>
+        
+        <button 
+          [class]="getFilterButtonClass('featured')"
+          (click)="onFilterChange('featured')">
+          Destacados
+        </button>
+        
+        <button 
+          [class]="getFilterButtonClass('low-stock')"
+          (click)="onFilterChange('low-stock')">
+          Stock Bajo
+        </button>
+        
+        <button 
+          [class]="getFilterButtonClass('out-of-stock')"
+          (click)="onFilterChange('out-of-stock')">
+          Sin Stock
+        </button>
+      </div>
+
+      <div class="results-info">
+        <span class="results-count">
+          Mostrando {{ getDisplayedRange() }} productos
+        </span>
+        
+        <span class="active-filter" *ngIf="activeFilter !== 'all'">
+          • Filtro: 
+          <strong>
+            {{ 
+              activeFilter === 'active' ? 'Activos' :
+              activeFilter === 'inactive' ? 'Inactivos' :
+              activeFilter === 'featured' ? 'Destacados' :
+              activeFilter === 'low-stock' ? 'Stock Bajo' :
+              activeFilter === 'out-of-stock' ? 'Sin Stock' : 'Todos'
+            }}
+          </strong>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando productos...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      <h3>Error al cargar los productos</h3>
+      <p>{{ error }}</p>
+    </div>
+    <button (click)="loadProducts()" class="btn btn-primary">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Products List -->
+  <div *ngIf="!loading && !error" class="products-section">
+    <app-product-list
+      [filters]="{
+        search: searchTerm,
+        isActive: activeFilter === 'all' ? undefined : activeFilter === 'active',
+        isFeatured: activeFilter === 'featured' ? true : undefined,
+        stockStatus: activeFilter === 'low-stock' ? 'low-stock' : 
+                    activeFilter === 'out-of-stock' ? 'out-of-stock' : undefined
+      }"
+      [showActions]="true"
+      (productSelected)="onProductSelected($event)"
+      (productEdit)="onProductEdit($event)"
+      (productDelete)="onProductDelete($event)">
+    </app-product-list>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination-section">
+      <div class="pagination">
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage === 1"
+          (click)="onPageChange(currentPage - 1)">
+          ← Anterior
+        </button>
+
+        <div class="pagination-pages">
+          <button 
+            *ngFor="let page of getPages()"
+            class="page-btn"
+            [class.active]="page === currentPage"
+            (click)="onPageChange(page)">
+            {{ page }}
+          </button>
+        </div>
+
+        <button 
+          class="pagination-btn"
+          [disabled]="currentPage === totalPages"
+          (click)="onPageChange(currentPage + 1)">
+          Siguiente →
+        </button>
+      </div>
+
+      <div class="pagination-info">
+        Página {{ currentPage }} de {{ totalPages }}
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="products.length === 0" class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h3>No se encontraron productos</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all'">
+        Intenta ajustar los filtros de búsqueda o 
+        <button (click)="onFilterChange('all'); searchTerm = ''; loadProducts()" class="btn-link">
+          mostrar todos los productos
+        </button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all'">
+        No hay productos registrados en el sistema.
+        <button *ngIf="canCreate" (click)="onCreateProduct()" class="btn-link">
+          Crear el primer producto
+        </button>
+      </p>
+    </div>
+  </div>
+</div>

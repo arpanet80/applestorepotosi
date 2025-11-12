@@ -1,0 +1,56 @@
+/* src/app/brands/components/logo-upload/logo-upload.component.css */
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #fafafa;
+  transition: border-color 0.3s;
+}
+
+.upload-area:hover {
+  border-color: #3498db;
+}
+
+.upload-prompt .hint {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.upload-prompt small {
+  color: #7f8c8d;
+}
+
+.link {
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.preview-box {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.preview-img {
+  max-width: 200px;
+  max-height: 120px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.preview-actions {
+  margin-top: 0.5rem;
+}
+
+.btn-remove {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}

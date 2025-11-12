@@ -1,0 +1,40 @@
+<!-- src/app/categories/pages/category-management/category-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Categorías</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nueva Categoría</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando categorías...</div>
+
+  <table *ngIf="!loading && categories.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Slug</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let cat of categories">
+        <td>{{ cat.name }}</td>
+        <td>{{ cat.slug }}</td>
+        <td>
+          <span class="badge" [class.active]="cat.isActive">
+            {{ cat.isActive ? 'Activa' : 'Inactiva' }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(cat)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(cat)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && categories.length === 0" class="empty">
+    No hay categorías registradas.
+    <button (click)="onCreate()" class="btn-link">Crear la primera</button>
+  </div>
+</div>

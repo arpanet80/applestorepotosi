@@ -1,0 +1,45 @@
+<!-- src/app/categories/components/category-detail/category-detail.component.html -->
+<div class="category-detail" *ngIf="!loading && category">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ category.name }}</h1>
+      <span class="status-badge" [class.active]="category.isActive">
+        {{ category.isActive ? 'Activa' : 'Inactiva' }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onToggleActive()" class="btn btn-secondary">
+        {{ category.isActive ? 'Desactivar' : 'Activar' }}
+      </button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Slug:</strong> {{ category.slug }}</p>
+      <p><strong>Descripción:</strong> {{ category.description || 'Sin descripción' }}</p>
+      <p><strong>Categoría padre:</strong> {{ category.parentId || 'Ninguna' }}</p>
+    </div>
+
+    <div class="card" *ngIf="category.imageUrl">
+      <h3>Imagen</h3>
+      <img [src]="category.imageUrl" alt="Imagen de {{ category.name }}" class="image" />
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando categoría...</p>
+</div>
+
+<!-- Error -->
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/categories" class="btn btn-primary">Volver</button>
+</div>

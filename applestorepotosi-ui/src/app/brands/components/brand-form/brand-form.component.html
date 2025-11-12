@@ -1,0 +1,195 @@
+<!-- src/app/brands/components/brand-form/brand-form.component.html -->
+<div class="brand-form-container">
+  <!-- Header -->
+  <div class="form-header">
+    <h2>{{ isEditMode ? 'Editar Marca' : 'Crear Nueva Marca' }}</h2>
+    <p>Complete la información de la marca</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando datos de la marca...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-message">
+      {{ error }}
+    </div>
+    <button (click)="isEditMode ? loadBrand() : initForm()" class="btn-retry">
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Form -->
+  <form *ngIf="!loading" [formGroup]="brandForm" (ngSubmit)="onSubmit()" class="brand-form">
+    
+    <!-- Información Básica -->
+    <fieldset class="form-section">
+      <legend>Información Básica</legend>
+      
+      <div class="form-group">
+        <label for="name">Nombre de la Marca *</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Ej: Apple, Samsung, Xiaomi"
+          [class.invalid]="isFieldInvalid('name')">
+        <div *ngIf="isFieldInvalid('name')" class="error">
+          {{ getFieldError('name') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Breve descripción de la marca..."
+          rows="3"></textarea>
+      </div>
+    </fieldset>
+
+    <!-- Imagen y Logo -->
+    <fieldset class="form-section">
+      <legend>Imagen y Logo</legend>
+      
+      <!-- Logo -->
+      <fieldset class="form-section">
+        <legend>Logo de la Marca</legend>
+
+        <!-- Logo actual (modo edición) -->
+        <div *ngIf="isEditMode && currentLogoUrl && !isReplacing" class="current-logo">
+          <p><strong>Logo actual:</strong></p>
+          <img [src]="currentLogoUrl" alt="Logo actual" class="logo-preview" />
+          <button type="button" (click)="isReplacing = true" class="btn btn-secondary">
+            🔄 Reemplazar logo
+          </button>
+        </div>
+
+        <!-- Upload (nuevo archivo o reemplazo) -->
+        <div *ngIf="!isEditMode || isReplacing">
+          <app-logo-upload
+            (fileSelected)="onLogoSelected($event)"
+            (cancelled)="onLogoCancelled()">
+          </app-logo-upload  >
+        </div>
+
+        <!-- URL externa (opcional) -->
+        <div class="form-group">
+          <label>O ingresar URL externa</label>
+          <input
+            type="url"
+            formControlName="logoUrl"
+            placeholder="https://example.com/logo.png">
+        </div>
+      </fieldset>
+
+      <!-- <div class="form-group">
+        <label for="logoUrl">URL del Logo</label>
+        <input
+          id="logoUrl"
+          type="url"
+          formControlName="logoUrl"
+          placeholder="https://example.com/logo.png">
+      </div> -->
+
+      <div class="form-group">
+        <label for="website">Sitio Web Oficial</label>
+        <input
+          id="website"
+          type="url"
+          formControlName="website"
+          placeholder="https://www.apple.com">
+      </div>
+    </fieldset>
+
+    <!-- País y Soporte -->
+    <fieldset class="form-section">
+      <legend>País y Soporte</legend>
+      
+      <div class="form-row">
+        <!-- <div class="form-group">
+          <label for="country">País de Origen</label>
+          <input
+            id="country"
+            type="text"
+            formControlName="country"
+            placeholder="Ej: Estados Unidos, China, Corea del Sur">
+        </div> -->
+
+        <div class="form-group">
+          <label for="country">País de Origen</label>
+          <select
+            id="country"
+            formControlName="country"
+            class="form-control">
+            <option value="">Seleccionar país</option>
+            <option *ngFor="let c of countries" [value]="c.code">
+              {{ c.name }}
+            </option>
+          </select>
+        </div>
+
+
+        <div class="form-group">
+          <label for="supportUrl">URL de Soporte</label>
+          <input
+            id="supportUrl"
+            type="url"
+            formControlName="supportUrl"
+            placeholder="https://support.apple.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="warrantyInfo">Información de Garantía</label>
+        <textarea
+          id="warrantyInfo"
+          formControlName="warrantyInfo"
+          placeholder="Detalles de garantía oficiales..."
+          rows="3"></textarea>
+      </div>
+    </fieldset>
+
+    <!-- Configuración -->
+    <fieldset class="form-section">
+      <legend>Configuración</legend>
+      
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="isActive">
+          <span class="checkmark"></span>
+          Marca Activa
+        </label>
+        <small>Las marcas inactivas no aparecerán en el catálogo</small>
+      </div>
+    </fieldset>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="btn btn-secondary"
+        [disabled]="submitting">
+        Cancelar
+      </button>
+      
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="brandForm.invalid || submitting">
+        <span *ngIf="submitting" class="spinner-small"></span>
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar Marca' : 'Crear Marca') }}
+      </button>
+    </div>
+
+    <!-- Global Form Error -->
+    <div *ngIf="error" class="form-global-error">
+      {{ error }}
+    </div>
+  </form>
+</div>

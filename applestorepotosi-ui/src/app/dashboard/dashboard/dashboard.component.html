@@ -1,0 +1,178 @@
+<nav class="main-nav">
+  <a routerLink="/dashboard/products" routerLinkActive="active">
+    📦 Productos
+  </a>
+  <a routerLink="/dashboard/products/create" routerLinkActive="active" >
+    ➕ Nuevo Producto
+  </a>
+  <a routerLink="/dashboard/products/management" routerLinkActive="active" >
+    ⚙️ Gestión Avanzada
+  </a>
+</nav>
+
+
+<!-- src/app/dashboard/dashboard/dashboard.component.html -->
+<div class="dashboard">
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Apple Store Potosí</h1>
+      <nav class="main-nav">
+        <a routerLink="/dashboard" class="nav-link active">Inicio</a>
+        
+        <!-- Menú según rol -->
+        <ng-container *ngIf="hasAnyRole(['admin', 'sales', 'technician'])">
+          <a routerLink="/products" class="nav-link">📱 Productos</a>
+        </ng-container>
+        
+        <ng-container *ngIf="hasAnyRole(['admin', 'sales'])">
+          <a routerLink="/sales" class="nav-link">💰 Ventas</a>
+          <a routerLink="/customers" class="nav-link">👥 Clientes</a>
+        </ng-container>
+        
+        <ng-container *ngIf="hasAnyRole(['admin', 'technician'])">
+          <a routerLink="/technician" class="nav-link">🔧 Servicio Técnico</a>
+        </ng-container>
+        
+        <ng-container *ngIf="hasRole('admin')">
+          <a routerLink="/admin" class="nav-link">👑 Administración</a>
+        </ng-container>
+        
+        <ng-container *ngIf="hasRole('customer')">
+          <a routerLink="/customer" class="nav-link">🛍️ Mis Compras</a>
+          <a routerLink="/services" class="nav-link">🔧 Mis Servicios</a>
+        </ng-container>
+      </nav>
+    </div>
+    
+    <div class="user-welcome">
+      <div class="user-info-header">
+        <img 
+          [src]="getAvatarUrl()" 
+          [alt]="getAvatarAltText()"
+          class="user-avatar"
+          (error)="onAvatarError($event)">
+        <div class="user-details">
+          <span class="user-name">{{ currentUser?.displayName || currentUser?.email }}</span>
+          <span class="user-role">{{ getRoleDisplayName(currentUser?.role) }}</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button (click)="goToProfile()" class="btn-outline">👤 Perfil</button>
+        <button (click)="logout()" class="logout-btn">🚪 Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard-content">
+    <!-- Banner de bienvenida -->
+    <div class="welcome-banner">
+      <h2>Bienvenido, {{ currentUser?.displayName || 'Usuario' }}</h2>
+      <p>Apple Store Potosí - Sistema Integral de Gestión</p>
+    </div>
+
+    <!-- Panel de acceso rápido según rol -->
+    <div class="quick-access">
+      <h3>Acceso Rápido</h3>
+      
+      <div class="quick-grid">
+        <!-- ADMIN -->
+        <ng-container *ngIf="hasRole('admin')">
+          <div class="quick-card" routerLink="/admin">
+            <div class="quick-icon">👑</div>
+            <span>Panel Admin</span>
+          </div>
+          <div class="quick-card" routerLink="/products">
+            <div class="quick-icon">📦</div>
+            <span>Gestionar Productos</span>
+          </div>
+          <div class="quick-card" routerLink="/sales">
+            <div class="quick-icon">💰</div>
+            <span>Ver Ventas</span>
+          </div>
+          <div class="quick-card" routerLink="/technician">
+            <div class="quick-icon">🔧</div>
+            <span>Servicio Técnico</span>
+          </div>
+        </ng-container>
+
+        <!-- SALES -->
+        <ng-container *ngIf="hasAnyRole(['admin', 'sales'])">
+          <div class="quick-card" routerLink="/sales/point-of-sale">
+            <div class="quick-icon">🖨️</div>
+            <span>Punto de Venta</span>
+          </div>
+          <div class="quick-card" routerLink="/customers">
+            <div class="quick-icon">👥</div>
+            <span>Clientes</span>
+          </div>
+          <div class="quick-card" routerLink="/products">
+            <div class="quick-icon">📱</div>
+            <span>Inventario</span>
+          </div>
+        </ng-container>
+
+        <!-- TECHNICIAN -->
+        <ng-container *ngIf="hasAnyRole(['admin', 'technician'])">
+          <div class="quick-card" routerLink="/technician/repairs">
+            <div class="quick-icon">🛠️</div>
+            <span>Reparaciones</span>
+          </div>
+          <div class="quick-card" routerLink="/technician/diagnostics">
+            <div class="quick-icon">🔍</div>
+            <span>Diagnósticos</span>
+          </div>
+          <div class="quick-card" routerLink="/technician/parts">
+            <div class="quick-icon">⚙️</div>
+            <span>Repuestos</span>
+          </div>
+        </ng-container>
+
+        <!-- CUSTOMER -->
+        <ng-container *ngIf="hasRole('customer')">
+          <div class="quick-card" routerLink="/customer/orders">
+            <div class="quick-icon">📦</div>
+            <span>Mis Pedidos</span>
+          </div>
+          <div class="quick-card" routerLink="/customer/services">
+            <div class="quick-icon">🔧</div>
+            <span>Mis Servicios</span>
+          </div>
+          <div class="quick-card" routerLink="/products">
+            <div class="quick-icon">🛍️</div>
+            <span>Comprar</span>
+          </div>
+        </ng-container>
+
+        <!-- COMÚN -->
+        <div class="quick-card" routerLink="/profile">
+          <div class="quick-icon">👤</div>
+          <span>Mi Perfil</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Información del sistema -->
+    <div class="system-info">
+      <h3>Información del Sistema</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>Rol:</strong> {{ getRoleDisplayName(currentUser?.role) }}
+        </div>
+        <div class="info-item">
+          <strong>Email:</strong> {{ currentUser?.email }}
+        </div>
+        <div class="info-item">
+          <strong>Último acceso:</strong> {{ currentUser?.lastLogin | date:'medium' }}
+        </div>
+        <div class="info-item">
+          <strong>Estado:</strong> 
+          <span [class]="currentUser?.isActive ? 'status-active' : 'status-inactive'">
+            {{ currentUser?.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<router-outlet></router-outlet>
