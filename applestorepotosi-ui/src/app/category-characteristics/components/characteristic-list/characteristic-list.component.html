@@ -1,0 +1,55 @@
+<!-- src/app/category-characteristics/components/characteristic-list/characteristic-list.component.html -->
+<div class="characteristic-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando características...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadCharacteristics()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && characteristics.length === 0" class="empty">
+    <p>No se encontraron características</p>
+  </div>
+
+  <div *ngIf="!loading && !error && characteristics.length > 0" class="characteristics-grid">
+    <div
+      *ngFor="let c of characteristics"
+      class="characteristic-card"
+      [class.inactive]="!c.isActive"
+    >
+      <div class="characteristic-header">
+        <h3 class="characteristic-name" (click)="onSelect(c)">{{ c.name }}</h3>
+        <span class="active-badge" [class.active]="c.isActive">
+          {{ c.isActive ? 'Activa' : 'Inactiva' }}
+        </span>
+      </div>
+
+      <div class="characteristic-info">
+        <div class="info-row">
+          <span class="label">Tipo:</span>
+          <span class="value">{{ c.type }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Requerido:</span>
+          <span class="value">{{ c.isRequired ? 'Sí' : 'No' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Valores posibles:</span>
+          <span class="value">{{ c.possibleValues?.join(', ') || '—' }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="showActions()" class="characteristic-actions">
+        <button (click)="onSelect(c)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEdit(c)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="toggleActive(c)" class="btn btn-secondary btn-sm">
+          {{ c.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onDelete(c)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

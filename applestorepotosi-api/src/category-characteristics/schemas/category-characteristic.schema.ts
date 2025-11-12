@@ -3,10 +3,9 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
 export type CharacteristicType = 'text' | 'number' | 'boolean' | 'select' | 'multiselect' | 'date';
-
 export type CategoryCharacteristicDocument = CategoryCharacteristic & Document;
 
-@Schema({ 
+@Schema({
   collection: 'category_characteristics',
   timestamps: true,
 })
@@ -17,10 +16,10 @@ export class CategoryCharacteristic {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     enum: ['text', 'number', 'boolean', 'select', 'multiselect', 'date'],
-    required: true 
+    required: true,
   })
   type: CharacteristicType;
 
@@ -39,9 +38,15 @@ export class CategoryCharacteristic {
   @Prop({ default: 0 })
   sortOrder: number;
 
-  // Campos automáticos de timestamps
+  @Prop({ type: String })
+  updatedBy?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const CategoryCharacteristicSchema = SchemaFactory.createForClass(CategoryCharacteristic);
+
+// Índices
+CategoryCharacteristicSchema.index({ categoryId: 1, name: 1 }, { unique: true });
+CategoryCharacteristicSchema.index({ isActive: 1, sortOrder: 1 });

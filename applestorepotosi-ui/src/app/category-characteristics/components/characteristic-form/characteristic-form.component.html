@@ -1,0 +1,66 @@
+<!-- src/app/category-characteristics/components/characteristic-form/characteristic-form.component.html -->
+<div class="characteristic-form-container">
+  <h2>{{ isEditMode ? 'Editar Característica' : 'Crear Característica' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label>ID de Categoría *</label>
+      <input formControlName="categoryId" placeholder="64f3..." />
+      <div *ngIf="form.get('categoryId')?.invalid && form.get('categoryId')?.touched" class="error">
+        Campo requerido
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Nombre *</label>
+      <input formControlName="name" placeholder="Color" />
+      <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="error">
+        Nombre requerido (mín. 2 caracteres)
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tipo *</label>
+      <select formControlName="type">
+        <option value="text">Texto</option>
+        <option value="number">Número</option>
+        <option value="boolean">Sí/No</option>
+        <option value="select">Selección única</option>
+        <option value="multiselect">Selección múltiple</option>
+        <option value="date">Fecha</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Valores posibles (JSON array)</label>
+      <textarea formControlName="possibleValues" rows="2" placeholder='["Rojo", "Azul"]'></textarea>
+    </div>
+
+    <div class="form-group checkbox">
+      <label><input type="checkbox" formControlName="isRequired" /> Requerido</label>
+    </div>
+
+    <div class="form-group checkbox">
+      <label><input type="checkbox" formControlName="isActive" /> Activa</label>
+    </div>
+
+    <div class="form-group">
+      <label>Descripción</label>
+      <textarea formControlName="description" rows="2"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Orden</label>
+      <input type="number" formControlName="sortOrder" />
+    </div>
+
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()">Cancelar</button>
+      <button type="submit" [disabled]="form.invalid || submitting">
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+  </form>
+</div>

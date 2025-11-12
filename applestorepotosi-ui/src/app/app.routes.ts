@@ -62,6 +62,13 @@ export const routes: Routes = [
         data: { roles: [UserRole.ADMIN] },
         loadChildren: () => import('./categories/categories.routes').then(m => m.CATEGORIES_ROUTES)
       },
+      {
+        path: 'category-characteristics',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./category-characteristics/category-characteristics.routes').then(m => m.CATEGORY_CHARACTERISTICS_ROUTES)
+      },
+
 
 
 

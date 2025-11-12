@@ -1,0 +1,39 @@
+<!-- src/app/category-characteristics/components/characteristic-detail/characteristic-detail.component.html -->
+<div class="characteristic-detail" *ngIf="!loading && characteristic">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ characteristic.name }}</h1>
+      <span class="status-badge" [class.active]="characteristic.isActive">
+        {{ characteristic.isActive ? 'Activa' : 'Inactiva' }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onToggleActive()" class="btn btn-secondary">
+        {{ characteristic.isActive ? 'Desactivar' : 'Activar' }}
+      </button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Tipo:</strong> {{ characteristic.type }}</p>
+      <p><strong>Descripción:</strong> {{ characteristic.description || 'Sin descripción' }}</p>
+      <p><strong>Requerido:</strong> {{ characteristic.isRequired ? 'Sí' : 'No' }}</p>
+      <p><strong>Valores posibles:</strong> {{ characteristic.possibleValues?.join(', ') || '—' }}</p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando característica...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/category-characteristics" class="btn btn-primary">Volver</button>
+</div>

@@ -1,5 +1,16 @@
 // src/category-characteristics/category-characteristics.controller.ts
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards,ParseIntPipe,DefaultValuePipe} from '@nestjs/common';
+import {Controller,Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  ParseIntPipe,
+  DefaultValuePipe,
+  Req,
+} from '@nestjs/common';
 import { CategoryCharacteristicsService } from './category-characteristics.service';
 import { CreateCategoryCharacteristicDto } from './dto/create-category-characteristic.dto';
 import { UpdateCategoryCharacteristicDto } from './dto/update-category-characteristic.dto';
@@ -13,13 +24,13 @@ import { UserRole } from '../users/schemas/user.schema';
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 export class CategoryCharacteristicsController {
   constructor(
-    private readonly characteristicsService: CategoryCharacteristicsService
+    private readonly characteristicsService: CategoryCharacteristicsService,
   ) {}
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() createCharacteristicDto: CreateCategoryCharacteristicDto) {
-    return this.characteristicsService.create(createCharacteristicDto);
+  create(@Body() dto: CreateCategoryCharacteristicDto, @Req() req: any) {
+    return this.characteristicsService.create(dto, req.user.uid);
   }
 
   @Get()
@@ -41,19 +52,27 @@ export class CategoryCharacteristicsController {
   @Get('search')
   searchCharacteristics(
     @Query('q') search: string,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
     return this.characteristicsService.searchCharacteristics(search, limit);
   }
 
   @Get('category/:categoryId')
-  findByCategory(@Param('categoryId') categoryId: string) {
-    return this.characteristicsService.findByCategory(categoryId);
+  findByCategory(
+    @Param('categoryId') categoryId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.characteristicsService.findByCategory(categoryId, page, limit);
   }
 
   @Get('category/:categoryId/required')
-  findRequiredByCategory(@Param('categoryId') categoryId: string) {
-    return this.characteristicsService.findRequiredByCategory(categoryId);
+  findRequiredByCategory(
+    @Param('categoryId') categoryId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.characteristicsService.findRequiredByCategory(categoryId, page, limit);
   }
 
   @Get('category/:categoryId/form')
@@ -69,10 +88,11 @@ export class CategoryCharacteristicsController {
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   update(
-    @Param('id') id: string, 
-    @Body() updateCharacteristicDto: UpdateCategoryCharacteristicDto
+    @Param('id') id: string,
+    @Body() dto: UpdateCategoryCharacteristicDto,
+    @Req() req: any,
   ) {
-    return this.characteristicsService.update(id, updateCharacteristicDto);
+    return this.characteristicsService.update(id, dto, req.user.uid);
   }
 
   @Put(':id/toggle-active')
@@ -97,9 +117,13 @@ export class CategoryCharacteristicsController {
   async checkName(
     @Param('categoryId') categoryId: string,
     @Param('name') name: string,
-    @Query('excludeId') excludeId?: string
+    @Query('excludeId') excludeId?: string,
   ) {
-    const exists = await this.characteristicsService.nameExistsInCategory(categoryId, name, excludeId);
+    const exists = await this.characteristicsService.existsByNameAndCategory(
+      categoryId,
+      name,
+      excludeId,
+    );
     return { exists, available: !exists };
   }
 }
