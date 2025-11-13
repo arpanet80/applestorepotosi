@@ -1,0 +1,3 @@
+estoy trbajando con un sistema en nest y angular 20+ (NO ANGULAR MATERIAL) de un puesto de venta de celulares iphone, analiza el código del módulo purchase_orders adjunto.
+
+te comparto los módulos categories y products que estan funcionales, basate en ellos para tener una línea a seguir, analiza el módulo purchase_orders y dime si existen problemas o sugerencias de mejora

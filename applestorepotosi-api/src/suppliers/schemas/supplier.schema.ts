@@ -1,10 +1,10 @@
 // src/suppliers/schemas/supplier.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document } from 'mongoose';
 
 export type SupplierDocument = Supplier & Document;
 
-@Schema({ 
+@Schema({
   collection: 'suppliers',
   timestamps: true,
 })
@@ -27,8 +27,8 @@ export class Supplier {
       city: String,
       state: String,
       zipCode: String,
-      country: String
-    }
+      country: String,
+    },
   })
   address: {
     street?: string;
@@ -50,8 +50,8 @@ export class Supplier {
   @Prop({
     type: {
       accountNumber: String,
-      bankName: String
-    }
+      bankName: String,
+    },
   })
   bankInfo: {
     accountNumber?: string;
@@ -61,7 +61,6 @@ export class Supplier {
   @Prop({ default: true })
   isActive: boolean;
 
-  // Campos automáticos de timestamps
   createdAt: Date;
   updatedAt: Date;
 }

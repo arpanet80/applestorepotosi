@@ -68,9 +68,24 @@ export const routes: Routes = [
         data: { roles: [UserRole.ADMIN] },
         loadChildren: () => import('./category-characteristics/category-characteristics.routes').then(m => m.CATEGORY_CHARACTERISTICS_ROUTES)
       },
-
-
-
+      {
+        path: 'customers',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./customers/customers.routes').then(m => m.CUSTOMERS_ROUTES)
+      },
+      {
+        path: 'purchase-orders',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./purchase-orders/purchase-orders.routes').then(m => m.PURCHASE_ORDERS_ROUTES)
+      },
+      {
+        path: 'suppliers',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./suppliers/suppliers.routes').then(m => m.SUPPLIERS_ROUTES)
+      },
 
       // ========== RUTAS DE CLIENTES ==========
       // {

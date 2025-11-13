@@ -1,0 +1,37 @@
+<!-- src/app/suppliers/components/supplier-list/supplier-list.component.html -->
+<div class="supplier-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando proveedores...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadSuppliers()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && suppliers.length === 0" class="empty">
+    <p>No se encontraron proveedores</p>
+  </div>
+
+  <div *ngIf="!loading && !error && suppliers.length > 0" class="suppliers-grid">
+    <div *ngFor="let s of suppliers" class="supplier-card" [class.inactive]="!s.isActive">
+      <div class="supplier-header">
+        <h3 class="supplier-name" (click)="onSelect(s)">{{ s.name }}</h3>
+        <span class="active-badge" [class.active]="s.isActive">
+          {{ s.isActive ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <div class="supplier-info">
+        <p><strong>Email:</strong> {{ s.contactEmail }}</p>
+        <p><strong>Teléfono:</strong> {{ s.contactPhone }}</p>
+        <p><strong>País:</strong> {{ s.address?.country || '—' }}</p>
+      </div>
+      <div *ngIf="showActions()" class="supplier-actions">
+        <button (click)="onSelect(s)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEdit(s)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="onDelete(s)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

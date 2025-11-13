@@ -1,0 +1,55 @@
+<!-- src/app/customers/components/customer-list/customer-list.component.html -->
+<div class="customer-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando clientes...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadCustomers()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && customers.length === 0" class="empty">
+    <p>No se encontraron clientes</p>
+  </div>
+
+  <div *ngIf="!loading && !error && customers.length > 0" class="customers-grid">
+    <div *ngFor="let c of customers" class="customer-card" [class.inactive]="!c.isActive">
+      <div class="customer-header">
+        <h3 class="customer-name" (click)="onSelect(c)">{{ c.fullName }}</h3>
+        <span class="active-badge" [class.active]="c.isActive">
+          {{ c.isActive ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+
+      <div class="customer-info">
+        <div class="info-row">
+          <span class="label">Email:</span>
+          <span class="value">{{ c.email }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Teléfono:</span>
+          <span class="value">{{ c.phone }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Puntos:</span>
+          <span class="value">{{ c.loyaltyPoints }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">País:</span>
+          <span class="value">{{ c.address?.country || '—' }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="showActions()" class="customer-actions">
+        <button (click)="onSelect(c)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEdit(c)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="toggleActive(c)" class="btn btn-secondary btn-sm">
+          {{ c.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onDelete(c)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

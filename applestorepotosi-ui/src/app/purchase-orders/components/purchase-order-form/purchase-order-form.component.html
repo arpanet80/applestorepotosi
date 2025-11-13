@@ -1,0 +1,58 @@
+<!-- src/app/purchase-orders/components/purchase-order-form/purchase-order-form.component.html -->
+<div class="purchase-order-form-container">
+  <h2>{{ isEditMode ? 'Editar Orden de Compra' : 'Crear Orden de Compra' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- PROVEEDOR -->
+    <div class="form-group">
+      <label>Proveedor *</label>
+      <select formControlName="supplierId">
+        <option value="" disabled selected>Seleccione un proveedor</option>
+        <option *ngFor="let s of suppliers" [value]="s._id">{{ s.name }}</option>
+      </select>
+      <div *ngIf="form.get('supplierId')?.invalid && form.get('supplierId')?.touched" class="error">
+        Campo requerido
+      </div>
+    </div>
+
+    <!-- FECHA -->
+    <div class="form-group">
+      <label>Fecha de orden</label>
+      <input type="date" formControlName="orderDate" />
+    </div>
+
+    <!-- ITEMS -->
+    <div class="form-group">
+      <label>Productos *</label>
+      <div formArrayName="items" class="items-list">
+        <div *ngFor="let item of items.controls; let i = index" [formGroupName]="i" class="item-row">
+          <select formControlName="productId">
+            <option value="" disabled selected>Producto</option>
+            <option *ngFor="let p of products" [value]="p._id">{{ p.name }}</option>
+          </select>
+          <input type="number" formControlName="quantity" placeholder="Cantidad" min="1" />
+          <input type="number" formControlName="unitCost" placeholder="Costo unitario" min="0" step="0.01" />
+          <button type="button" (click)="removeItem(i)" class="btn-remove">❌</button>
+        </div>
+        <button type="button" (click)="addItem()" class="btn-add">➕ Agregar producto</button>
+        <div *ngIf="items.length === 0 && form.touched" class="error">Debe agregar al menos un producto</div>
+      </div>
+    </div>
+
+    <!-- NOTAS -->
+    <div class="form-group">
+      <label>Notas</label>
+      <textarea formControlName="notes" rows="3" placeholder="Opcional"></textarea>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()">Cancelar</button>
+      <button type="submit" [disabled]="form.invalid || submitting">
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+  </form>
+</div>

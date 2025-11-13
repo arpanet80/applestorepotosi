@@ -1,0 +1,88 @@
+<!-- src/app/suppliers/components/supplier-form/supplier-form.component.html -->
+<div class="supplier-form-container">
+  <h2>{{ isEditMode ? 'Editar Proveedor' : 'Crear Proveedor' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- DATOS GENERALES -->
+    <div class="form-group">
+      <label>Nombre *</label>
+      <input formControlName="name" placeholder="Nombre del proveedor" />
+      <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="error">
+        Campo requerido (mín. 2 caracteres)
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Representante</label>
+      <input formControlName="representative" placeholder="Nombre del representante" />
+    </div>
+
+    <div class="form-group">
+      <label>Email de contacto *</label>
+      <input type="email" formControlName="contactEmail" placeholder="proveedor@example.com" />
+      <div *ngIf="form.get('contactEmail')?.invalid && form.get('contactEmail')?.touched" class="error">
+        Email inválido
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Teléfono de contacto *</label>
+      <input formControlName="contactPhone" placeholder="+59170000000" />
+      <div *ngIf="form.get('contactPhone')?.invalid && form.get('contactPhone')?.touched" class="error">
+        Campo requerido
+      </div>
+    </div>
+
+    <!-- DIRECCIÓN -->
+    <div class="form-group">
+      <label>Dirección</label>
+      <div formGroupName="address" class="sub-form">
+        <input formControlName="street" placeholder="Calle" />
+        <input formControlName="city" placeholder="Ciudad" />
+        <input formControlName="state" placeholder="Estado / Depto" />
+        <input formControlName="zipCode" placeholder="Código postal" />
+        <input formControlName="country" placeholder="País" />
+      </div>
+    </div>
+
+    <!-- DATOS FISCALES -->
+    <div class="form-group">
+      <label>Tax ID</label>
+      <input formControlName="taxId" placeholder="NIT / CI" />
+    </div>
+
+    <div class="form-group">
+      <label>RFC</label>
+      <input formControlName="rfc" placeholder="RFC (opcional)" />
+    </div>
+
+    <div class="form-group">
+      <label>Términos de pago</label>
+      <input formControlName="paymentTerms" placeholder="Ej: 30 días" />
+    </div>
+
+    <!-- DATOS BANCARIOS -->
+    <div class="form-group">
+      <label>Información bancaria</label>
+      <div formGroupName="bankInfo" class="sub-form">
+        <input formControlName="accountNumber" placeholder="Número de cuenta" />
+        <input formControlName="bankName" placeholder="Nombre del banco" />
+      </div>
+    </div>
+
+    <!-- ESTADO -->
+    <div class="form-group checkbox">
+      <label><input type="checkbox" formControlName="isActive" /> Activo</label>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()">Cancelar</button>
+      <button type="submit" [disabled]="form.invalid || submitting">
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="error-box">{{ error }}</div>
+  </form>
+</div>

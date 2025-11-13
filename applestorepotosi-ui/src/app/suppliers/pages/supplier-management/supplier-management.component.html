@@ -1,0 +1,70 @@
+<!-- src/app/suppliers/pages/supplier-management/supplier-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Proveedores</h1>
+    <button (click)="onPageChange(1)" class="btn btn-primary">🔄 Actualizar</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <input
+      type="text"
+      placeholder="Buscar por nombre, email o teléfono..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearch()"
+      class="search-input"
+    />
+
+    <select [(ngModel)]="isActiveFilter" (change)="onFilterChange()" class="filter-select">
+      <option [ngValue]="null">Todos</option>
+      <option [ngValue]="true">Activos</option>
+      <option [ngValue]="false">Inactivos</option>
+    </select>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="loading" class="loading">Cargando proveedores...</div>
+
+  <table *ngIf="!loading && suppliers.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Teléfono</th>
+        <th>País</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let s of suppliers">
+        <td>{{ s.name }}</td>
+        <td>{{ s.contactEmail }}</td>
+        <td>{{ s.contactPhone }}</td>
+        <td>{{ s.address?.country || '—' }}</td>
+        <td>
+          <span class="badge" [class.active]="s.isActive">
+            {{ s.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(s)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(s)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && suppliers.length === 0" class="empty">
+    No se encontraron proveedores.
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button (click)="onPageChange(page - 1)" [disabled]="page === 1">Anterior</button>
+    <span *ngFor="let p of pages" (click)="onPageChange(p)" class="page-number" [class.active]="p === page">
+      {{ p }}
+    </span>
+    <button (click)="onPageChange(page + 1)" [disabled]="page === totalPages">Siguiente</button>
+  </div>
+</div>

@@ -1,5 +1,5 @@
 // src/suppliers/suppliers.controller.ts
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards,ParseIntPipe,DefaultValuePipe} from '@nestjs/common';
+import {Controller,Get,Post,Put,Delete,Param,Body,Query,UseGuards,ParseIntPipe,DefaultValuePipe,} from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
@@ -12,9 +12,7 @@ import { UserRole } from '../users/schemas/user.schema';
 @Controller('suppliers')
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 export class SuppliersController {
-  constructor(
-    private readonly suppliersService: SuppliersService
-  ) {}
+  constructor(private readonly suppliersService: SuppliersService) {}
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
@@ -56,7 +54,7 @@ export class SuppliersController {
   @Get('search')
   searchSuppliers(
     @Query('q') search: string,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
     return this.suppliersService.searchSuppliers(search, limit);
   }
@@ -83,10 +81,7 @@ export class SuppliersController {
 
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  update(
-    @Param('id') id: string, 
-    @Body() updateSupplierDto: UpdateSupplierDto
-  ) {
+  update(@Param('id') id: string, @Body() updateSupplierDto: UpdateSupplierDto) {
     return this.suppliersService.update(id, updateSupplierDto);
   }
 
@@ -94,17 +89,14 @@ export class SuppliersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   updateBankInfo(
     @Param('id') id: string,
-    @Body() bankInfo: { accountNumber?: string; bankName?: string }
+    @Body() bankInfo: { accountNumber?: string; bankName?: string },
   ) {
     return this.suppliersService.updateBankInfo(id, bankInfo);
   }
 
   @Put(':id/payment-terms')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  updatePaymentTerms(
-    @Param('id') id: string,
-    @Body('paymentTerms') paymentTerms: string
-  ) {
+  updatePaymentTerms(@Param('id') id: string, @Body('paymentTerms') paymentTerms: string) {
     return this.suppliersService.updatePaymentTerms(id, paymentTerms);
   }
 
@@ -121,19 +113,13 @@ export class SuppliersController {
   }
 
   @Get('check-email/:email')
-  async checkEmail(
-    @Param('email') email: string,
-    @Query('excludeId') excludeId?: string
-  ) {
+  async checkEmail(@Param('email') email: string, @Query('excludeId') excludeId?: string) {
     const exists = await this.suppliersService.emailExists(email, excludeId);
     return { exists, available: !exists };
   }
 
   @Get('check-tax-id/:taxId')
-  async checkTaxId(
-    @Param('taxId') taxId: string,
-    @Query('excludeId') excludeId?: string
-  ) {
+  async checkTaxId(@Param('taxId') taxId: string, @Query('excludeId') excludeId?: string) {
     const exists = await this.suppliersService.taxIdExists(taxId, excludeId);
     return { exists, available: !exists };
   }

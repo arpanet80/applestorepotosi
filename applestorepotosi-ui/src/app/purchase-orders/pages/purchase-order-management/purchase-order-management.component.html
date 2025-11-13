@@ -1,0 +1,70 @@
+<!-- src/app/purchase-orders/pages/purchase-order-management/purchase-order-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Órdenes de Compra</h1>
+    <button (click)="onPageChange(1)" class="btn btn-primary">🔄 Actualizar</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters">
+    <input
+      type="text"
+      placeholder="Buscar por proveedor o notas..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearch()"
+      class="search-input"
+    />
+
+    <select [(ngModel)]="statusFilter" (change)="onFilterChange()" class="filter-select">
+      <option [ngValue]="null">Todas</option>
+      <option value="pending">Pendientes</option>
+      <option value="approved">Aprobadas</option>
+      <option value="completed">Completadas</option>
+      <option value="cancelled">Canceladas</option>
+    </select>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="loading" class="loading">Cargando órdenes...</div>
+
+  <table *ngIf="!loading && orders.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Proveedor</th>
+        <th>Fecha</th>
+        <th>Estado</th>
+        <th>Total</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let o of orders">
+        <td>{{ o._id }}</td>
+        <td>{{ o.supplierName || '—' }}</td>
+        <td>{{ o.orderDate | date:'short' }}</td>
+        <td>
+          <span class="badge" [class]="o.status">{{ o.status }}</span>
+        </td>
+        <td>{{ o.totalAmount | currency }}</td>
+        <td>
+          <button (click)="onEdit(o)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(o)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && orders.length === 0" class="empty">
+    No se encontraron órdenes.
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button (click)="onPageChange(page - 1)" [disabled]="page === 1">Anterior</button>
+    <span *ngFor="let p of pages" (click)="onPageChange(p)" class="page-number" [class.active]="p === page">
+      {{ p }}
+    </span>
+    <button (click)="onPageChange(page + 1)" [disabled]="page === totalPages">Siguiente</button>
+  </div>
+</div>

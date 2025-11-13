@@ -1,4 +1,4 @@
-// src/categories/dto/update-category.dto.ts
+// src/customers/dto/update-customer.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCustomerDto } from './create-customer.dto';
 

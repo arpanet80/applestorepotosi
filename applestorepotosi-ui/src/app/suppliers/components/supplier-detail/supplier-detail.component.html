@@ -1,0 +1,56 @@
+<!-- src/app/suppliers/components/supplier-detail/supplier-detail.component.html -->
+<div class="supplier-detail" *ngIf="!loading && supplier">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ supplier.name }}</h1>
+      <span class="status-badge" [class.active]="supplier.isActive">
+        {{ supplier.isActive ? 'Activo' : 'Inactivo' }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onToggleActive()" class="btn btn-secondary">
+        {{ supplier.isActive ? 'Desactivar' : 'Activar' }}
+      </button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Representante:</strong> {{ supplier.representative || '—' }}</p>
+      <p><strong>Email:</strong> {{ supplier.contactEmail }}</p>
+      <p><strong>Teléfono:</strong> {{ supplier.contactPhone }}</p>
+      <p><strong>Tax ID:</strong> {{ supplier.taxId || '—' }}</p>
+      <p><strong>RFC:</strong> {{ supplier.rfc || '—' }}</p>
+      <p><strong>Términos de pago:</strong> {{ supplier.paymentTerms || '—' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Dirección</h3>
+      <p><strong>Calle:</strong> {{ supplier.address?.street || '—' }}</p>
+      <p><strong>Ciudad:</strong> {{ supplier.address?.city || '—' }}</p>
+      <p><strong>Estado:</strong> {{ supplier.address?.state || '—' }}</p>
+      <p><strong>Código postal:</strong> {{ supplier.address?.zipCode || '—' }}</p>
+      <p><strong>País:</strong> {{ supplier.address?.country || '—' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Información Bancaria</h3>
+      <p><strong>Banco:</strong> {{ supplier.bankInfo?.bankName || '—' }}</p>
+      <p><strong>Número de cuenta:</strong> {{ supplier.bankInfo?.accountNumber || '—' }}</p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando proveedor...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/dashboard/suppliers" class="btn btn-primary">Volver</button>
+</div>

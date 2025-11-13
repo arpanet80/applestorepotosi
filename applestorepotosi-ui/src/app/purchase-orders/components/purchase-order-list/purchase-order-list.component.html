@@ -1,0 +1,35 @@
+<!-- src/app/purchase-orders/components/purchase-order-list/purchase-order-list.component.html -->
+<div class="purchase-order-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando órdenes...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadOrders()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && orders.length === 0" class="empty">
+    <p>No se encontraron órdenes de compra</p>
+  </div>
+
+  <div *ngIf="!loading && !error && orders.length > 0" class="orders-grid">
+    <div *ngFor="let o of orders" class="order-card">
+      <div class="order-header">
+        <h3 (click)="onSelect(o)">Orden #{{ o._id }}</h3>
+        <span class="status-badge" [class]="o.status">{{ o.status }}</span>
+      </div>
+      <div class="order-info">
+        <p><strong>Proveedor:</strong> {{ o.supplierName || '—' }}</p>
+        <p><strong>Fecha:</strong> {{ o.orderDate | date:'short' }}</p>
+        <p><strong>Total:</strong> {{ o.totalAmount | currency }}</p>
+      </div>
+      <div *ngIf="showActions()" class="order-actions">
+        <button (click)="onSelect(o)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEdit(o)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="onDelete(o)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

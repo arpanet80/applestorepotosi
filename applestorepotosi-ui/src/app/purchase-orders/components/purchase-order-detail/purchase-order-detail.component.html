@@ -1,0 +1,63 @@
+<!-- src/app/purchase-orders/components/purchase-order-detail/purchase-order-detail.component.html -->
+<div class="purchase-order-detail" *ngIf="!loading && order">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>Orden #{{ order._id }}</h1>
+      <span class="status-badge" [class]="order.status">{{ order.status }}</span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button *ngIf="order.status === 'pending'" (click)="onApprove()" class="btn btn-success">Aprobar</button>
+      <button *ngIf="order.status === 'pending'" (click)="onReject()" class="btn btn-warning">Rechazar</button>
+      <button *ngIf="order.status === 'approved'" (click)="onComplete()" class="btn btn-success">Completar</button>
+      <button *ngIf="['pending', 'approved'].includes(order.status)" (click)="onCancel()" class="btn btn-danger">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Proveedor:</strong> {{ order.supplierName || '—' }}</p>
+      <p><strong>Fecha:</strong> {{ order.orderDate | date:'short' }}</p>
+      <p><strong>Total:</strong> {{ order.totalAmount | currency }}</p>
+      <p><strong>Notas:</strong> {{ order.notes || '—' }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Productos de la orden</h3>
+        <table class="items-table">
+            <thead>
+            <tr>
+                <th>Producto</th>
+                <th>SKU</th>
+                <th>Código de barras</th>
+                <th>Cantidad</th>
+                <th>Costo unit.</th>
+                <th>Subtotal</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let item of order.items">
+                <td>{{ item.productId.name }}</td>
+                <td>{{ item.productId.sku }}</td>
+                <td>{{ item.productId.barcode }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unitCost | currency }}</td>
+                <td>{{ item.subtotal | currency }}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando orden...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/dashboard/purchase-orders" class="btn btn-primary">Volver</button>
+</div>

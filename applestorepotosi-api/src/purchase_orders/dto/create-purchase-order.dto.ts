@@ -1,6 +1,6 @@
 // src/purchase-orders/dto/create-purchase-order.dto.ts
 import { IsString, IsOptional, IsArray, IsNumber, Min, IsMongoId, IsEnum,ValidateNested,ArrayMinSize,IsDate} from 'class-validator';
-import { Type } from 'class-transformer';
+import { Exclude, Type } from 'class-transformer';
 
 export class PurchaseOrderItemDto {
   @IsMongoId()
@@ -36,4 +36,7 @@ export class CreatePurchaseOrderDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @Exclude()
+  totalAmount?: number;
 }

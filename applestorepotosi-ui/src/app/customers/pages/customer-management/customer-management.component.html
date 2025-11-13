@@ -1,0 +1,53 @@
+<!-- src/app/customers/pages/customer-management/customer-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Clientes</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nuevo Cliente</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando clientes...</div>
+
+  <table *ngIf="!loading && customers.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Teléfono</th>
+        <th>País</th>
+        <th>Puntos</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of customers">
+        <td>{{ c.fullName }}</td>
+        <td>{{ c.email }}</td>
+        <td>{{ c.phone }}</td>
+        <td>{{ c.address?.country || '—' }}</td>
+        <td>{{ c.loyaltyPoints }}</td>
+        <td>
+          <span class="badge" [class.active]="c.isActive">
+            {{ c.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(c)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(c)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && customers.length === 0" class="empty">
+    No hay clientes registrados.
+    <button (click)="onCreate()" class="btn-link">Crear el primero</button>
+  </div>
+
+  <!-- Paginación simple -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button (click)="onPageChange(page - 1)" [disabled]="page === 1">Anterior</button>
+    <span>Página {{ page }} de {{ totalPages }}</span>
+    <button (click)="onPageChange(page + 1)" [disabled]="page === totalPages">Siguiente</button>
+  </div>
+</div>

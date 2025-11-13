@@ -1,0 +1,117 @@
+/* src/app/customers/components/customer-form/customer-form.component.css */
+.customer-form-container {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sub-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.error {
+  color: red;
+  font-size: 0.8rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.error-box {
+  margin-top: 1rem;
+  color: white;
+  background: #e74c3c;
+  padding: 0.75rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-dropdown {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 10;
+}
+
+.dropdown-list li {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.dropdown-list li:hover,
+.dropdown-list li.selected {
+  background: #3498db;
+  color: white;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #3498db;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.btn-link:hover {
+  color: #2980b9;
+}

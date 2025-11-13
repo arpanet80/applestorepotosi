@@ -1,0 +1,108 @@
+<!-- src/app/purchase-orders/pages/purchase-order-page/purchase-order-page.component.html -->
+<div class="purchase-order-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Órdenes de Compra</h1>
+        <p>Administra las órdenes de compra de la tienda</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateOrder()" class="btn btn-primary">➕ Nueva Orden</button>
+        <button (click)="loadOrders()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div *ngIf="stats" class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total">📦</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total Órdenes</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon pending">⏳</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.byStatus['pending'] || 0 }}</span>
+          <span class="stat-label">Pendientes</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon completed">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.byStatus['completed'] || 0 }}</span>
+          <span class="stat-label">Completadas</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amount">💰</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.totalAmount | currency }}</span>
+          <span class="stat-label">Monto Total</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BÚSQUEDA Y FILTROS -->
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar por proveedor o notas..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass(null)" (click)="onFilterChange(null)">Todas</button>
+      <button [class]="getFilterClass('pending')" (click)="onFilterChange('pending')">Pendientes</button>
+      <button [class]="getFilterClass('approved')" (click)="onFilterChange('approved')">Aprobadas</button>
+      <button [class]="getFilterClass('completed')" (click)="onFilterChange('completed')">Completadas</button>
+    </div>
+  </div>
+
+  <!-- ESTADOS -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando órdenes...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar órdenes</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadOrders()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <!-- LISTADO -->
+  <div *ngIf="!loading && !error" class="orders-section">
+    <app-purchase-order-list
+      [filters]="queryFilters"
+      [showActions]="true"
+      (orderSelected)="onSelectOrder($event)"
+      (orderEdit)="onEditOrder($event)"
+      (orderDelete)="onDeleteOrder($event)"
+    ></app-purchase-order-list>
+
+    <div *ngIf="orders.length === 0" class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h3>No se encontraron órdenes</h3>
+      <p *ngIf="searchTerm || statusFilter">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; statusFilter = null; loadOrders()" class="btn-link">
+          muestra todas
+        </button>.
+      </p>
+      <p *ngIf="!searchTerm && !statusFilter">
+        No hay órdenes registradas.
+        <button *ngIf="canCreate" (click)="onCreateOrder()" class="btn-link">Crear la primera</button>
+      </p>
+    </div>
+  </div>
+</div>

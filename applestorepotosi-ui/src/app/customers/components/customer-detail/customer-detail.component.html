@@ -1,0 +1,76 @@
+<!-- src/app/customers/components/customer-detail/customer-detail.component.html -->
+<div class="customer-detail" *ngIf="!loading && customer">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ customer.fullName }}</h1>
+      <span class="status-badge" [class.active]="customer.isActive">
+        {{ customer.isActive ? 'Activo' : 'Inactivo' }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onToggleActive()" class="btn btn-secondary">
+        {{ customer.isActive ? 'Desactivar' : 'Activar' }}
+      </button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <!-- DATOS PERSONALES -->
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Email:</strong> {{ customer.email }}</p>
+      <p><strong>Teléfono:</strong> {{ customer.phone }}</p>
+      <p><strong>Tax ID:</strong> {{ customer.taxId || '—' }}</p>
+      <p><strong>Puntos de lealtad:</strong> {{ customer.loyaltyPoints }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Dirección</h3>
+      <p><strong>Calle:</strong> {{ customer.address?.street || '—' }}</p>
+      <p><strong>Ciudad:</strong> {{ customer.address?.city || '—' }}</p>
+      <p><strong>Estado:</strong> {{ customer.address?.state || '—' }}</p>
+      <p><strong>Código postal:</strong> {{ customer.address?.zipCode || '—' }}</p>
+      <p><strong>País:</strong> {{ customer.address?.country || '—' }}</p>
+    </div>
+
+    <!-- USUARIO ASOCIADO -->
+    <div class="card">
+      <h3>Usuario asociado</h3>
+      <div *ngIf="!customer.userId" class="empty-user">
+        <p>Sin usuario vinculado</p>
+        <button *ngIf="canEdit" (click)="onAssignUser()" class="btn btn-sm btn-primary">
+          Asignar usuario
+        </button>
+      </div>
+
+      <div *ngIf="customer.userId">
+        <div *ngIf="userLoading" class="spinner"></div>
+        <div *ngIf="!userLoading && user">
+          <p><strong>Nombre:</strong> {{ user.displayName }}</p>
+          <p><strong>Email:</strong> {{ user.email }}</p>
+          <p><strong>Teléfono:</strong> {{ user.phoneNumber || '—' }}</p>
+          <button *ngIf="canEdit" (click)="onRemoveUser()" class="btn btn-sm btn-danger">
+            Quitar usuario
+          </button>
+        </div>
+        <div *ngIf="!userLoading && !user">
+          <p class="text-danger">Usuario no encontrado</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ESTADOS -->
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando cliente...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/dashboard/customers" class="btn btn-primary">Volver</button>
+</div>

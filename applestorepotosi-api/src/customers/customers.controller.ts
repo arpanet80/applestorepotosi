@@ -1,5 +1,5 @@
 // src/customers/customers.controller.ts
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards,ParseIntPipe,DefaultValuePipe,Req} from '@nestjs/common';
+import {Controller,Get,Post,Put,Delete,Param,Body,Query,UseGuards,ParseIntPipe,DefaultValuePipe,  Req,} from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -13,25 +13,25 @@ import { UserRole } from '../users/schemas/user.schema';
 @Controller('customers')
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 export class CustomersController {
-  constructor(
-    private readonly customersService: CustomersService
-  ) {}
+  constructor(private readonly customersService: CustomersService) {}
 
+  /* ---------- CREAR ---------- */
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() createCustomerDto: CreateCustomerDto) {
-    return this.customersService.create(createCustomerDto);
+  create(@Body() dto: CreateCustomerDto, @Req() req: any) {
+    return this.customersService.create(dto, req.user.uid);
   }
 
   @Post('from-user/:userId')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   createFromUser(
     @Param('userId') userId: string,
-    @Body() customerData: Partial<CreateCustomerDto>
+    @Body() customerData: Partial<CreateCustomerDto>,
   ) {
     return this.customersService.createFromUser(userId, customerData);
   }
 
+  /* ---------- LISTADOS ---------- */
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findAll(@Query() query: CustomerQueryDto) {
@@ -53,7 +53,7 @@ export class CustomersController {
   @Get('top-loyalty')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findTopLoyaltyCustomers(
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
     return this.customersService.findTopLoyaltyCustomers(limit);
   }
@@ -74,7 +74,7 @@ export class CustomersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   searchCustomers(
     @Query('q') search: string,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
     return this.customersService.searchCustomers(search, limit);
   }
@@ -103,71 +103,78 @@ export class CustomersController {
     return this.customersService.findByTaxId(taxId);
   }
 
+  /* ---------- CLIENTE AUTENTICADO ---------- */
   @Get('me')
   getCurrentCustomer(@Req() req: any) {
-    const userId = req.user.uid; // O req.user._id dependiendo de tu implementación
-    return this.customersService.getCurrentCustomer(userId);
+    return this.customersService.getCurrentCustomer(req.user.uid);
   }
 
+  /* ---------- ÚNICO POR ID ---------- */
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findOne(@Param('id') id: string) {
     return this.customersService.findOne(id);
   }
 
+  /* ---------- ACTUALIZAR ---------- */
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   update(
-    @Param('id') id: string, 
-    @Body() updateCustomerDto: UpdateCustomerDto
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomerDto,
+    @Req() req: any,
   ) {
-    return this.customersService.update(id, updateCustomerDto);
+    return this.customersService.update(id, dto, req.user.uid);
   }
 
+  /* ---------- PUNTOS LEALTAD ---------- */
   @Put(':id/loyalty-points/add')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   addLoyaltyPoints(
     @Param('id') id: string,
-    @Body() loyaltyPointsDto: LoyaltyPointsDto
+    @Body() dto: LoyaltyPointsDto,
   ) {
-    return this.customersService.addLoyaltyPoints(id, loyaltyPointsDto);
+    return this.customersService.addLoyaltyPoints(id, dto);
   }
 
   @Put(':id/loyalty-points/subtract')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   subtractLoyaltyPoints(
     @Param('id') id: string,
-    @Body() loyaltyPointsDto: LoyaltyPointsDto
+    @Body() dto: LoyaltyPointsDto,
   ) {
-    return this.customersService.subtractLoyaltyPoints(id, loyaltyPointsDto);
+    return this.customersService.subtractLoyaltyPoints(id, dto);
   }
 
   @Put(':id/loyalty-points/set')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   setLoyaltyPoints(
     @Param('id') id: string,
-    @Body('points') points: number
+    @Body('points') points: number,
   ) {
     return this.customersService.setLoyaltyPoints(id, points);
   }
 
+  /* ---------- TOGGLE ESTADO ---------- */
   @Put(':id/toggle-active')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   toggleActive(@Param('id') id: string) {
     return this.customersService.toggleActive(id);
   }
 
+  /* ---------- SOFT-DELETE ---------- */
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   remove(@Param('id') id: string) {
     return this.customersService.remove(id);
   }
 
+  /* ---------- VERIFICACIONES ---------- */
   @Get('check-email/:email')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   async checkEmail(
     @Param('email') email: string,
-    @Query('excludeId') excludeId?: string
+    @Query('excludeId') excludeId?: string,
   ) {
     const exists = await this.customersService.emailExists(email, excludeId);
     return { exists, available: !exists };
@@ -177,7 +184,7 @@ export class CustomersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   async checkTaxId(
     @Param('taxId') taxId: string,
-    @Query('excludeId') excludeId?: string
+    @Query('excludeId') excludeId?: string,
   ) {
     const exists = await this.customersService.taxIdExists(taxId, excludeId);
     return { exists, available: !exists };
@@ -187,9 +194,15 @@ export class CustomersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   async checkUserId(
     @Param('userId') userId: string,
-    @Query('excludeId') excludeId?: string
+    @Query('excludeId') excludeId?: string,
   ) {
     const exists = await this.customersService.userIdExists(userId, excludeId);
     return { exists, available: !exists };
+  }
+
+  @Get('debug/all')
+  @Roles(UserRole.ADMIN)
+  findAllDebug() {
+    return this.customersService.findAllDebug();
   }
 }

@@ -55,6 +55,12 @@ export class PurchaseOrder {
   // Campos automáticos de timestamps
   createdAt: Date;
   updatedAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ default: false })
+  isDeleted: boolean;
 }
 
 export const PurchaseOrderSchema = SchemaFactory.createForClass(PurchaseOrder);
@@ -68,3 +74,7 @@ PurchaseOrderSchema.pre('save', function(next) {
   this.totalAmount = this.items.reduce((total, item) => total + item.subtotal, 0);
   next();
 });
+
+// PurchaseOrderSchema.index({ supplierId: 1, status: 1, orderDate: -1 });
+// PurchaseOrderSchema.index({ userId: 1 });
+PurchaseOrderSchema.index({ isDeleted: 1 });
