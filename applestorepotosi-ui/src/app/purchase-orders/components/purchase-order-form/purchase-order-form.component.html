@@ -15,21 +15,24 @@
       </div>
     </div>
 
+    <!-- USUARIO (oculto) -->
+    <input type="hidden" formControlName="userId" />
+
     <!-- FECHA -->
     <div class="form-group">
       <label>Fecha de orden</label>
       <input type="date" formControlName="orderDate" />
     </div>
 
-    <!-- ITEMS -->
+    <!-- PRODUCTOS -->
     <div class="form-group">
       <label>Productos *</label>
       <div formArrayName="items" class="items-list">
         <div *ngFor="let item of items.controls; let i = index" [formGroupName]="i" class="item-row">
           <select formControlName="productId">
-            <option value="" disabled selected>Producto</option>
-            <option *ngFor="let p of products" [value]="p._id">{{ p.name }}</option>
-          </select>
+          <option value="" disabled selected>Producto</option>
+          <option *ngFor="let p of products" [value]="p._id">{{ p.name }}</option>
+        </select>
           <input type="number" formControlName="quantity" placeholder="Cantidad" min="1" />
           <input type="number" formControlName="unitCost" placeholder="Costo unitario" min="0" step="0.01" />
           <button type="button" (click)="removeItem(i)" class="btn-remove">❌</button>

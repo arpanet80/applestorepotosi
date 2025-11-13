@@ -22,9 +22,11 @@ export interface PurchaseOrder {
   items: PurchaseOrderItem[];
   totalAmount: number;
   notes?: string;
-  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  createdBy?: string;
+  isActive: boolean; // ← agrega esta línea
+  isDeleted?: boolean;
 }
 
 export interface PurchaseOrderQuery {

@@ -4,15 +4,18 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { PurchaseOrdersController } from './purchase-orders.controller';
 import { PurchaseOrder, PurchaseOrderSchema } from './schemas/purchase-order.schema';
+import { SuppliersModule } from 'src/suppliers/suppliers.module';
+import { SuppliersService } from 'src/suppliers/suppliers.service';
+import { UsersModule } from 'src/users/users.module';
+import { UsersService } from 'src/users/users.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: PurchaseOrder.name, schema: PurchaseOrderSchema }
-    ])
+    MongooseModule.forFeature([{ name: PurchaseOrder.name, schema: PurchaseOrderSchema }]),
+    SuppliersModule,UsersModule
   ],
   controllers: [PurchaseOrdersController],
-  providers: [PurchaseOrdersService],
+  providers: [PurchaseOrdersService, SuppliersService, UsersService],
   exports: [PurchaseOrdersService, MongooseModule],
 })
 export class PurchaseOrdersModule {}

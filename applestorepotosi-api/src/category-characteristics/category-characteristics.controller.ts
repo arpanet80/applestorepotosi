@@ -10,6 +10,7 @@ import {Controller,Get,
   ParseIntPipe,
   DefaultValuePipe,
   Req,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CategoryCharacteristicsService } from './category-characteristics.service';
 import { CreateCategoryCharacteristicDto } from './dto/create-category-characteristic.dto';
@@ -19,6 +20,7 @@ import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/schemas/user.schema';
+import { CreatePurchaseOrderDto } from 'src/purchase_orders/dto/create-purchase-order.dto';
 
 @Controller('category-characteristics')
 @UseGuards(FirebaseAuthGuard, RolesGuard)
@@ -27,10 +29,21 @@ export class CategoryCharacteristicsController {
     private readonly characteristicsService: CategoryCharacteristicsService,
   ) {}
 
+  /*
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
   create(@Body() dto: CreateCategoryCharacteristicDto, @Req() req: any) {
+    console.log('Body recibido:', JSON.stringify(dto, null, 2));
     return this.characteristicsService.create(dto, req.user.uid);
+  }
+    */
+
+  @Post()
+  create(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })) dto: CreatePurchaseOrderDto,
+  ) {
+    console.log('Body recibido:', JSON.stringify(dto, null, 2));
+    // return this.characteristicsService.create(dto, req.user.uid);
   }
 
   @Get()

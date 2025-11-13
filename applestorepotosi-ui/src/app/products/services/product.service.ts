@@ -194,4 +194,8 @@ export class ProductService {
   getStockHistory(productId: string): Observable<StockMovement[]> {
     return this.http.get<StockMovement[]>(`${this.apiUrl}/${productId}/stock-history`);
   }
+
+  getProductsForSelect(): Observable<Array<{ _id: string; name: string }>> {
+    return this.http.get<Array<{ _id: string; name: string }>>(`${this.apiUrl}/select-options`);
+  }
 }

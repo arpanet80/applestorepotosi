@@ -39,7 +39,7 @@ export class PurchaseOrderListComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.error = 'Error al cargar órdenes de compra';
+        this.error = 'Error al cargar órdenes';
         this.loading = false;
       },
     });

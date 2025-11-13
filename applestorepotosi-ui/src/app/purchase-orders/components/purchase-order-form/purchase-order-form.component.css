@@ -64,16 +64,16 @@ h2 {
   cursor: pointer;
 }
 
+.error {
+  color: #e74c3c;
+  font-size: 0.8rem;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1.5rem;
-}
-
-.error {
-  color: #e74c3c;
-  font-size: 0.8rem;
 }
 
 .error-box {

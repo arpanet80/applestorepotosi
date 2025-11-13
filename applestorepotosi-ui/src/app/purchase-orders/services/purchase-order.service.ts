@@ -15,7 +15,7 @@ export class PurchaseOrderService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/purchase-orders`;
 
-  create(dto: any) {
+  create(dto: any): Observable<PurchaseOrder> {
     return this.http.post<PurchaseOrder>(this.apiUrl, dto);
   }
 
@@ -28,43 +28,43 @@ export class PurchaseOrderService {
     return this.http.get<PurchaseOrderResponse>(this.apiUrl, { params });
   }
 
-  findOne(id: string) {
+  findOne(id: string): Observable<PurchaseOrder> {
     return this.http.get<PurchaseOrder>(`${this.apiUrl}/${id}`);
   }
 
-  update(id: string, dto: any) {
+  update(id: string, dto: any): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}`, dto);
   }
 
-  delete(id: string) {
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  updateStatus(id: string, status: string, reason?: string) {
+  updateStatus(id: string, status: string, reason?: string): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}/status`, { status, reason });
   }
 
-  approveOrder(id: string, reason?: string) {
+  approveOrder(id: string, reason?: string): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}/approve`, { reason });
   }
 
-  rejectOrder(id: string, reason?: string) {
+  rejectOrder(id: string, reason?: string): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}/reject`, { reason });
   }
 
-  completeOrder(id: string) {
+  completeOrder(id: string): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}/complete`, {});
   }
 
-  cancelOrder(id: string, reason?: string) {
+  cancelOrder(id: string, reason?: string): Observable<PurchaseOrder> {
     return this.http.put<PurchaseOrder>(`${this.apiUrl}/${id}/cancel`, { reason });
   }
 
-  getStats() {
+  getStats(): Observable<PurchaseOrderStats> {
     return this.http.get<PurchaseOrderStats>(`${this.apiUrl}/stats`);
   }
 
-  calculateTotal(items: any[]) {
+  calculateTotal(items: any[]): Observable<{ total: number }> {
     return this.http.post<{ total: number }>(`${this.apiUrl}/calculate-total`, items);
   }
 }

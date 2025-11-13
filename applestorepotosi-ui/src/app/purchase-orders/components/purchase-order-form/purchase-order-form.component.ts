@@ -4,10 +4,9 @@ import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
-import { ProductService } from '../../../products/services/product.service';
-import { Product } from '../../../products/models/product.model';
 import { SupplierService } from '../../../suppliers/services/supplier.service';
-import { Supplier } from '../../../suppliers/models/supplier.model';
+import { AuthService } from '../../../auth/services/auth.service';
+import { ProductService } from '../../../products/services/product.service';
 
 @Component({
   selector: 'app-purchase-order-form',
@@ -22,27 +21,38 @@ export class PurchaseOrderFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private purchaseOrderService = inject(PurchaseOrderService);
   private supplierService = inject(SupplierService);
-  private productService = inject(ProductService);
+  private authService = inject(AuthService);
+    private productService = inject(ProductService); // ← agregado
 
+
+  products: any[] = [];
   form!: FormGroup;
   isEditMode = false;
   orderId?: string;
   submitting = false;
   error = '';
 
-  suppliers: Supplier[] = [];
-  products: Product[] = [];
+  suppliers: any[] = [];
+  currentUser = this.authService.getCurrentUser();
 
   ngOnInit() {
     this.initForm();
     this.loadSuppliers();
-    this.loadProducts();
+    this.loadProducts(); 
     this.checkEditMode();
+  }
+
+  loadProducts() {
+    this.productService.getProductsForSelect().subscribe({
+      next: (list) => (this.products = list),
+      error: () => (this.products = []),
+    });
   }
 
   initForm() {
     this.form = this.fb.group({
       supplierId: ['', Validators.required],
+      userId: [this.currentUser?.uid || '', Validators.required],
       orderDate: [new Date().toISOString().substring(0, 10)],
       items: this.fb.array([], Validators.minLength(1)),
       notes: [''],
@@ -66,14 +76,8 @@ export class PurchaseOrderFormComponent implements OnInit {
   }
 
   loadSuppliers() {
-    this.supplierService.findAll({}).subscribe((res) => {
-      this.suppliers = res.suppliers;
-    });
-  }
-
-  loadProducts() {
-    this.productService.findAll({}).subscribe((res) => {
-      this.products = res.products;
+    this.supplierService.getSuppliersForSelect().subscribe((list) => {
+      this.suppliers = list;
     });
   }
 
@@ -93,6 +97,7 @@ export class PurchaseOrderFormComponent implements OnInit {
       next: (order) => {
         this.form.patchValue({
           supplierId: order.supplierId,
+          userId: order.userId,
           orderDate: order.orderDate.substring(0, 10),
           notes: order.notes,
         });
@@ -111,24 +116,20 @@ export class PurchaseOrderFormComponent implements OnInit {
   onSubmit() {
     if (this.form.invalid) return;
     this.submitting = true;
-
-    // ✅ Clona y limpia el DTO
-    const dto = { ...this.form.value };
-    delete dto.totalAmount; // <-- quita el campo que Nest rechaza
+    const dto = this.form.value;
 
     const op = this.isEditMode
-        ? this.purchaseOrderService.update(this.orderId!, dto)
-        : this.purchaseOrderService.create(dto);
-console.log(dto);
+      ? this.purchaseOrderService.update(this.orderId!, dto)
+      : this.purchaseOrderService.create(dto);
+
     op.subscribe({
-        next: () => this.router.navigate(['/dashboard', 'purchase-orders']),
-        error: (err) => {
-        // ✅ Muestra el mensaje real del backend
-        this.error = err?.error?.message || (this.isEditMode ? 'Error al actualizar' : 'Error al crear');
+      next: () => this.router.navigate(['/dashboard', 'purchase-orders']),
+      error: () => {
+        this.error = this.isEditMode ? 'Error al actualizar' : 'Error al crear';
         this.submitting = false;
-        },
+      },
     });
-    }
+  }
 
   onCancel() {
     this.router.navigate(['/dashboard', 'purchase-orders']);

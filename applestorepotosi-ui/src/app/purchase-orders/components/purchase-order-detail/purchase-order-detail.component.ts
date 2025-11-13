@@ -1,3 +1,4 @@
+import { NgIf } from '@angular/common';
 // src/app/purchase-orders/components/purchase-order-detail/purchase-order-detail.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,7 +11,7 @@ import { UserRole } from '../../../auth/models/user.model';
 @Component({
   selector: 'app-purchase-order-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NgIf],
   templateUrl: './purchase-order-detail.component.html',
   styleUrls: ['./purchase-order-detail.component.css'],
 })
@@ -55,26 +56,43 @@ export class PurchaseOrderDetailComponent implements OnInit {
     this.router.navigate(['/dashboard', 'purchase-orders', 'edit', this.order._id]);
   }
 
+  onDelete() {
+    if (!this.order) return;
+    if (!confirm(`¿Eliminar orden "${this.order._id}"?`)) return;
+    this.purchaseOrderService.delete(this.order._id).subscribe({
+      next: () => this.router.navigate(['/dashboard', 'purchase-orders']),
+      error: () => alert('Error al eliminar'),
+    });
+  }
+
   onApprove() {
     if (!this.order) return;
     const reason = prompt('Motivo (opcional):');
-    this.purchaseOrderService.approveOrder(this.order._id, reason || undefined).subscribe(() => this.loadOrder());
+    this.purchaseOrderService.approveOrder(this.order._id, reason || undefined).subscribe({
+      next: () => this.loadOrder(),
+    });
   }
 
   onReject() {
     if (!this.order) return;
     const reason = prompt('Motivo (opcional):');
-    this.purchaseOrderService.rejectOrder(this.order._id, reason || undefined).subscribe(() => this.loadOrder());
+    this.purchaseOrderService.rejectOrder(this.order._id, reason || undefined).subscribe({
+      next: () => this.loadOrder(),
+    });
   }
 
   onComplete() {
     if (!this.order) return;
-    this.purchaseOrderService.completeOrder(this.order._id).subscribe(() => this.loadOrder());
+    this.purchaseOrderService.completeOrder(this.order._id).subscribe({
+      next: () => this.loadOrder(),
+    });
   }
 
   onCancel() {
     if (!this.order) return;
     const reason = prompt('Motivo (opcional):');
-    this.purchaseOrderService.cancelOrder(this.order._id, reason || undefined).subscribe(() => this.loadOrder());
+    this.purchaseOrderService.cancelOrder(this.order._id, reason || undefined).subscribe({
+      next: () => this.loadOrder(),
+    });
   }
 }

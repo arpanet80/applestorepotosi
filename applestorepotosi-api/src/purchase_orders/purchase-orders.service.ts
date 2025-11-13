@@ -1,11 +1,12 @@
-// src/purchase-orders/purchase-orders.service.ts
-import {Injectable,NotFoundException,  BadRequestException,ConflictException,} from '@nestjs/common';
+import { PurchaseOrderQueryDto } from './dto/purchase-order-query.dto';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import {PurchaseOrder,PurchaseOrderDocument,PurchaseOrderItem,} from './schemas/purchase-order.schema';
+import { PurchaseOrder, PurchaseOrderDocument } from './schemas/purchase-order.schema';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { Supplier, SupplierDocument } from '../suppliers/schemas/supplier.schema';
+import { User, UserDocument } from '../users/schemas/user.schema';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
-import { PurchaseOrderQueryDto } from './dto/purchase-order-query.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 
 @Injectable()
@@ -13,33 +14,78 @@ export class PurchaseOrdersService {
   constructor(
     @InjectModel(PurchaseOrder.name)
     private purchaseOrderModel: Model<PurchaseOrderDocument>,
+
+    @InjectModel(Supplier.name)
+    private supplierModel: Model<SupplierDocument>,
+
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) {}
 
-  async create(
-    createPurchaseOrderDto: CreatePurchaseOrderDto,
-    userId: string,
-  ): Promise<PurchaseOrderDocument> {
-    this.validateOrderItems(createPurchaseOrderDto.items);
-
-    const purchaseOrderData = {
-      ...createPurchaseOrderDto,
-      supplierId: new Types.ObjectId(createPurchaseOrderDto.supplierId),
-      userId: new Types.ObjectId(createPurchaseOrderDto.userId),
-      orderDate: createPurchaseOrderDto.orderDate || new Date(),
-      status: 'pending',
-      createdBy: new Types.ObjectId(userId),
-    };
-
-    const purchaseOrder = new this.purchaseOrderModel(purchaseOrderData);
-    return purchaseOrder.save();
+  private validateObjectId(id: string, field: string): void {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`${field} debe ser un ID válido de 24 caracteres hexadecimales`);
+    }
   }
 
-  async findAll(query: PurchaseOrderQueryDto): Promise<{
-    purchaseOrders: PurchaseOrderDocument[];
-    total: number;
-    page: number;
-    totalPages: number;
-  }> {
+  async create(
+    dto: CreatePurchaseOrderDto,
+    reqUser: any, // { email: string, uid?: string }
+  ): Promise<PurchaseOrderDocument> {
+    console.log('🔍 supplierId recibido:', dto.supplierId);
+    console.log('🔍 userId recibido (body):', dto.userId);
+    console.log('🔍 userId desde token (reqUser.email):', reqUser.email);
+    console.log('🔍 items:', dto.items);
+
+    // 1. Validar formato de ObjectId
+    if (!Types.ObjectId.isValid(dto.supplierId)) {
+      throw new BadRequestException('supplierId debe ser un ObjectId válido de 24 caracteres hexadecimales');
+    }
+    if (!Types.ObjectId.isValid(dto.userId)) {
+      throw new BadRequestException('userId (body) debe ser un ObjectId válido de 24 caracteres hexadecimales');
+    }
+    dto.items.forEach((item, i) => {
+      if (!Types.ObjectId.isValid(item.productId)) {
+        throw new BadRequestException(`items[${i}].productId debe ser un ObjectId válido de 24 caracteres hexadecimales`);
+      }
+    });
+
+    // 2. Verificar que existan en BD
+    const [supplierExists, userExists] = await Promise.all([
+      this.supplierModel.exists({ _id: dto.supplierId }),
+      this.userModel.exists({ _id: dto.userId }),
+    ]);
+    if (!supplierExists) throw new NotFoundException('Proveedor no encontrado');
+    if (!userExists) throw new NotFoundException('Usuario (body) no encontrado');
+
+    // 3. Obtener el _id real del creador (por email del token)
+    const creatorUser = await this.userModel.findOne({ email: reqUser.email }).exec();
+    if (!creatorUser) throw new NotFoundException('Usuario del token no encontrado en BD');
+    const creatorObjectId = creatorUser._id;
+
+    // 4. Validar items
+    this.validateItems(dto.items);
+
+    // 5. Calcular totalAmount ANTES de guardar
+    const calculatedTotal = this.calculateOrderTotal(dto.items);
+
+    // 5. Crear el documento
+    const data = {
+      ...dto,
+      supplierId: new Types.ObjectId(dto.supplierId),
+      userId: new Types.ObjectId(dto.userId),
+      orderDate: dto.orderDate || new Date(),
+      status: 'pending',
+      createdBy: creatorObjectId,
+      totalAmount: calculatedTotal, // ← aquí va
+    };
+
+    // 6. Guardar
+    const order = new this.purchaseOrderModel(data);
+    return order.save();
+  }
+
+  async findAll(query: PurchaseOrderQueryDto) {
     const {
       status,
       supplierId,
@@ -66,10 +112,10 @@ export class PurchaseOrdersService {
       filter.$or = [
         { notes: { $regex: search, $options: 'i' } },
         { _id: Types.ObjectId.isValid(search) ? new Types.ObjectId(search) : null },
-      ].filter((condition) => condition._id !== null || condition.notes);
+      ].filter((c) => c._id !== null || c.notes);
     }
 
-    const [purchaseOrders, total] = await Promise.all([
+    const [orders, total] = await Promise.all([
       this.purchaseOrderModel
         .find(filter)
         .populate('supplierId', 'name contactEmail contactPhone')
@@ -83,7 +129,7 @@ export class PurchaseOrdersService {
     ]);
 
     return {
-      purchaseOrders,
+      purchaseOrders: orders,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -91,82 +137,109 @@ export class PurchaseOrdersService {
   }
 
   async findOne(id: string): Promise<PurchaseOrderDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de orden de compra inválido');
-    }
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
 
-    const purchaseOrder = await this.purchaseOrderModel
+    const order = await this.purchaseOrderModel
       .findOne({ _id: id, isDeleted: false })
       .populate('supplierId', 'name contactEmail contactPhone')
       .populate('userId', 'profile.firstName profile.lastName email')
-      .populate('items.productId', 'name sku barcode costPrice salePrice stockQuantity') // ✅ populate clave
+      .populate('items.productId', 'name sku barcode costPrice salePrice stockQuantity')
       .exec();
 
-    if (!purchaseOrder) {
-      throw new NotFoundException('Orden de compra no encontrada');
-    }
-
-    return purchaseOrder;
+    if (!order) throw new NotFoundException('Orden no encontrada');
+    return order;
   }
 
-  async update(id: string,updatePurchaseOrderDto: UpdatePurchaseOrderDto,userId: string,): Promise<PurchaseOrderDocument> {
-    delete (updatePurchaseOrderDto as any).totalAmount;
+  async update(
+    id: string,
+    dto: UpdatePurchaseOrderDto,
+    reqUser: any, // { email: string }
+  ): Promise<PurchaseOrderDocument> {
+    console.log('🔍 update id:', id);
+    console.log('🔍 update dto:', dto);
+    console.log('🔍 reqUser.email:', reqUser.email);
+
+    // 1. Validar ID de orden
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de orden de compra inválido');
+      throw new BadRequestException('ID de orden inválido');
     }
 
-    const existingOrder = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
-    if (!existingOrder) {
-      throw new NotFoundException('Orden de compra no encontrada');
-    }
+    // 2. Buscar orden existente
+    const existing = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
+    if (!existing) throw new NotFoundException('Orden no encontrada');
 
-    if (['completed', 'approved'].includes(existingOrder.status)) {
+    // 3. Verificar que no esté completada ni aprobada
+    if (['completed', 'approved'].includes(existing.status)) {
       throw new ConflictException('No se puede editar una orden completada o aprobada');
     }
 
-    if (updatePurchaseOrderDto.items) {
-      this.validateOrderItems(updatePurchaseOrderDto.items);
+    // 4. Validar IDs nuevos si vienen
+    if (dto.supplierId && !Types.ObjectId.isValid(dto.supplierId)) {
+      throw new BadRequestException('supplierId debe ser un ObjectId válido de 24 caracteres hexadecimales');
+    }
+    if (dto.userId && !Types.ObjectId.isValid(dto.userId)) {
+      throw new BadRequestException('userId debe ser un ObjectId válido de 24 caracteres hexadecimales');
+    }
+    if (dto.items) {
+      dto.items.forEach((item, i) => {
+        if (!Types.ObjectId.isValid(item.productId)) {
+          throw new BadRequestException(`items[${i}].productId debe ser un ObjectId válido de 24 caracteres hexadecimales`);
+        }
+      });
     }
 
-    const updateData: any = { ...updatePurchaseOrderDto, updatedBy: new Types.ObjectId(userId) };
-    if (updatePurchaseOrderDto.supplierId) {
-      if (!Types.ObjectId.isValid(updatePurchaseOrderDto.supplierId)) {
-        throw new BadRequestException('supplierId inválido');
-      }
-      updateData.supplierId = new Types.ObjectId(updatePurchaseOrderDto.supplierId);
+    // 5. Verificar que existan en BD (solo si se actualizan)
+    if (dto.supplierId) {
+      const exists = await this.supplierModel.exists({ _id: dto.supplierId });
+      if (!exists) throw new NotFoundException('Proveedor no encontrado');
     }
-    if (updatePurchaseOrderDto.userId) {
-      if (!Types.ObjectId.isValid(updatePurchaseOrderDto.userId)) {
-        throw new BadRequestException('userId inválido');
-      }
-      updateData.userId = new Types.ObjectId(updatePurchaseOrderDto.userId);
+    if (dto.userId) {
+      const exists = await this.userModel.exists({ _id: dto.userId });
+      if (!exists) throw new NotFoundException('Usuario no encontrado');
     }
 
-    const purchaseOrder = await this.purchaseOrderModel
+    // 6. Obtener _id del editor (por email del token)
+    const editorUser = await this.userModel.findOne({ email: reqUser.email }).exec();
+    if (!editorUser) throw new NotFoundException('Usuario del token no encontrado');
+    const editorObjectId = editorUser._id;
+
+    // 7. Validar items si vienen
+    if (dto.items) this.validateItems(dto.items);
+
+    // 8. Calcular nuevo total si cambian los items
+    let finalTotal = existing.totalAmount; // por defecto, mantener el actual
+    if (dto.items) {
+      finalTotal = this.calculateOrderTotal(dto.items);
+    }
+
+    // 9. Construir el objeto de actualización
+    const updateData: any = {
+      ...dto,
+      updatedBy: editorObjectId,
+      totalAmount: finalTotal, // ← aquí va el total calculado
+    };
+    if (dto.supplierId) updateData.supplierId = new Types.ObjectId(dto.supplierId);
+    if (dto.userId) updateData.userId = new Types.ObjectId(dto.userId);
+
+    // 10. Actualizar y devolver
+    const updated = await this.purchaseOrderModel
       .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate('supplierId', 'name contactEmail contactPhone')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('items.productId', 'name sku barcode costPrice salePrice')
       .exec();
 
-    if (!purchaseOrder) {
-      throw new NotFoundException('Orden de compra no encontrada después de la actualización');
-    }
-
-    return purchaseOrder;
+    if (!updated) throw new NotFoundException('Orden no encontrada después de actualizar');
+    return updated;
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de orden de compra inválido');
-    }
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
 
-    const purchaseOrder = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
-    if (!purchaseOrder) {
-      throw new NotFoundException('Orden de compra no encontrada');
-    }
+    const order = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
+    if (!order) throw new NotFoundException('Orden no encontrada');
 
-    if (['completed', 'approved'].includes(purchaseOrder.status)) {
+    if (['completed', 'approved'].includes(order.status)) {
       throw new ConflictException('No se puede eliminar una orden completada o aprobada');
     }
 
@@ -174,76 +247,36 @@ export class PurchaseOrdersService {
       .updateOne({ _id: id }, { isDeleted: true, updatedBy: new Types.ObjectId(userId) })
       .exec();
 
-    if (result.modifiedCount === 0) {
-      throw new NotFoundException('Orden de compra no encontrada');
-    }
+    if (result.modifiedCount === 0) throw new NotFoundException('Orden no encontrada');
   }
 
-  async updateStatus(
-    id: string,
-    updateStatusDto: UpdateStatusDto,
-    userId?: string,
-  ): Promise<PurchaseOrderDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de orden de compra inválido');
+  async updateStatus(id: string, dto: UpdateStatusDto, userId?: string): Promise<PurchaseOrderDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
+
+    const order = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
+    if (!order) throw new NotFoundException('Orden no encontrada');
+
+    this.validateStatusTransition(order.status, dto.status);
+
+    const updateData: any = { status: dto.status, updatedBy: new Types.ObjectId(userId!) };
+    if (dto.reason) {
+      const currentNotes = order.notes || '';
+      updateData.notes = `${currentNotes}\n[${new Date().toISOString()}] ${userId}: ${order.status} → ${dto.status} | ${dto.reason}`;
     }
 
-    const existingOrder = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
-    if (!existingOrder) {
-      throw new NotFoundException('Orden de compra no encontrada');
-    }
-
-    this.validateStatusTransition(existingOrder.status, updateStatusDto.status);
-
-    const updateData: any = {
-      status: updateStatusDto.status,
-      updatedBy: new Types.ObjectId(userId),
-    };
-
-    if (updateStatusDto.reason) {
-      const currentNotes = existingOrder.notes || '';
-      updateData.notes =
-        currentNotes +
-        `\n[${new Date().toISOString()}] ${userId}: ${existingOrder.status} → ${updateStatusDto.status} | ${updateStatusDto.reason}`;
-    }
-
-    const purchaseOrder = await this.purchaseOrderModel
+    const updated = await this.purchaseOrderModel
       .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate('supplierId', 'name contactEmail contactPhone')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('items.productId', 'name sku barcode costPrice salePrice')
       .exec();
 
-    if (!purchaseOrder) {
-      throw new NotFoundException('Orden de compra no encontrada después de actualizar el estado');
-    }
-
-    return purchaseOrder;
+    if (!updated) throw new NotFoundException('Orden no encontrada después de actualizar estado');
+    return updated;
   }
 
-  private validateStatusTransition(currentStatus: string, newStatus: string): void {
-    const validTransitions: Record<string, string[]> = {
-      pending: ['approved', 'rejected', 'cancelled'],
-      approved: ['completed', 'cancelled'],
-      rejected: ['pending'],
-      completed: [],
-      cancelled: ['pending'],
-    };
-
-    const allowedTransitions = validTransitions[currentStatus] || [];
-    if (!allowedTransitions.includes(newStatus)) {
-      throw new BadRequestException(
-        `Transición de estado no permitida: ${currentStatus} → ${newStatus}. ` +
-        `Transiciones válidas: ${allowedTransitions.join(', ')}`,
-      );
-    }
-  }
-
-  async findBySupplier(supplierId: string): Promise<PurchaseOrderDocument[]> {
-    if (!Types.ObjectId.isValid(supplierId)) {
-      throw new BadRequestException('ID de proveedor inválido');
-    }
-
+  async findBySupplier(supplierId: string) {
+    if (!Types.ObjectId.isValid(supplierId)) throw new BadRequestException('ID de proveedor inválido');
     return this.purchaseOrderModel
       .find({ supplierId: new Types.ObjectId(supplierId), isDeleted: false })
       .populate('supplierId', 'name contactEmail contactPhone')
@@ -253,10 +286,9 @@ export class PurchaseOrdersService {
       .exec();
   }
 
-  async findByStatus(status: string): Promise<PurchaseOrderDocument[]> {
-    if (!['pending', 'approved', 'rejected', 'completed', 'cancelled'].includes(status)) {
-      throw new BadRequestException('Estado de orden inválido');
-    }
+  async findByStatus(status: string) {
+    const valid = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
+    if (!valid.includes(status)) throw new BadRequestException('Estado inválido');
 
     return this.purchaseOrderModel
       .find({ status, isDeleted: false })
@@ -267,15 +299,8 @@ export class PurchaseOrdersService {
       .exec();
   }
 
-  async getStats(): Promise<{
-    total: number;
-    byStatus: Record<string, number>;
-    totalAmount: number;
-    averageOrderValue: number;
-    pendingAmount: number;
-    completedAmount: number;
-  }> {
-    const [total, byStatus, financialStats, pendingStats, completedStats] = await Promise.all([
+  async getStats() {
+    const [total, byStatus, financial, pending, completed] = await Promise.all([
       this.purchaseOrderModel.countDocuments({ isDeleted: false }),
       this.purchaseOrderModel.aggregate([
         { $match: { isDeleted: false } },
@@ -296,57 +321,63 @@ export class PurchaseOrdersService {
     ]);
 
     const statsByStatus: Record<string, number> = {};
-    byStatus.forEach((stat) => (statsByStatus[stat._id] = stat.count));
+    byStatus.forEach((s) => (statsByStatus[s._id] = s.count));
 
-    const financial = financialStats[0] || { totalAmount: 0, averageOrderValue: 0 };
-    const pendingAmount = pendingStats[0]?.totalAmount || 0;
-    const completedAmount = completedStats[0]?.totalAmount || 0;
+    const financialData = financial[0] || { totalAmount: 0, averageOrderValue: 0 };
+    const pendingAmount = pending[0]?.totalAmount || 0;
+    const completedAmount = completed[0]?.totalAmount || 0;
 
     return {
       total,
       byStatus: statsByStatus,
-      totalAmount: financial.totalAmount,
-      averageOrderValue: financial.averageOrderValue,
+      totalAmount: financialData.totalAmount,
+      averageOrderValue: financialData.averageOrderValue,
       pendingAmount,
       completedAmount,
     };
   }
 
-  calculateOrderTotal(items: PurchaseOrderItem[]): number {
+  calculateOrderTotal(items: any[]): number {
     return items.reduce((total, item) => total + item.quantity * item.unitCost, 0);
   }
 
-  validateOrderItems(items: any[]): void {
+  validateItems(items: any[]): void {
     if (!items || items.length === 0) {
       throw new BadRequestException('La orden debe contener al menos un item');
     }
-
     items.forEach((item, index) => {
-      if (!item.productId) {
-        throw new BadRequestException(`El item ${index + 1} debe tener un productId válido`);
-      }
-      if (item.quantity <= 0) {
-        throw new BadRequestException(`La cantidad del item ${index + 1} debe ser mayor a 0`);
-      }
-      if (item.unitCost < 0) {
-        throw new BadRequestException(`El costo unitario del item ${index + 1} no puede ser negativo`);
-      }
+      if (!item.productId) throw new BadRequestException(`Item ${index + 1} sin productId`);
+      if (item.quantity <= 0) throw new BadRequestException(`Item ${index + 1} cantidad <= 0`);
+      if (item.unitCost < 0) throw new BadRequestException(`Item ${index + 1} costo < 0`);
     });
   }
 
-  async approveOrder(id: string, reason?: string, userId?: string): Promise<PurchaseOrderDocument> {
-    return this.updateStatus(id, { status: 'approved', reason }, userId);
+  validateStatusTransition(current: string, next: string): void {
+    const allowed: Record<string, string[]> = {
+      pending: ['approved', 'rejected', 'cancelled'],
+      approved: ['completed', 'cancelled'],
+      rejected: ['pending'],
+      completed: [],
+      cancelled: ['pending'],
+    };
+    if (!allowed[current]?.includes(next)) {
+      throw new BadRequestException(`Transición no permitida: ${current} → ${next}`);
+    }
   }
 
-  async rejectOrder(id: string, reason?: string, userId?: string): Promise<PurchaseOrderDocument> {
-    return this.updateStatus(id, { status: 'rejected', reason }, userId);
+  async approveOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
+    return this.updateStatus(id, { status: 'approved', reason }, reqUser);
   }
 
-  async completeOrder(id: string, userId?: string): Promise<PurchaseOrderDocument> {
-    return this.updateStatus(id, { status: 'completed' }, userId);
+  async rejectOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
+    return this.updateStatus(id, { status: 'rejected', reason }, reqUser);
   }
 
-  async cancelOrder(id: string, reason?: string, userId?: string): Promise<PurchaseOrderDocument> {
-    return this.updateStatus(id, { status: 'cancelled', reason }, userId);
+  async completeOrder(id: string, reqUser?: any): Promise<PurchaseOrderDocument> {
+    return this.updateStatus(id, { status: 'completed' }, reqUser);
+  }
+
+  async cancelOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
+    return this.updateStatus(id, { status: 'cancelled', reason }, reqUser);
   }
 }

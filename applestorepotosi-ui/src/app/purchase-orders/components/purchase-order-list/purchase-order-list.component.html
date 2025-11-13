@@ -11,18 +11,18 @@
   </div>
 
   <div *ngIf="!loading && !error && orders.length === 0" class="empty">
-    <p>No se encontraron órdenes de compra</p>
+    <p>No se encontraron órdenes</p>
   </div>
 
   <div *ngIf="!loading && !error && orders.length > 0" class="orders-grid">
-    <div *ngFor="let o of orders" class="order-card">
+    <div *ngFor="let o of orders" class="order-card" [class.inactive]="!o.isActive">
       <div class="order-header">
         <h3 (click)="onSelect(o)">Orden #{{ o._id }}</h3>
         <span class="status-badge" [class]="o.status">{{ o.status }}</span>
       </div>
       <div class="order-info">
         <p><strong>Proveedor:</strong> {{ o.supplierName || '—' }}</p>
-        <p><strong>Fecha:</strong> {{ o.orderDate | date:'short' }}</p>
+        <p><strong>Fcha:</strong> {{ o.orderDate | date:'short' }}</p>
         <p><strong>Total:</strong> {{ o.totalAmount | currency }}</p>
       </div>
       <div *ngIf="showActions()" class="order-actions">

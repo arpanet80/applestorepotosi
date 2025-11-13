@@ -19,9 +19,9 @@ export class PurchaseOrderItem {
   subtotal: number;
 }
 
-@Schema({ 
+@Schema({
   collection: 'purchase_orders',
-  timestamps: true 
+  timestamps: true,
 })
 export class PurchaseOrder {
   @Prop({ type: Types.ObjectId, ref: 'Supplier', required: true })
@@ -30,16 +30,16 @@ export class PurchaseOrder {
   @Prop({ required: true, default: Date.now })
   orderDate: Date;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
-    default: 'pending'
+    default: 'pending',
   })
   status: string;
 
   @Prop({ type: [PurchaseOrderItem], required: true, validate: {
     validator: (items: PurchaseOrderItem[]) => items.length > 0,
-    message: 'La orden de compra debe tener al menos un item'
+    message: 'La orden de compra debe tener al menos un item',
   }})
   items: PurchaseOrderItem[];
 
@@ -52,12 +52,14 @@ export class PurchaseOrder {
   @Prop({ default: '' })
   notes: string;
 
-  // Campos automáticos de timestamps
   createdAt: Date;
   updatedAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  updatedBy?: Types.ObjectId;
 
   @Prop({ default: false })
   isDeleted: boolean;
@@ -65,16 +67,11 @@ export class PurchaseOrder {
 
 export const PurchaseOrderSchema = SchemaFactory.createForClass(PurchaseOrder);
 
-// Middleware para calcular subtotales y total antes de guardar
-PurchaseOrderSchema.pre('save', function(next) {
+// Calcula subtotales y total antes de guardar
+PurchaseOrderSchema.pre('save', function (next) {
   this.items.forEach(item => {
     item.subtotal = item.quantity * item.unitCost;
   });
-  
-  this.totalAmount = this.items.reduce((total, item) => total + item.subtotal, 0);
+  this.totalAmount = this.items.reduce((sum, item) => sum + item.subtotal, 0);
   next();
 });
-
-// PurchaseOrderSchema.index({ supplierId: 1, status: 1, orderDate: -1 });
-// PurchaseOrderSchema.index({ userId: 1 });
-PurchaseOrderSchema.index({ isDeleted: 1 });

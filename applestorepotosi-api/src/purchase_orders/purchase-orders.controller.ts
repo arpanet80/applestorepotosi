@@ -1,5 +1,18 @@
 // src/purchase-orders/purchase-orders.controller.ts
-import {Controller,Get,Post,Put,Delete,Param,Body,Query,UseGuards,HttpCode,HttpStatus,Req,} from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Req,
+} from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
@@ -17,9 +30,9 @@ export class PurchaseOrdersController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() createPurchaseOrderDto: CreatePurchaseOrderDto, @Req() req: any) {
-    this.purchaseOrdersService.validateOrderItems(createPurchaseOrderDto.items);
-    return this.purchaseOrdersService.create(createPurchaseOrderDto, req.user.uid);
+  create(@Body() dto: CreatePurchaseOrderDto, @Req() req: any) {
+    this.purchaseOrdersService.validateItems(dto.items);
+    return this.purchaseOrdersService.create(dto, req.user);
   }
 
   @Get()
@@ -68,17 +81,10 @@ export class PurchaseOrdersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   update(
     @Param('id') id: string,
-    @Body() body: any, // <-- recibimos crudo para limpiar
+    @Body() dto: UpdatePurchaseOrderDto,
     @Req() req: any,
   ) {
-    delete body.totalAmount; // ✅ evita el error "property totalAmount should not exist"
-
-    const dto: UpdatePurchaseOrderDto = body; // ahora sí asignamos al DTO limpio
-
-    if (dto.items) {
-      this.purchaseOrdersService.validateOrderItems(dto.items);
-    }
-
+    if (dto.items) this.purchaseOrdersService.validateItems(dto.items);
     return this.purchaseOrdersService.update(id, dto, req.user.uid);
   }
 
@@ -86,28 +92,38 @@ export class PurchaseOrdersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   updateStatus(
     @Param('id') id: string,
-    @Body() updateStatusDto: UpdateStatusDto,
+    @Body() dto: UpdateStatusDto,
     @Req() req: any,
   ) {
-    return this.purchaseOrdersService.updateStatus(id, updateStatusDto, req.user.uid);
+    return this.purchaseOrdersService.updateStatus(id, dto, req.user.uid);
   }
 
   @Put(':id/approve')
   @Roles(UserRole.ADMIN)
-  approveOrder(@Param('id') id: string, @Req() req: any, @Body('reason') reason?: string) {
-    return this.purchaseOrdersService.approveOrder(id, reason, req.user.uid);
+  approveOrder(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.purchaseOrdersService.approveOrder(id, reason, req.user);
   }
+
 
   @Put(':id/reject')
   @Roles(UserRole.ADMIN)
-  rejectOrder(@Param('id') id: string, @Req() req: any, @Body('reason') reason?: string) {
-    return this.purchaseOrdersService.rejectOrder(id, reason, req.user.uid);
+  rejectOrder(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.purchaseOrdersService.rejectOrder(id, reason, req.user);
   }
+
 
   @Put(':id/complete')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   completeOrder(@Param('id') id: string, @Req() req: any) {
-    return this.purchaseOrdersService.completeOrder(id, req.user.uid);
+    return this.purchaseOrdersService.completeOrder(id, req.user);
   }
 
   @Put(':id/cancel')
@@ -117,7 +133,7 @@ export class PurchaseOrdersController {
     @Req() req: any,
     @Body('reason') reason?: string,
   ) {
-    return this.purchaseOrdersService.cancelOrder(id, reason, req.user.uid);
+    return this.purchaseOrdersService.cancelOrder(id, reason, req.user);
   }
 
   @Delete(':id')
@@ -133,4 +149,5 @@ export class PurchaseOrdersController {
     const total = this.purchaseOrdersService.calculateOrderTotal(items);
     return { total };
   }
+  
 }

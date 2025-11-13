@@ -81,7 +81,10 @@
 .loading-state,
 .error-state {
   text-align: center;
-  padding: 4rem 1rem;
+  padding: 4rem 2rem;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
 }
 
 .spinner {
@@ -111,22 +114,4 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-.items-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.items-table th,
-.items-table td {
-  padding: 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.items-table th {
-  background: #f8f9fa;
-  font-weight: 600;
 }

@@ -48,9 +48,7 @@ export class PurchaseOrderManagementComponent implements OnInit {
         this.total = res.total;
         this.loading = false;
       },
-      error: () => {
-        this.loading = false;
-      },
+      error: () => (this.loading = false),
     });
   }
 
@@ -59,7 +57,7 @@ export class PurchaseOrderManagementComponent implements OnInit {
   }
 
   onDelete(order: PurchaseOrder) {
-    if (!confirm(`¿Eliminar orden ${order._id}?`)) return;
+    if (!confirm(`¿Eliminar orden "${order._id}"?`)) return;
     this.purchaseOrderService.delete(order._id).subscribe(() => this.loadPage());
   }
 
