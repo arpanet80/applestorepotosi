@@ -1,4 +1,3 @@
-// src/sales/dto/sale-item.dto.ts
 import { IsMongoId, IsNumber, Min, IsOptional } from 'class-validator';
 
 export class SaleItemDto {
@@ -12,6 +11,10 @@ export class SaleItemDto {
   @IsNumber()
   @Min(0)
   unitPrice: number;
+
+  @IsNumber()
+  @Min(0)
+  unitCost: number;
 
   @IsNumber()
   @Min(0)

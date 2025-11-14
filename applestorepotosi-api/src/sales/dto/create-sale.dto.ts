@@ -1,25 +1,7 @@
-// src/sales/dto/create-sale.dto.ts
-import { IsString, IsOptional, IsBoolean, IsNumber, Min, IsMongoId, IsArray,ValidateNested,IsEnum,IsDate,IsObject} from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber, Min, IsMongoId, IsArray, ValidateNested, IsEnum, IsDate, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod, PaymentStatus, SaleStatus } from '../schemas/sale.schema';
-
-class SaleItemDto {
-  @IsMongoId()
-  productId: string;
-
-  @IsNumber()
-  @Min(1)
-  quantity: number;
-
-  @IsNumber()
-  @Min(0)
-  unitPrice: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  discount?: number;
-}
+import { SaleItemDto } from './sale-item.dto';
 
 class PaymentInfoDto {
   @IsEnum(PaymentMethod)
@@ -53,9 +35,6 @@ class TotalsDto {
 }
 
 export class CreateSaleDto {
-  @IsString()
-  saleNumber: string;
-
   @IsMongoId()
   customerId: string;
 

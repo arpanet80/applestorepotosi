@@ -1,5 +1,5 @@
 // src/stock-movements/dto/stock-adjustment.dto.ts
-import { IsMongoId, IsNumber, Min, IsEnum,   IsString, IsOptional,IsNotEmpty} from 'class-validator';
+import {IsMongoId,IsNumber,Min,  IsEnum,IsString,  IsOptional,  IsNotEmpty,} from 'class-validator';
 
 export class StockAdjustmentDto {
   @IsMongoId()

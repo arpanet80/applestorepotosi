@@ -1,10 +1,9 @@
-// src/sales/schemas/sale-item.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
 export type SaleItemDocument = SaleItem & Document;
 
-@Schema({ 
+@Schema({
   collection: 'sale_items',
   timestamps: true,
 })
@@ -21,13 +20,15 @@ export class SaleItem {
   @Prop({ required: true, min: 0 })
   unitPrice: number;
 
+  @Prop({ required: true, min: 0 })
+  unitCost: number;
+
   @Prop({ default: 0, min: 0 })
   discount: number;
 
   @Prop({ required: true, min: 0 })
   subtotal: number;
 
-  // Campos automáticos de timestamps
   createdAt: Date;
   updatedAt: Date;
 }

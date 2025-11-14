@@ -1,13 +1,13 @@
 // src/stock-movements/dto/create-stock-movement.dto.ts
-import { 
-  IsString, 
-  IsOptional, 
-  IsNumber, 
-  Min, 
-  IsMongoId, 
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+  IsMongoId,
   IsEnum,
   IsDate,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -16,9 +16,7 @@ export class CreateStockMovementDto {
   @IsNotEmpty()
   productId: string;
 
-  @IsEnum(['in', 'out', 'adjustment'], {
-    message: 'El tipo debe ser: in, out o adjustment'
-  })
+  @IsEnum(['in', 'out', 'adjustment'])
   @IsNotEmpty()
   type: string;
 
@@ -27,9 +25,7 @@ export class CreateStockMovementDto {
   @IsNotEmpty()
   quantity: number;
 
-  @IsEnum(['sale', 'purchase', 'manual', 'return', 'damaged', 'expired'], {
-    message: 'La razón debe ser: sale, purchase, manual, return, damaged o expired'
-  })
+  @IsEnum(['sale', 'purchase', 'manual', 'return', 'damaged', 'expired'])
   @IsNotEmpty()
   reason: string;
 
@@ -63,4 +59,14 @@ export class CreateStockMovementDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  reservedAtMovement?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  unitCostAtMovement?: number;
 }

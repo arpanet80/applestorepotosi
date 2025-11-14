@@ -1,8 +1,5 @@
-// src/sales/schemas/sale.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
-
-export type SaleDocument = Sale & Document;
 
 export enum PaymentMethod {
   CASH = 'cash',
@@ -25,7 +22,7 @@ export enum SaleStatus {
   CANCELLED = 'cancelled'
 }
 
-@Schema({ 
+@Schema({
   collection: 'sales',
   timestamps: true,
 })
@@ -44,13 +41,13 @@ export class Sale {
 
   @Prop({
     type: {
-      method: { 
-        type: String, 
+      method: {
+        type: String,
         enum: Object.values(PaymentMethod),
-        required: true 
+        required: true
       },
-      status: { 
-        type: String, 
+      status: {
+        type: String,
         enum: Object.values(PaymentStatus),
         default: PaymentStatus.PENDING
       },
@@ -80,10 +77,10 @@ export class Sale {
     totalAmount: number;
   };
 
-  @Prop({ 
-    type: String, 
+  @Prop({
+    type: String,
     enum: Object.values(SaleStatus),
-    default: SaleStatus.PENDING 
+    default: SaleStatus.PENDING
   })
   status: SaleStatus;
 
@@ -93,18 +90,18 @@ export class Sale {
   @Prop()
   notes: string;
 
-  // Campos calculados virtuales
-  itemsCount?: number;
-  profit?: number;
+  @Prop({ type: MongooseSchema.Types.ObjectId })
+  cancelledBy?: MongooseSchema.Types.ObjectId;
 
-  // Campos automáticos de timestamps
+  @Prop()
+  cancelledAt?: Date;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const SaleSchema = SchemaFactory.createForClass(Sale);
 
-// Virtual para contar items
 SaleSchema.virtual('itemsCount', {
   ref: 'SaleItem',
   localField: '_id',
@@ -112,12 +109,11 @@ SaleSchema.virtual('itemsCount', {
   count: true
 });
 
-// Virtual para calcular ganancia (requeriría populate de items)
-SaleSchema.virtual('profit').get(function() {
-  // Esta implementación requeriría calcular basado en los items
-  return 0; // Placeholder
+SaleSchema.virtual('profit').get(function () {
+  return (this as any).__profit || 0;
 });
 
-// Asegurar que los virtuals se incluyan en JSON
 SaleSchema.set('toJSON', { virtuals: true });
 SaleSchema.set('toObject', { virtuals: true });
+
+export type SaleDocument = Sale & Document;

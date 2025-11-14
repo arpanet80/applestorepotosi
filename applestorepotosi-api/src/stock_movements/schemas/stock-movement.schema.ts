@@ -4,38 +4,30 @@ import { Document, Types } from 'mongoose';
 
 export type StockMovementDocument = StockMovement & Document;
 
-@Schema({ 
+@Schema({
   collection: 'stock_movements',
-  timestamps: true 
+  timestamps: true,
 })
 export class StockMovement {
   @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
   productId: Types.ObjectId;
 
-  @Prop({ 
-    required: true, 
-    enum: ['in', 'out', 'adjustment'],
-    message: 'El tipo debe ser: in, out o adjustment'
-  })
+  @Prop({ required: true, enum: ['in', 'out', 'adjustment'] })
   type: string;
 
   @Prop({ required: true, min: 1 })
   quantity: number;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     enum: ['sale', 'purchase', 'manual', 'return', 'damaged', 'expired'],
-    message: 'La razón debe ser: sale, purchase, manual, return, damaged o expired'
   })
   reason: string;
 
   @Prop({ type: Types.ObjectId, refPath: 'referenceModel', default: null })
   reference: Types.ObjectId;
 
-  @Prop({ 
-    enum: ['Sale', 'PurchaseOrder', 'StockAdjustment'],
-    default: null 
-  })
+  @Prop({ enum: ['Sale', 'PurchaseOrder', 'StockAdjustment'], default: null })
   referenceModel: string;
 
   @Prop({ required: true, min: 0 })
@@ -53,15 +45,19 @@ export class StockMovement {
   @Prop({ default: '' })
   notes: string;
 
-  // Campos automáticos de timestamps
+  @Prop({ default: 0, min: 0 })
+  reservedAtMovement: number;
+
+  @Prop({ min: 0 })
+  unitCostAtMovement: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const StockMovementSchema = SchemaFactory.createForClass(StockMovement);
 
-// Índices para mejor performance
 StockMovementSchema.index({ productId: 1, timestamp: -1 });
 StockMovementSchema.index({ type: 1 });
 StockMovementSchema.index({ reason: 1 });
-StockMovementSchema.index({ timestamp: -1 });
+StockMovementSchema.index({ productId: 1, type: 1, timestamp: -1 }, { unique: true });

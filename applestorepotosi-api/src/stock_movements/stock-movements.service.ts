@@ -1,53 +1,58 @@
 // src/stock-movements/stock-movements.service.ts
-import { 
-  Injectable, 
-  NotFoundException, 
-  BadRequestException,
-  ConflictException,
-  Inject,
-  forwardRef
-} from '@nestjs/common';
+import {Injectable,NotFoundException,BadRequestException,ConflictException,Inject,forwardRef,} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { 
-  StockMovement, 
-  StockMovementDocument
-} from './schemas/stock-movement.schema';
+import {StockMovement,StockMovementDocument,} from './schemas/stock-movement.schema';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { UpdateStockMovementDto } from './dto/update-stock-movement.dto';
 import { StockMovementQueryDto } from './dto/stock-movement-query.dto';
 import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
+import { ProductsService } from 'src/products/products.service';
 
 @Injectable()
 export class StockMovementsService {
   constructor(
-    @InjectModel(StockMovement.name) 
+    @InjectModel(StockMovement.name)
     private stockMovementModel: Model<StockMovementDocument>,
+    @Inject(forwardRef(() => ProductsService))
+    private readonly productsService: ProductsService,
   ) {}
 
   /**
    * Crear nuevo movimiento de stock
    */
   async create(createStockMovementDto: CreateStockMovementDto): Promise<StockMovementDocument> {
-    // Validar datos del movimiento
     this.validateStockMovement(createStockMovementDto);
+
+    const product = await this.productsService.findOne(createStockMovementDto.productId);
+    const reservedAtMovement = product.reservedQuantity;
+    const unitCostAtMovement = product.costPrice;
 
     const stockMovementData = {
       ...createStockMovementDto,
       productId: new Types.ObjectId(createStockMovementDto.productId),
       userId: new Types.ObjectId(createStockMovementDto.userId),
       timestamp: createStockMovementDto.timestamp || new Date(),
-      ...(createStockMovementDto.reference && { 
-        reference: new Types.ObjectId(createStockMovementDto.reference) 
-      })
+      reservedAtMovement,
+      unitCostAtMovement,
+      ...(createStockMovementDto.reference && {
+        reference: new Types.ObjectId(createStockMovementDto.reference),
+      }),
     };
 
     const stockMovement = new this.stockMovementModel(stockMovementData);
-    return stockMovement.save();
+    await stockMovement.save();
+
+    // Actualizar stock del producto
+    await this.productsService.updateStock(createStockMovementDto.productId, {
+      quantity: createStockMovementDto.newStock,
+    });
+
+    return stockMovement;
   }
 
   /**
-   * Obtener todos los movimientos de stock con filtros
+   * Obtener todos los movimientos de stock con filtros y paginación
    */
   async findAll(query: StockMovementQueryDto): Promise<{
     stockMovements: StockMovementDocument[];
@@ -55,41 +60,28 @@ export class StockMovementsService {
     page: number;
     totalPages: number;
   }> {
-    const { 
-      productId, 
-      type, 
-      reason, 
+    const {
+      productId,
+      type,
+      reason,
       reference,
-      startDate, 
+      startDate,
       endDate,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10,
     } = query;
 
     const skip = (page - 1) * limit;
     const filter: any = {};
 
-    // Filtrar por producto
     if (productId && Types.ObjectId.isValid(productId)) {
       filter.productId = new Types.ObjectId(productId);
     }
-
-    // Filtrar por tipo
-    if (type) {
-      filter.type = type;
-    }
-
-    // Filtrar por razón
-    if (reason) {
-      filter.reason = reason;
-    }
-
-    // Filtrar por referencia
+    if (type) filter.type = type;
+    if (reason) filter.reason = reason;
     if (reference && Types.ObjectId.isValid(reference)) {
       filter.reference = new Types.ObjectId(reference);
     }
-
-    // Filtrar por rango de fechas
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
@@ -106,7 +98,7 @@ export class StockMovementsService {
         .skip(skip)
         .limit(limit)
         .exec(),
-      this.stockMovementModel.countDocuments(filter).exec()
+      this.stockMovementModel.countDocuments(filter).exec(),
     ]);
 
     const totalPages = Math.ceil(total / limit);
@@ -115,12 +107,12 @@ export class StockMovementsService {
       stockMovements,
       total,
       page,
-      totalPages
+      totalPages,
     };
   }
 
   /**
-   * Obtener movimiento de stock por ID
+   * Obtener movimiento por ID
    */
   async findOne(id: string): Promise<StockMovementDocument> {
     if (!Types.ObjectId.isValid(id)) {
@@ -142,26 +134,26 @@ export class StockMovementsService {
   }
 
   /**
-   * Actualizar movimiento de stock
+   * Actualizar movimiento (solo sin referencia)
    */
-  async update(id: string, updateStockMovementDto: UpdateStockMovementDto): Promise<StockMovementDocument> {
+  async update(
+    id: string,
+    updateStockMovementDto: UpdateStockMovementDto,
+  ): Promise<StockMovementDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de movimiento de stock inválido');
     }
 
-    const existingMovement = await this.stockMovementModel.findById(id).exec();
-    if (!existingMovement) {
+    const existing = await this.stockMovementModel.findById(id).exec();
+    if (!existing) {
       throw new NotFoundException('Movimiento de stock no encontrado');
     }
-
-    // No permitir editar movimientos con referencia (para mantener integridad)
-    if (existingMovement.reference) {
-      throw new ConflictException('No se puede editar un movimiento de stock con referencia');
+    if (existing.reference) {
+      throw new ConflictException('No se puede editar un movimiento con referencia');
     }
 
     const updateData: any = { ...updateStockMovementDto };
 
-    // Convertir ObjectIds si están presentes
     if (updateStockMovementDto.productId) {
       updateData.productId = new Types.ObjectId(updateStockMovementDto.productId);
     }
@@ -172,39 +164,34 @@ export class StockMovementsService {
       updateData.reference = new Types.ObjectId(updateStockMovementDto.reference);
     }
 
-    const stockMovement = await this.stockMovementModel
-      .findByIdAndUpdate(id, updateData, { 
-        new: true, 
-        runValidators: true 
-      })
+    const updated = await this.stockMovementModel
+      .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
       .populate('productId', 'name sku barcode salePrice costPrice')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('reference')
       .exec();
 
-    if (!stockMovement) {
-      throw new NotFoundException('Movimiento de stock no encontrado después de la actualización');
+    if (!updated) {
+      throw new NotFoundException('Movimiento no encontrado tras actualización');
     }
 
-    return stockMovement;
+    return updated;
   }
 
   /**
-   * Eliminar movimiento de stock
+   * Eliminar movimiento (solo sin referencia)
    */
   async remove(id: string): Promise<void> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('ID de movimiento de stock inválido');
     }
 
-    const stockMovement = await this.stockMovementModel.findById(id).exec();
-    if (!stockMovement) {
+    const movement = await this.stockMovementModel.findById(id).exec();
+    if (!movement) {
       throw new NotFoundException('Movimiento de stock no encontrado');
     }
-
-    // No permitir eliminar movimientos con referencia
-    if (stockMovement.reference) {
-      throw new ConflictException('No se puede eliminar un movimiento de stock con referencia');
+    if (movement.reference) {
+      throw new ConflictException('No se puede eliminar un movimiento con referencia');
     }
 
     const result = await this.stockMovementModel.deleteOne({ _id: id }).exec();
@@ -214,84 +201,118 @@ export class StockMovementsService {
   }
 
   /**
-   * Obtener movimientos por producto
+   * Obtener movimientos por producto con paginación
    */
-  async findByProduct(productId: string): Promise<StockMovementDocument[]> {
+  async findByProduct(
+    productId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ movements: StockMovementDocument[]; total: number }> {
     if (!Types.ObjectId.isValid(productId)) {
       throw new BadRequestException('ID de producto inválido');
     }
 
-    const movements = await this.stockMovementModel
-      .find({ productId: new Types.ObjectId(productId) })
-      .populate('productId', 'name sku barcode salePrice costPrice')
-      .populate('userId', 'profile.firstName profile.lastName email')
-      .populate('reference')
-      .sort({ timestamp: -1 })
-      .exec();
+    const skip = (page - 1) * limit;
+    const filter = { productId: new Types.ObjectId(productId) };
 
-    return movements;
+    const [movements, total] = await Promise.all([
+      this.stockMovementModel
+        .find(filter)
+        .populate('productId', 'name sku barcode salePrice costPrice')
+        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('reference')
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.stockMovementModel.countDocuments(filter).exec(),
+    ]);
+
+    return { movements, total };
   }
 
   /**
-   * Obtener movimientos por tipo
+   * Obtener movimientos por tipo con paginación
    */
-  async findByType(type: string): Promise<StockMovementDocument[]> {
+  async findByType(
+    type: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ movements: StockMovementDocument[]; total: number }> {
     if (!['in', 'out', 'adjustment'].includes(type)) {
       throw new BadRequestException('Tipo de movimiento inválido');
     }
 
-    const movements = await this.stockMovementModel
-      .find({ type })
-      .populate('productId', 'name sku barcode salePrice costPrice')
-      .populate('userId', 'profile.firstName profile.lastName email')
-      .populate('reference')
-      .sort({ timestamp: -1 })
-      .exec();
+    const skip = (page - 1) * limit;
+    const filter = { type };
 
-    return movements;
+    const [movements, total] = await Promise.all([
+      this.stockMovementModel
+        .find(filter)
+        .populate('productId', 'name sku barcode salePrice costPrice')
+        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('reference')
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.stockMovementModel.countDocuments(filter).exec(),
+    ]);
+
+    return { movements, total };
   }
 
   /**
-   * Obtener movimientos por razón
+   * Obtener movimientos por razón con paginación
    */
-  async findByReason(reason: string): Promise<StockMovementDocument[]> {
+  async findByReason(
+    reason: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ movements: StockMovementDocument[]; total: number }> {
     if (!['sale', 'purchase', 'manual', 'return', 'damaged', 'expired'].includes(reason)) {
       throw new BadRequestException('Razón de movimiento inválida');
     }
 
-    const movements = await this.stockMovementModel
-      .find({ reason })
-      .populate('productId', 'name sku barcode salePrice costPrice')
-      .populate('userId', 'profile.firstName profile.lastName email')
-      .populate('reference')
-      .sort({ timestamp: -1 })
-      .exec();
+    const skip = (page - 1) * limit;
+    const filter = { reason };
 
-    return movements;
+    const [movements, total] = await Promise.all([
+      this.stockMovementModel
+        .find(filter)
+        .populate('productId', 'name sku barcode salePrice costPrice')
+        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('reference')
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.stockMovementModel.countDocuments(filter).exec(),
+    ]);
+
+    return { movements, total };
   }
 
   /**
    * Obtener movimientos por rango de fechas
    */
   async findByDateRange(startDate: Date, endDate: Date): Promise<StockMovementDocument[]> {
-    const movements = await this.stockMovementModel
+    return this.stockMovementModel
       .find({
         timestamp: {
           $gte: new Date(startDate),
-          $lte: new Date(endDate)
-        }
+          $lte: new Date(endDate),
+        },
       })
       .populate('productId', 'name sku barcode salePrice costPrice')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('reference')
       .sort({ timestamp: -1 })
       .exec();
-
-    return movements;
   }
 
   /**
-   * Obtener estadísticas de movimientos de stock
+   * Obtener estadísticas de movimientos
    */
   async getStats(): Promise<{
     total: number;
@@ -299,31 +320,22 @@ export class StockMovementsService {
     byReason: Record<string, number>;
     totalIn: number;
     totalOut: number;
-    mostMovedProducts: Array<{ product: any, totalMovement: number }>;
+    mostMovedProducts: Array<{ product: any; totalMovement: number }>;
   }> {
     const [total, byType, byReason, quantityStats, productStats] = await Promise.all([
       this.stockMovementModel.countDocuments(),
+      this.stockMovementModel.aggregate([{ $group: { _id: '$type', count: { $sum: 1 } } }]),
+      this.stockMovementModel.aggregate([{ $group: { _id: '$reason', count: { $sum: 1 } } }]),
       this.stockMovementModel.aggregate([
-        { $group: { _id: '$type', count: { $sum: 1 } } }
-      ]),
-      this.stockMovementModel.aggregate([
-        { $group: { _id: '$reason', count: { $sum: 1 } } }
-      ]),
-      this.stockMovementModel.aggregate([
-        {
-          $group: {
-            _id: '$type',
-            totalQuantity: { $sum: '$quantity' }
-          }
-        }
+        { $group: { _id: '$type', totalQuantity: { $sum: '$quantity' } } },
       ]),
       this.stockMovementModel.aggregate([
         {
           $group: {
             _id: '$productId',
             totalMovement: { $sum: '$quantity' },
-            count: { $sum: 1 }
-          }
+            count: { $sum: 1 },
+          },
         },
         { $sort: { totalMovement: -1 } },
         { $limit: 10 },
@@ -332,21 +344,21 @@ export class StockMovementsService {
             from: 'products',
             localField: '_id',
             foreignField: '_id',
-            as: 'product'
-          }
+            as: 'product',
+          },
         },
-        { $unwind: '$product' }
-      ])
+        { $unwind: '$product' },
+      ]),
     ]);
 
     const statsByType: Record<string, number> = {};
-    byType.forEach(stat => { statsByType[stat._id] = stat.count; });
+    byType.forEach((stat) => (statsByType[stat._id] = stat.count));
 
     const statsByReason: Record<string, number> = {};
-    byReason.forEach(stat => { statsByReason[stat._id] = stat.count; });
+    byReason.forEach((stat) => (statsByReason[stat._id] = stat.count));
 
-    const totalIn = quantityStats.find(stat => stat._id === 'in')?.totalQuantity || 0;
-    const totalOut = quantityStats.find(stat => stat._id === 'out')?.totalQuantity || 0;
+    const totalIn = quantityStats.find((stat) => stat._id === 'in')?.totalQuantity || 0;
+    const totalOut = quantityStats.find((stat) => stat._id === 'out')?.totalQuantity || 0;
 
     return {
       total,
@@ -354,10 +366,10 @@ export class StockMovementsService {
       byReason: statsByReason,
       totalIn,
       totalOut,
-      mostMovedProducts: productStats.map(stat => ({
+      mostMovedProducts: productStats.map((stat) => ({
         product: stat.product,
-        totalMovement: stat.totalMovement
-      }))
+        totalMovement: stat.totalMovement,
+      })),
     };
   }
 
@@ -372,22 +384,20 @@ export class StockMovementsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const movements = await this.stockMovementModel
+    return this.stockMovementModel
       .find({
         productId: new Types.ObjectId(productId),
-        timestamp: { $gte: startDate }
+        timestamp: { $gte: startDate },
       })
       .populate('productId', 'name sku barcode salePrice costPrice')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('reference')
       .sort({ timestamp: -1 })
       .exec();
-
-    return movements;
   }
 
   /**
-   * Obtener stock actual basado en movimientos
+   * Calcular stock actual basado en movimientos
    */
   async calculateCurrentStock(productId: string): Promise<number> {
     if (!Types.ObjectId.isValid(productId)) {
@@ -401,60 +411,32 @@ export class StockMovementsService {
           _id: '$productId',
           totalIn: {
             $sum: {
-              $cond: [{ $eq: ['$type', 'in'] }, '$quantity', 0]
-            }
+              $cond: [{ $eq: ['$type', 'in'] }, '$quantity', 0],
+            },
           },
           totalOut: {
             $sum: {
-              $cond: [{ $eq: ['$type', 'out'] }, '$quantity', 0]
-            }
-          }
-        }
+              $cond: [{ $eq: ['$type', 'out'] }, '$quantity', 0],
+            },
+          },
+        },
       },
       {
         $project: {
-          currentStock: { $subtract: ['$totalIn', '$totalOut'] }
-        }
-      }
-    ]).exec();
+          currentStock: { $subtract: ['$totalIn', '$totalOut'] },
+        },
+      },
+    ]);
 
     return result[0]?.currentStock || 0;
   }
 
   /**
-   * Validar movimiento de stock
-   */
-  private validateStockMovement(movement: CreateStockMovementDto): void {
-    // Validar consistencia entre tipo y cantidades
-    if (movement.type === 'out' && movement.quantity > movement.previousStock) {
-      throw new BadRequestException(
-        `No hay suficiente stock para realizar un movimiento de salida. ` +
-        `Stock anterior: ${movement.previousStock}, Cantidad: ${movement.quantity}`
-      );
-    }
-
-    // Validar que newStock sea consistente
-    const expectedNewStock = movement.type === 'in' 
-      ? movement.previousStock + movement.quantity
-      : movement.previousStock - movement.quantity;
-
-    if (Math.abs(movement.newStock - expectedNewStock) > 0.01) { // Tolerancia para decimales
-      throw new BadRequestException(
-        `El nuevo stock no es consistente con el movimiento. ` +
-        `Esperado: ${expectedNewStock}, Actual: ${movement.newStock}`
-      );
-    }
-  }
-
-  /**
-   * Crear movimiento de ajuste de stock
+   * Crear ajuste de stock
    */
   async createStockAdjustment(adjustmentDto: StockAdjustmentDto): Promise<StockMovementDocument> {
-    // Aquí necesitarías obtener el stock actual del producto
-    // Por simplicidad, asumimos que se pasa el stock actual
-    // En una implementación real, inyectarías ProductsService
-
-    const currentStock = 0; // Esto debería venir de ProductsService
+    const product = await this.productsService.findOne(adjustmentDto.productId);
+    const currentStock = product.stockQuantity;
     const adjustmentQuantity = Math.abs(adjustmentDto.newQuantity - currentStock);
     const type = adjustmentDto.newQuantity > currentStock ? 'in' : 'out';
 
@@ -466,7 +448,7 @@ export class StockMovementsService {
       previousStock: currentStock,
       newStock: adjustmentDto.newQuantity,
       userId: adjustmentDto.userId,
-      notes: adjustmentDto.notes || `Ajuste de stock: ${adjustmentDto.reason}`
+      notes: adjustmentDto.notes || `Ajuste de stock: ${adjustmentDto.reason}`,
     };
 
     return this.create(stockMovementData);
@@ -476,15 +458,13 @@ export class StockMovementsService {
    * Obtener movimientos recientes
    */
   async getRecentMovements(limit: number = 20): Promise<StockMovementDocument[]> {
-    const movements = await this.stockMovementModel
+    return this.stockMovementModel
       .find()
       .populate('productId', 'name sku barcode')
       .populate('userId', 'profile.firstName profile.lastName')
       .sort({ timestamp: -1 })
       .limit(limit)
       .exec();
-
-    return movements;
   }
 
   /**
@@ -495,40 +475,34 @@ export class StockMovementsService {
       throw new BadRequestException('ID de referencia inválido');
     }
 
-    const movements = await this.stockMovementModel
+    return this.stockMovementModel
       .find({ reference: new Types.ObjectId(referenceId) })
       .populate('productId', 'name sku barcode salePrice costPrice')
       .populate('userId', 'profile.firstName profile.lastName email')
       .populate('reference')
       .sort({ timestamp: -1 })
       .exec();
-
-    return movements;
   }
 
   /**
-   * Obtener resumen de movimientos por día
+   * Resumen diario de movimientos
    */
   async getDailySummary(days: number = 7): Promise<any[]> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    const summary = await this.stockMovementModel.aggregate([
-      {
-        $match: {
-          timestamp: { $gte: startDate }
-        }
-      },
+    return this.stockMovementModel.aggregate([
+      { $match: { timestamp: { $gte: startDate } } },
       {
         $group: {
           _id: {
             date: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
-            type: '$type'
+            type: '$type',
           },
           totalQuantity: { $sum: '$quantity' },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
         $group: {
@@ -537,15 +511,36 @@ export class StockMovementsService {
             $push: {
               type: '$_id.type',
               totalQuantity: '$totalQuantity',
-              count: '$count'
-            }
+              count: '$count',
+            },
           },
-          totalMovements: { $sum: '$count' }
-        }
+          totalMovements: { $sum: '$count' },
+        },
       },
-      { $sort: { _id: -1 } }
-    ]).exec();
+      { $sort: { _id: -1 } },
+    ]);
+  }
 
-    return summary;
+  /**
+   * Validar consistencia del movimiento
+   */
+  private validateStockMovement(movement: CreateStockMovementDto): void {
+    const available = movement.previousStock - (movement.reservedAtMovement || 0);
+    if (movement.type === 'out' && movement.quantity > available) {
+      throw new BadRequestException(
+        `Stock disponible insuficiente. Disponible: ${available}`,
+      );
+    }
+
+    const expectedNewStock =
+      movement.type === 'in'
+        ? movement.previousStock + movement.quantity
+        : movement.previousStock - movement.quantity;
+
+    if (Math.abs(movement.newStock - expectedNewStock) > 0.01) {
+      throw new BadRequestException(
+        `El nuevo stock no es consistente. Esperado: ${expectedNewStock}, recibido: ${movement.newStock}`,
+      );
+    }
   }
 }

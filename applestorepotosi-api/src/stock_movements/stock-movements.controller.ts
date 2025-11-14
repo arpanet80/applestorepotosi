@@ -59,8 +59,12 @@ export class StockMovementsController {
 
   @Get('product/:productId')
   @Roles(UserRole.ADMIN, UserRole.SALES, UserRole.TECHNICIAN)
-  findByProduct(@Param('productId') productId: string) {
-    return this.stockMovementsService.findByProduct(productId);
+  findByProduct(
+    @Param('productId') productId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.stockMovementsService.findByProduct(productId, page, limit);
   }
 
   @Get('product/:productId/history')
@@ -80,14 +84,22 @@ export class StockMovementsController {
 
   @Get('type/:type')
   @Roles(UserRole.ADMIN, UserRole.SALES, UserRole.TECHNICIAN)
-  findByType(@Param('type') type: string) {
-    return this.stockMovementsService.findByType(type);
+  findByType(
+    @Param('type') type: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.stockMovementsService.findByType(type, page, limit);
   }
 
   @Get('reason/:reason')
   @Roles(UserRole.ADMIN, UserRole.SALES, UserRole.TECHNICIAN)
-  findByReason(@Param('reason') reason: string) {
-    return this.stockMovementsService.findByReason(reason);
+  findByReason(
+    @Param('reason') reason: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.stockMovementsService.findByReason(reason, page, limit);
   }
 
   @Get('reference/:referenceId')

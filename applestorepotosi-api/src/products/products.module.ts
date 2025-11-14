@@ -1,5 +1,5 @@
 // src/products/products.module.ts
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
@@ -18,7 +18,7 @@ import { StockMovementsModule } from 'src/stock_movements/stock-movements.module
       { name: ProductImage.name, schema: ProductImageSchema },
       { name: User.name, schema: UserSchema }
     ]),
-    StockMovementsModule,
+    forwardRef(() => StockMovementsModule),
   ],
   controllers: [ProductsController, ImagesController],
   providers: [ProductsService, ImageKitService, StockMovementsService],

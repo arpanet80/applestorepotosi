@@ -5,13 +5,17 @@ import { SalesService } from './sales.service';
 import { SalesController } from './sales.controller';
 import { Sale, SaleSchema } from './schemas/sale.schema';
 import { SaleItem, SaleItemSchema } from './schemas/sale-item.schema';
+import { ProductsModule } from 'src/products/products.module';
+import { StockMovementsModule } from 'src/stock_movements/stock-movements.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Sale.name, schema: SaleSchema },
       { name: SaleItem.name, schema: SaleItemSchema }
-    ])
+    ]),
+    ProductsModule,
+    StockMovementsModule,
   ],
   controllers: [SalesController],
   providers: [SalesService],
