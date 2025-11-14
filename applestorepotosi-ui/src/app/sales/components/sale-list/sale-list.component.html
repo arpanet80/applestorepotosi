@@ -1,0 +1,36 @@
+<div class="sale-list">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando ventas...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadSales()" class="btn-retry">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error && sales.length === 0" class="empty">
+    <p>No se encontraron ventas</p>
+  </div>
+
+  <div *ngIf="!loading && !error && sales.length > 0" class="sales-grid">
+    <div *ngFor="let sale of sales" class="sale-card">
+      <div class="sale-header">
+        <h3>{{ sale.saleNumber }}</h3>
+        <span class="status-badge" [class.confirmed]="sale.status === 'confirmed'">
+          {{ sale.status }}
+        </span>
+      </div>
+      <div class="sale-info">
+        <p><strong>Cliente:</strong> {{ sale.customerId }}</p>
+        <p><strong>Fecha:</strong> {{ sale.saleDate | date:'short' }}</p>
+        <p><strong>Total:</strong> ${{ sale.totals.totalAmount }}</p>
+      </div>
+      <div *ngIf="showActions()" class="sale-actions">
+        <button (click)="onSelectSale(sale)" class="btn btn-info btn-sm">Ver</button>
+        <button (click)="onEditSale(sale)" class="btn btn-warning btn-sm">Editar</button>
+        <button (click)="onDeleteSale(sale)" class="btn btn-danger btn-sm">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>

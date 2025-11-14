@@ -899,4 +899,24 @@ if (!user) {
     if (!Types.ObjectId.isValid(brandId)) return 0;
     return this.productModel.countDocuments({ brandId: new Types.ObjectId(brandId) }).exec();
   }
+
+  async decrementStockIfAvailable(
+    productId: string,
+    quantity: number,
+    session?: any,
+  ): Promise<boolean> {
+    const res = await this.productModel
+      .updateOne(
+        {
+          _id: productId,
+          stockQuantity: { $gte: quantity },
+        },
+        {
+          $inc: { stockQuantity: -quantity },
+        },
+        { session },
+      )
+      .exec();
+    return res.modifiedCount === 1;
+  }
 }

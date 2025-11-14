@@ -1,0 +1,43 @@
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Ventas</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nueva Venta</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando ventas...</div>
+
+  <table *ngIf="!loading && sales.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Cliente</th>
+        <th>Fecha</th>
+        <th>Total</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let sale of sales">
+        <td>{{ sale.saleNumber }}</td>
+        <td>{{ sale.customerId }}</td>
+        <td>{{ sale.saleDate | date:'short' }}</td>
+        <td>${{ sale.totals.totalAmount }}</td>
+        <td>
+          <span class="badge" [class.confirmed]="sale.status === 'confirmed'">
+            {{ sale.status }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(sale)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(sale)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && sales.length === 0" class="empty">
+    No hay ventas registradas.
+    <button (click)="onCreate()" class="btn-link">Crear la primera</button>
+  </div>
+</div>

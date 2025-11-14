@@ -58,8 +58,38 @@ export class SalesService {
     session.startTransaction();
 
     try {
-      /* 1. Validar productos, stock y precios */
-      await this.validateItems(createSaleDto.items);
+      /* 0. Recalcular totales y validar contra el payload */
+      const calculated = this.calculateTotals(createSaleDto.items);
+      const { subtotal, taxAmount, discountAmount, totalAmount } = calculated;
+      const payloadTotals = createSaleDto.totals;
+
+      if (
+        Math.abs(payloadTotals.subtotal - subtotal) > 0.01 ||
+        Math.abs(payloadTotals.taxAmount - taxAmount) > 0.01 ||
+        Math.abs(payloadTotals.discountAmount - discountAmount) > 0.01 ||
+        Math.abs(payloadTotals.totalAmount - totalAmount) > 0.01
+      ) {
+        throw new BadRequestException('Los totales no coinciden con los valores calculados');
+      }
+
+      /* 1. Validar stock con control de concurrencia */
+      for (const item of createSaleDto.items) {
+        const product = await this.productsService.findOne(item.productId);
+        if (!product) throw new NotFoundException(`Producto ${item.productId} no encontrado`);
+        if (item.unitPrice < item.unitCost) {
+          throw new BadRequestException(`El precio de venta no puede ser menor al costo para producto ${product.name}`);
+        }
+
+        /* Decrementar stock solo si hay suficiente (atomically) */
+        const updated = await this.productsService.decrementStockIfAvailable(
+          item.productId,
+          item.quantity,
+          session,
+        );
+        if (!updated) {
+          throw new BadRequestException(`Stock insuficiente para producto ${product.name}`);
+        }
+      }
 
       /* 2. Generar número único de venta */
       const saleNumber = await this.generateSaleNumber();
@@ -74,17 +104,16 @@ export class SalesService {
       };
       const [sale] = await this.saleModel.create([saleData], { session });
 
-      /* 4. Garantizar existencia y tipado firme */
       if (!sale) {
         await session.abortTransaction();
         throw new InternalServerErrorException('No se pudo crear la venta');
       }
-      const saleDoc  = sale as SaleDocument;
-      const saleId   = saleDoc._id as Types.ObjectId; // <- casteo único
+      const saleDoc = sale as SaleDocument;
+      const saleId = saleDoc._id as Types.ObjectId;
 
-      /* 5. Crear items */
+      /* 4. Crear items */
       const items = createSaleDto.items.map(item => ({
-        saleId: saleId, // ✔️ Types.ObjectId
+        saleId: saleId,
         productId: new Types.ObjectId(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
@@ -94,7 +123,7 @@ export class SalesService {
       }));
       await this.saleItemModel.insertMany(items, { session });
 
-      /* 6. Stock movements + decrementar stock */
+      /* 5. Registrar movimientos de salida */
       for (const item of createSaleDto.items) {
         const product = await this.productsService.findOne(item.productId);
         await this.stockMovementsService.create({
@@ -105,17 +134,16 @@ export class SalesService {
           previousStock: product.stockQuantity,
           newStock: product.stockQuantity - item.quantity,
           userId: salesPersonId,
-          reference: saleId.toString(), // ✔️ string seguro
+          reference: saleId.toString(),
           referenceModel: 'Sale',
           reservedAtMovement: product.reservedQuantity,
           unitCostAtMovement: product.costPrice,
         });
-        await this.productsService.decrementStock(item.productId, item.quantity);
       }
 
-      /* 7. Confirmar y retornar */
+      /* 6. Confirmar y retornar */
       await session.commitTransaction();
-      return this.findOne(saleId.toString()); // ✔️ string seguro
+      return this.findOne(saleId.toString());
     } catch (error) {
       await session.abortTransaction();
       throw new InternalServerErrorException('Error creando la venta: ' + error.message);

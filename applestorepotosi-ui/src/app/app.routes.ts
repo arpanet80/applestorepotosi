@@ -86,6 +86,12 @@ export const routes: Routes = [
         data: { roles: [UserRole.ADMIN] },
         loadChildren: () => import('./suppliers/suppliers.routes').then(m => m.SUPPLIERS_ROUTES)
       },
+      {
+        path: 'sales',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./sales/sales.routes').then(m => m.SALES_ROUTES)
+      },
 
       // ========== RUTAS DE CLIENTES ==========
       // {

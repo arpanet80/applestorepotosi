@@ -1,0 +1,50 @@
+<div class="sale-detail" *ngIf="!loading && sale">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ sale.saleNumber }}</h1>
+      <span class="status-badge" [class.confirmed]="sale.status === 'confirmed'">
+        {{ sale.status }}
+      </span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button *ngIf="sale.status !== 'cancelled'" (click)="onCancel()" class="btn btn-danger">❌ Cancelar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Cliente ID:</strong> {{ sale.customerId }}</p>
+      <p><strong>Fecha:</strong> {{ sale.saleDate | date:'medium' }}</p>
+      <p><strong>Vendedor ID:</strong> {{ sale.salesPersonId }}</p>
+      <p><strong>Notas:</strong> {{ sale.notes || '—' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Pago</h3>
+      <p><strong>Método:</strong> {{ sale.payment.method }}</p>
+      <p><strong>Estado:</strong> {{ sale.payment.status }}</p>
+      <p><strong>Referencia:</strong> {{ sale.payment.reference || '—' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Totales</h3>
+      <p><strong>Subtotal:</strong> ${{ sale.totals.subtotal }}</p>
+      <p><strong>Impuesto:</strong> ${{ sale.totals.taxAmount }}</p>
+      <p><strong>Descuento:</strong> ${{ sale.totals.discountAmount }}</p>
+      <p><strong>Total:</strong> ${{ sale.totals.totalAmount }}</p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando venta...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/sales" class="btn btn-primary">Volver al listado</button>
+</div>
