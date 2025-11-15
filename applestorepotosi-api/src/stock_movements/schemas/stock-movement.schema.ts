@@ -36,7 +36,8 @@ export class StockMovement {
   @Prop({ required: true, min: 0 })
   newStock: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  // @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: String, required: true }) 
   userId: Types.ObjectId;
 
   @Prop({ default: Date.now })

@@ -31,7 +31,7 @@ export class StockMovementsService {
     const stockMovementData = {
       ...createStockMovementDto,
       productId: new Types.ObjectId(createStockMovementDto.productId),
-      userId: new Types.ObjectId(createStockMovementDto.userId),
+      userId: createStockMovementDto.userId,
       timestamp: createStockMovementDto.timestamp || new Date(),
       reservedAtMovement,
       unitCostAtMovement,
@@ -429,6 +429,13 @@ export class StockMovementsService {
     ]);
 
     return result[0]?.currentStock || 0;
+  }
+
+  private toObjectId(id: string): Types.ObjectId {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`ID inválido: ${id}`);
+    }
+    return new Types.ObjectId(id);
   }
 
   /**

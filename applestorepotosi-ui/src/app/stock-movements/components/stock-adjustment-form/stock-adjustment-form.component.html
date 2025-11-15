@@ -1,0 +1,45 @@
+<div class="adjustment-form-container">
+  <div class="form-header">
+    <h2>Ajuste de Stock</h2>
+  </div>
+
+  <form [formGroup]="adjustmentForm" (ngSubmit)="onSubmit()" class="adjustment-form">
+    <fieldset class="form-section">
+      <legend>Información del Ajuste</legend>
+
+      <div class="form-group">
+        <label>Producto ID *</label>
+        <input formControlName="productId" placeholder="ID del producto" />
+      </div>
+
+      <div class="form-group">
+        <label>Nueva Cantidad *</label>
+        <input type="number" formControlName="newQuantity" min="0" />
+      </div>
+
+      <div class="form-group">
+        <label>Motivo *</label>
+        <select formControlName="reason">
+          <option value="manual">Manual</option>
+          <option value="damaged">Dañado</option>
+          <option value="expired">Vencido</option>
+          <option value="correction">Corrección</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Notas</label>
+        <textarea formControlName="notes" rows="3"></textarea>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()" class="btn btn-secondary">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="adjustmentForm.invalid || submitting">
+        {{ submitting ? 'Guardando...' : 'Crear Ajuste' }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="form-global-error">{{ error }}</div>
+  </form>
+</div>

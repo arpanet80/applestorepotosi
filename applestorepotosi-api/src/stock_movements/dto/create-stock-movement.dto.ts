@@ -47,8 +47,9 @@ export class CreateStockMovementDto {
   @IsNotEmpty()
   newStock: number;
 
-  @IsMongoId()
+  @IsString()
   @IsNotEmpty()
+  @IsOptional() 
   userId: string;
 
   @IsDate()

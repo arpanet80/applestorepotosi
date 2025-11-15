@@ -1,5 +1,5 @@
 // src/stock-movements/stock-movements.controller.ts
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards,ParseIntPipe,DefaultValuePipe,HttpCode,HttpStatus} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards,ParseIntPipe,DefaultValuePipe,HttpCode,HttpStatus, Req} from '@nestjs/common';
 import { StockMovementsService } from './stock-movements.service';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { UpdateStockMovementDto } from './dto/update-stock-movement.dto';
@@ -19,14 +19,16 @@ export class StockMovementsController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() createStockMovementDto: CreateStockMovementDto) {
-    return this.stockMovementsService.create(createStockMovementDto);
+  create(@Body() dto: CreateStockMovementDto, @Req() req: any) {
+    const userId = req.user.uid; 
+    return this.stockMovementsService.create({ ...dto, userId });
   }
 
   @Post('adjustment')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  createAdjustment(@Body() adjustmentDto: StockAdjustmentDto) {
-    return this.stockMovementsService.createStockAdjustment(adjustmentDto);
+  createAdjustment(@Body() dto: StockAdjustmentDto, @Req() req: any) {
+    const userId = req.user.uid; // ✅ UID de Firebase
+    return this.stockMovementsService.createStockAdjustment({ ...dto, userId });
   }
 
   @Get()
@@ -127,12 +129,13 @@ export class StockMovementsController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMIN)
   update(
-    @Param('id') id: string, 
-    @Body() updateStockMovementDto: UpdateStockMovementDto
+    @Param('id') id: string,
+    @Body() dto: UpdateStockMovementDto,
+    @Req() req: any, // ✅ agrega esto
   ) {
-    return this.stockMovementsService.update(id, updateStockMovementDto);
+    const userId = req.user.uid; // ✅ UID de Firebase
+    return this.stockMovementsService.update(id, { ...dto, userId });
   }
 
   @Delete(':id')

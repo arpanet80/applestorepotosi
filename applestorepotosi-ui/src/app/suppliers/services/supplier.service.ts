@@ -67,4 +67,8 @@ export class SupplierService {
     if (excludeId) url += `?excludeId=${excludeId}`;
     return this.http.get<{ exists: boolean; available: boolean }>(url);
   }
+  getUniqueCountries(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/countries`);
+  }
+
 }

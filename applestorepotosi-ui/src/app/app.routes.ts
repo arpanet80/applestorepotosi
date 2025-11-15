@@ -92,6 +92,12 @@ export const routes: Routes = [
         data: { roles: [UserRole.ADMIN] },
         loadChildren: () => import('./sales/sales.routes').then(m => m.SALES_ROUTES)
       },
+      {
+        path: 'stock-movements',
+        canActivate: [roleGuard],
+        data: { roles: [UserRole.ADMIN] },
+        loadChildren: () => import('./stock-movements/stock-movements.routes').then(m => m.STOCK_MOVEMENTS_ROUTES)
+      },
 
       // ========== RUTAS DE CLIENTES ==========
       // {

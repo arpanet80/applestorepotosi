@@ -21,5 +21,6 @@ export class StockAdjustmentDto {
 
   @IsMongoId()
   @IsNotEmpty()
+  @IsOptional()
   userId: string;
 }

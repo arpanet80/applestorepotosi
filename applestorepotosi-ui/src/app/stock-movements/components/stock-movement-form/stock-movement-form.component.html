@@ -1,0 +1,89 @@
+<div class="movement-form-container">
+  <div class="form-header">
+    <h2>{{ isEditMode ? 'Editar Movimiento' : 'Crear Movimiento de Stock' }}</h2>
+  </div>
+
+  <form *ngIf="!loading" [formGroup]="movementForm" (ngSubmit)="onSubmit()" class="movement-form">
+    <fieldset class="form-section">
+      <legend>Información General</legend>
+
+      <div class="form-group">
+        <label>Producto ID *</label>
+        <input formControlName="productId" placeholder="ID del producto" />
+      </div>
+
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select formControlName="type">
+          <option *ngFor="let t of types" [value]="t">{{ t | uppercase }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad *</label>
+        <input type="number" formControlName="quantity" min="1" />
+      </div>
+
+      <div class="form-group">
+        <label>Razón *</label>
+        <select formControlName="reason">
+          <option *ngFor="let r of reasons" [value]="r">{{ r | titlecase }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Fecha y Hora</label>
+        <input type="datetime-local" formControlName="timestamp" />
+      </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>Stock</legend>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stock Anterior *</label>
+          <input type="number" formControlName="previousStock" min="0" />
+        </div>
+
+        <div class="form-group">
+          <label>Stock Nuevo *</label>
+          <input type="number" formControlName="newStock" min="0" />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>Referencia (Opcional)</legend>
+
+      <div class="form-group">
+        <label>Referencia ID</label>
+        <input formControlName="reference" placeholder="ID de referencia" />
+      </div>
+
+      <div class="form-group">
+        <label>Modelo de Referencia</label>
+        <select formControlName="referenceModel">
+          <option value="">Ninguno</option>
+          <option *ngFor="let m of referenceModels" [value]="m">{{ m }}</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <fieldset class="form-section">
+      <legend>Notas</legend>
+      <div class="form-group">
+        <textarea formControlName="notes" rows="3" placeholder="Observaciones..."></textarea>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()" class="btn btn-secondary">Cancelar</button>
+      <button type="submit" class="btn btn-primary" [disabled]="movementForm.invalid || submitting">
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="form-global-error">{{ error }}</div>
+  </form>
+</div>

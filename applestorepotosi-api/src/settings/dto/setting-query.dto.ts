@@ -1,4 +1,3 @@
-// src/settings/dto/setting-query.dto.ts
 import { IsOptional, IsString, IsNumber, Min, IsEnum, IsBoolean } from 'class-validator';
 
 export class SettingQueryDto {

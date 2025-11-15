@@ -1,0 +1,70 @@
+<div class="stock-movements-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Movimientos de Stock</h1>
+        <p>Revisa y administra los movimientos de inventario</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateMovement()" class="btn btn-primary">➕ Nuevo Movimiento</button>
+        <button *ngIf="canCreate" (click)="onCreateAdjustment()" class="btn btn-secondary">⚙️ Ajuste de Stock</button>
+        <button *ngIf="canManage" (click)="onManageMovements()" class="btn btn-outline">🔧 Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar por producto o referencia..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass('all')" (click)="onFilterChange('all')">Todos</button>
+      <button [class]="getFilterClass('in')" (click)="onFilterChange('in')">Entradas</button>
+      <button [class]="getFilterClass('out')" (click)="onFilterChange('out')">Salidas</button>
+      <button [class]="getFilterClass('adjustment')" (click)="onFilterChange('adjustment')">Ajustes</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando movimientos...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar movimientos</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadMovements()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="movements-section">
+    <app-stock-movement-list
+      [filters]="getMovementFilters()"
+      [showActions]="true"
+      (movementSelected)="onSelectMovement($event)"
+      (movementEdit)="onEditMovement($event)"
+      (movementDelete)="onDeleteMovement($event)"
+    ></app-stock-movement-list>
+
+    <div *ngIf="movements.length === 0" class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h3>No se encontraron movimientos</h3>
+      <p *ngIf="searchTerm || typeFilter !== 'all'">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; typeFilter = 'all'; loadMovements()" class="btn-link">muestra todos</button>.
+      </p>
+      <p *ngIf="!searchTerm && typeFilter === 'all'">
+        No hay movimientos registrados.
+        <button *ngIf="canCreate" (click)="onCreateMovement()" class="btn-link">Crear el primero</button>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+<div class="movement-detail" *ngIf="!loading && movement">
+  <div class="detail-header">
+    <div class="header-info">
+      <h1>{{ movement.type | uppercase }}</h1>
+      <span class="reason-badge">{{ movement.reason }}</span>
+    </div>
+    <div class="header-actions" *ngIf="canEdit">
+      <button (click)="onEdit()" class="btn btn-primary">✏️ Editar</button>
+      <button (click)="onDelete()" class="btn btn-danger">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="card">
+      <h3>Información General</h3>
+      <p><strong>Producto ID:</strong> {{ movement.productId }}</p>
+      <p><strong>Cantidad:</strong> {{ movement.quantity }}</p>
+      <p><strong>Stock anterior:</strong> {{ movement.previousStock }}</p>
+      <p><strong>Stock nuevo:</strong> {{ movement.newStock }}</p>
+      <p><strong>Fecha:</strong> {{ movement.timestamp | date:'medium' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Referencia</h3>
+      <p><strong>Referencia:</strong> {{ movement.reference || '—' }}</p>
+      <p><strong>Modelo de referencia:</strong> {{ movement.referenceModel || '—' }}</p>
+      <p><strong>Notas:</strong> {{ movement.notes || '—' }}</p>
+    </div>
+
+    <div class="card">
+      <h3>Usuario</h3>
+      <p><strong>Usuario ID:</strong> {{ movement.userId }}</p>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Cargando movimiento...</p>
+</div>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error</h3>
+  <p>{{ error }}</p>
+  <button routerLink="/stock-movements" class="btn btn-primary">Volver al listado</button>
+</div>

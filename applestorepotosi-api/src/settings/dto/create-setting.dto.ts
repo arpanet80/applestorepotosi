@@ -1,23 +1,20 @@
-// src/settings/dto/create-setting.dto.ts
-import { 
-  IsString, 
-  IsOptional, 
-  IsNotEmpty, 
-  IsEnum,
-  IsBoolean
-} from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty, IsEnum, IsBoolean } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class ValueDto {
+  value: any;
+}
 
 export class CreateSettingDto {
   @IsString()
-  @IsNotEmpty({ message: 'La clave es requerida' })
+  @IsNotEmpty()
   key: string;
 
-  @IsNotEmpty({ message: 'El valor es requerido' })
+  @IsNotEmpty()
+  @Type(() => ValueDto)
   value: any;
 
-  @IsEnum(['general', 'inventory', 'sales', 'system', 'notifications', 'security', 'appearance'], {
-    message: 'La categoría debe ser: general, inventory, sales, system, notifications, security o appearance'
-  })
+  @IsEnum(['general', 'inventory', 'sales', 'system', 'notifications', 'security', 'appearance'])
   @IsOptional()
   category?: string;
 
@@ -25,10 +22,8 @@ export class CreateSettingDto {
   @IsOptional()
   description?: string;
 
-  @IsEnum(['string', 'number', 'boolean', 'object', 'array'], {
-    message: 'El tipo debe ser: string, number, boolean, object o array'
-  })
-  @IsNotEmpty({ message: 'El tipo es requerido' })
+  @IsEnum(['string', 'number', 'boolean', 'object', 'array'])
+  @IsNotEmpty()
   type: string;
 
   @IsOptional()
