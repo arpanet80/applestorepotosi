@@ -24,7 +24,7 @@ export class SettingsService {
       value: 'AppleStore Potosí', 
       category: 'general', 
       type: 'string',
-      description: 'Nombre de la aplicación',
+      description: 'AppleStore Potosí',
       isEditable: true,
       isPublic: true
     },
@@ -32,7 +32,7 @@ export class SettingsService {
       value: 'Sistema de gestión para tienda Apple y servicio técnico', 
       category: 'general', 
       type: 'string',
-      description: 'Descripción de la aplicación',
+      description: 'Sistema de gestión para tienda Apple y servicio técnico',
       isEditable: true,
       isPublic: true
     },
@@ -46,7 +46,7 @@ export class SettingsService {
       isPublic: false
     },
     'app.currency': { 
-      value: 'MXN', 
+      value: 'BOB', 
       category: 'general', 
       type: 'string',
       description: 'Moneda por defecto',
@@ -54,7 +54,7 @@ export class SettingsService {
       isPublic: false
     },
     'app.timezone': { 
-      value: 'America/Mexico_City', 
+      value: 'Caracas/La_Paz', 
       category: 'general', 
       type: 'string',
       description: 'Zona horaria',

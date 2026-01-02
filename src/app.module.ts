@@ -18,6 +18,8 @@ import { CashSessionsModule } from './cash-sessions/cash-sessions.module';
 import { AuditLogsModule } from './audit_logs/audit-logs.module';
 import { PosModule } from './pos/pos.module';
 import { ServiceOrdersModule } from './service-orders/service-orders.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { ServiceOrdersModule } from './service-orders/service-orders.module';
     SettingsModule,
     PosModule,
   ],
+  controllers: [AppController], 
+  providers: [AppService],
 })
 export class AppModule {}
 
