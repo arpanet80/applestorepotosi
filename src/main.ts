@@ -7,13 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 🔧 CONFIGURAR CORS - Esto permite requests desde tu frontend
+
+  const corsOrigins = process.env.CORS_ORIGINS 
+    ? process.env.CORS_ORIGINS.split(',')
+    : ['http://localhost:4200'];
+  
   app.enableCors({
-    origin: [
-      'http://localhost:4200',  // Angular dev server
-      'http://localhost:3000',  // NestJS mismo (por si acaso)
-      'http://127.0.0.1:4200',
-      'http://localhost:8080'
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type', 
