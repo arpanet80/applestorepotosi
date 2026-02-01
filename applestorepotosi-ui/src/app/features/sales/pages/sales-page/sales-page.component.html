@@ -1,0 +1,69 @@
+<div class="sales-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Catálogo de Ventas</h1>
+        <p>Revisa y administra las ventas realizadas</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateSale()" class="btn btn-primary">➕ Nueva Venta</button>
+        <button *ngIf="canManage" (click)="onManageSales()" class="btn btn-secondary">⚙️ Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar venta por número o cliente..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass('all')" (click)="onFilterChange('all')">Todas</button>
+      <button [class]="getFilterClass('confirmed')" (click)="onFilterChange('confirmed')">Confirmadas</button>
+      <button [class]="getFilterClass('pending')" (click)="onFilterChange('pending')">Pendientes</button>
+      <button [class]="getFilterClass('cancelled')" (click)="onFilterChange('cancelled')">Canceladas</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando ventas...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar ventas</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadSales()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="sales-section">
+    <app-sale-list
+      [filters]="getSaleFilters()"
+      [showActions]="true"
+      (saleSelected)="onSelectSale($event)"
+      (saleEdit)="onEditSale($event)"
+      (saleDelete)="onDeleteSale($event)"
+    ></app-sale-list>
+
+    <div *ngIf="sales.length === 0" class="empty-state">
+      <div class="empty-icon">🧾</div>
+      <h3>No se encontraron ventas</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all'">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; activeFilter = 'all'; loadSales()" class="btn-link">muestra todas</button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all'">
+        No hay ventas registradas.
+        <button *ngIf="canCreate" (click)="onCreateSale()" class="btn-link">Crear la primera</button>
+      </p>
+    </div>
+  </div>
+</div>

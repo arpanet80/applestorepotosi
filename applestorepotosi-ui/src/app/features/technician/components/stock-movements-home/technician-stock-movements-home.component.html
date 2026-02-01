@@ -1,0 +1,28 @@
+<div class="card card-flush">
+  <!-- <div class="card-header">
+    <div class="card-title"><h3>Movimientos de Stock</h3></div>
+    <div class="card-toolbar">
+      <a routerLink="/dashboard/stock-movements/adjustment"
+         class="btn btn-sm btn-success">
+        <i class="ki-duotone ki-plus fs-2"></i>Ajuste de stock
+      </a>
+    </div>
+  </div> -->
+
+  <div class="card-body pt-0">
+    <app-spinner *ngIf="loading" message="Cargando movimientos…" size="md"></app-spinner>
+
+    <div class="table-responsive" *ngIf="!loading">
+      <app-tabla-generica [data]="movements"
+                          [tablaColumns]="columns"
+                          [tablaOpciones]="tablaOpciones"
+                          (btnTableAction)="onTableAction($event)"
+                          (btnExtra)="onBtnExtra($event)">
+      </app-tabla-generica>
+    </div>
+
+    <div *ngIf="!loading && movements.length === 0" class="text-center text-muted py-10">
+      No hay movimientos registrados
+    </div>
+  </div>
+</div>

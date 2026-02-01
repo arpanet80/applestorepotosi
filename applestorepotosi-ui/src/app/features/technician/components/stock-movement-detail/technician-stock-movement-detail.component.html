@@ -1,0 +1,36 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <div class="card-title"><h3>Detalle de Movimiento</h3></div>
+    <div class="card-toolbar">
+      <a routerLink="/dashboard/stock-movements"
+         class="btn btn-sm btn-light-primary">
+        <i class="ki-duotone ki-arrow-left fs-2"></i>Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body pt-0" *ngIf="!loading && movement">
+    <div class="row mb-6">
+      <div class="col-md-6">
+        <table class="table table-row-bordered gy-4">
+          <tr><td class="fw-bold">Producto</td><td>{{ movement.productId.name }}</td></tr>
+          <tr><td class="fw-bold">Tipo</td><td><span class="badge" [ngClass]="{'badge-success':movement.type==='in','badge-warning':movement.type==='out'}">{{ movement.type }}</span></td></tr>
+          <tr><td class="fw-bold">Cantidad</td><td>{{ movement.quantity }}</td></tr>
+          <tr><td class="fw-bold">Razón</td><td>{{ movement.reason }}</td></tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-row-bordered gy-4">
+          <tr><td class="fw-bold">Stock anterior</td><td>{{ movement.previousStock }}</td></tr>
+          <tr><td class="fw-bold">Stock nuevo</td><td>{{ movement.newStock }}</td></tr>
+          <tr><td class="fw-bold">Fecha</td><td>{{ movement.timestamp | date:'medium' }}</td></tr>
+          <tr><td class="fw-bold">Notas</td><td>{{ movement.notes || '—' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="text-center py-10">
+    <div class="spinner-border text-primary"></div>
+  </div>
+</div>

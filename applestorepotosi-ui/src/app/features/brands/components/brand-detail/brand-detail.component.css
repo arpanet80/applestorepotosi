@@ -1,0 +1,10 @@
+/* Asegura que el logo y bordes se adapten al tema */
+.theme-bg-base {
+  background-color: var(--kt-gray-100);
+  border-color: var(--kt-gray-300);
+}
+
+[data-theme="dark"] .theme-bg-base {
+  background-color: var(--kt-gray-900);
+  border-color: var(--kt-gray-700);
+}

@@ -1,0 +1,138 @@
+<div id="kt_app_content_container" class="app-container  container-xxl ">
+  <!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+      <!--begin::Title-->
+      <h3 class="fw-bold my-2"> 
+          <!-- Proveedores -->
+          <span class="fs-6 text-gray-500 fw-semibold ms-1">
+            <!-- ({{ suppliers.length }}) -->
+          </span>
+      </h3>
+      <!--end::Title-->
+
+      <!--begin::Controls-->
+      <div class="d-flex align-items-center my-2">
+
+        <!-- ➕ Nuevo Proveedor -->
+        <button routerLink="/dashboard/suppliers/create" class="btn btn-primary btn-sm" >
+          <i class="ki-duotone ki-plus fs-2 me-2"></i>Nuevo Proveedor
+        </button>
+
+        <!-- ⚙️ Exportar -->
+        <button (click)="onExport()"  class="btn btn-secondary btn-sm" >
+          <i class="bi bi-download fs-2 me-2"></i>Exportar
+        </button>
+
+        <!-- 🔄 Actualizar -->
+        <button (click)="onRefresh()" class="btn btn-outline btn-outline-primary btn-sm" [disabled]="loading" >
+          <i class="bi bi-arrow-repeat fs-2"></i>Actualizar
+        </button>
+
+      </div>
+      <!--end::Controls-->
+  </div>
+  <!--end::Toolbar-->
+
+  <!-- Filtros -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar por nombre, email o teléfono..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearch()"
+      />
+    </div>
+    <div class="col-md-2">
+      <select [(ngModel)]="isActiveFilter" (change)="onFilterChange()" class="form-select">
+        <option [ngValue]="null">Todos</option>
+        <option [ngValue]="true">Activos</option>
+        <option [ngValue]="false">Inactivos</option>
+      </select>
+    </div>
+  </div>
+
+</div>
+
+
+
+
+<div class="card mb-5 mb-xl-8">
+  
+  <div class="card-body py-3">
+    
+    <!-- Tabla -->
+    <div class="table-responsive">
+      <table class="table table-row-dashed table-row-gray-300 gy-4 align-middle">
+        <thead class="border-gray-200 fs-5 fw-semibold bg-light">
+          <tr class="text-start text-muted text-uppercase gs-0">
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>País</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of suppliers">
+            <td>{{ s.name }}</td>
+            <td>{{ s.contactEmail }}</td>
+            <td>{{ s.contactPhone }}</td>
+            <td>{{ s.address?.country || '—' }}</td>
+            <td>
+              <span class="badge" [ngClass]="s.isActive ? 'badge-light-success' : 'badge-light-danger'">
+                {{ s.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <button
+                  (click)="onDetail(s)"
+                  class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                  title="Ver detalle">
+                  <i class="bi bi-eye fs-2"></i>
+              </button>
+              <button (click)="onEdit(s)" title="Editar" class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-1">
+                <i class="ki-duotone ki-pencil fs-2">
+                  <span class="path1"></span><span class="path2"></span>
+                </i>
+              </button>
+              <button 
+                  class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                  (click)="onToggleStatus(s)"
+                  title="Activar/Desactivar">
+                <i class="fas fa-toggle-on"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading && suppliers.length === 0" class="text-center text-muted py-5">
+        No se encontraron proveedores.
+      </div>
+
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="d-flex justify-content-center mt-5" *ngIf="totalPages > 1">
+      <ul class="pagination">
+        <li class="page-item" [class.disabled]="page === 1">
+          <a class="page-link" (click)="onPageChange(page - 1)" tabindex="-1">Anterior</a>
+        </li>
+        <li class="page-item" *ngFor="let p of pages" [class.active]="p === page">
+          <a class="page-link" (click)="onPageChange(p)">{{ p }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="page === totalPages">
+          <a class="page-link" (click)="onPageChange(page + 1)">Siguiente</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<div class="card card-flush">
+      <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+        <div class="card-title">
+          <input
+            type="text"
+            class="form-control form-control-solid w-250px ps-13"
+            placeholder="Buscar..."
+            [(ngModel)]="search"
+            (input)="load()"
+          />
+        </div>
+        <div class="card-toolbar">
+          <a routerLink="reports/technical-income" class="btn btn-success"> Reporte Ingresos </a>
+          <a routerLink="new" class="btn btn-primary"> Nueva Orden </a>
+        </div>
+      </div>
+      <div class="card-body pt-0">
+        <div class="table-responsive">
+          <table class="table table-row-bordered table-row-dashed gy-4 align-middle fw-bold">
+            <thead class="fs-7 text-gray-400 text-uppercase">
+              <tr>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Dispositivo</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th width="120"></th>
+              </tr>
+            </thead>
+            <tbody class="fs-6">
+              <tr *ngFor="let o of orders">
+                <td>{{ o.orderNumber }}</td>
+                <td>{{ getCustomerName(o) }}</td>
+                <td>{{ o.device.type }} {{ o.device.model }}</td>
+                <td>
+                  <span class="badge badge-light-{{ mapColor(o.status) }}">
+                    {{ o.status }}
+                  </span>
+                </td>
+                <td>Bs {{ o.totalCost }}</td>
+                <td>
+                  <a
+                    [routerLink]="[o._id]"
+                    class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                  >
+                    <i class="ki-duotone ki-eye fs-2"></i>
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>

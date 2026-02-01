@@ -1,0 +1,127 @@
+<!-- Toolbar -->
+<div class="card-toolbar">
+
+  <div class="d-flex justify-content-between align-items-center mb-5">
+    <div class="d-flex align-items-center gap-3">
+
+      <!-- Buscador con icono de limpiar a la derecha -->
+      <div class="d-flex align-items-center position-relative">
+        <!-- Icono izquierdo (lupa) -->
+        <i class="bi bi-search fs-2 position-absolute ms-3"></i>
+
+        <!-- Input -->
+        <input
+          type="text"
+          class="form-control form-control-solid w-250px ps-10 pe-35"
+          placeholder="Buscar usuario..."
+          [formControl]="searchControl"
+        />
+
+        <!-- Icono derecho (limpiar) -->
+        <i
+          class="bi bi-x-lg fs-4 position-absolute end-0 top-50 translate-middle-y me-3 cursor-pointer text-hover-primary"
+          (click)="clearSearch()"
+          *ngIf="searchControl.value"
+        ></i>
+      </div>
+
+      <!-- Role Filter -->
+      <div class="d-flex align-items-center gap-2">
+      <label class="form-label mb-0 fw-semibold text-gray-700">Rol:</label>
+      <select [formControl]="roleControl" class="form-select form-select-solid w-200px">
+        <option selected value="">Todos los roles</option>
+        <option *ngFor="let role of [UserRole.ADMIN, UserRole.SALES, UserRole.TECHNICIAN, UserRole.CUSTOMER]"
+                [value]="role">
+          {{ role }}
+        </option>
+      </select>
+    </div>
+    </div>
+    
+
+    <!-- Add User Button -->
+    <!-- <a routerLink="/dashboard/users/create" class="btn btn-primary">
+      <i class="ki-duotone ki-plus fs-2"></i> Nuevo Usuario
+    </a> -->
+  </div>
+</div>
+
+<!-- Card -->
+<div class="card card-flush">
+  <div class="card-body pt-0">
+    <!-- Table -->
+    <table class="table align-middle table-row-dashed fs-6 gy-5">
+      <thead>
+        <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Último acceso</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="fw-semibold text-gray-600">
+        <tr *ngFor="let user of users">
+          <td>
+            <div class="d-flex align-items-center">
+              <div class="symbol symbol-circle symbol-50px overflow-hidden me-3">
+                <!-- <br> -->
+                <!-- {{avatarService.getAvatarUrl(user)}} -->
+                <img [src]="avatarService.getAvatarUrl(user)"
+                    [alt]="avatarService.getAltText(user)"
+                    class="w-100" />
+              </div>
+              <div class="d-flex flex-column">
+                <span class="text-gray-800 mb-1">{{ user.displayName || 'Sin nombre' }}</span>
+                <span>{{ user.profile?.firstName }} {{ user.profile?.lastName }}</span>
+              </div>
+            </div>
+          </td>
+          <td>{{ user.email }}</td>
+          <td>
+            <span class="badge badge-light-primary">{{ user.role }}</span>
+          </td>
+          <td>
+            <span [class]="user.isActive ? 'badge badge-light-success' : 'badge badge-light-danger'">
+              {{ user.isActive ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td>{{ user.lastLogin | date:'short' }}</td>
+          <td class="text-end" style="width: 14%;">
+            <!-- VER DETALLE -->
+            <a class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-2"
+              [routerLink]="['/dashboard', 'users', 'detail', user.uid]"
+              title="Ver detalle">
+              <i class="fas fa-eye"></i>
+            </a>
+
+            <!-- EDITAR -->
+            <a *ngIf="canManage"
+              class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-2"
+              [routerLink]="['/dashboard', 'users', 'edit', user.uid]"
+              title="Editar">
+              <i class="fas fa-edit"></i>
+            </a>
+
+            <!-- ACTIVAR / DESACTIVAR -->
+            <button *ngIf="canManage"
+                    class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                    (click)="onToggleStatus(user)"
+                    title="Activar/Desactivar">
+              <i class="fas fa-toggle-on"></i>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="users.length === 0 && !loading">
+          <td colspan="6" class="text-center text-muted">No se encontraron usuarios</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Spinner -->
+    <div *ngIf="loading" class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  </div>
+</div>

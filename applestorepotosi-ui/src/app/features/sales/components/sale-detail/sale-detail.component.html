@@ -1,0 +1,205 @@
+<!-- begin::Root -->
+<div class="d-flex flex-column flex-root">
+  <div class="page d-flex flex-row flex-column-fluid">
+    <div class="wrapper d-flex flex-column flex-row-fluid" id="kt_wrapper">
+
+      <!-- begin::Page -->
+      <div class="content fs-6 d-flex flex-column flex-column-fluid" id="kt_content">
+        <div class="container-xxl">
+          <!-- begin::Card -->
+          <div class="card card-flush">
+            <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+              <div class="card-title">
+                <h2 class="d-flex align-items-center fs-2 fw-bold">
+                  <span class="svg-icon svg-icon-1 me-2">
+                    <em class="bi bi-receipt text-primary"></em>
+                  </span>
+                  Detalle de Venta
+                </h2>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'badge-light-warning': sale?.status === 'pending',
+                    'badge-light-success': sale?.status === 'confirmed',
+                    'badge-light-danger': sale?.status === 'cancelled'
+                  }">
+                  {{ sale?.status }}
+                </span>
+              </div>
+              <div class="card-toolbar">
+                <a routerLink="/dashboard/sales" class="btn btn-sm btn-light-primary me-2">
+                  <em class="bi bi-arrow-left me-2"></em>Volver
+                </a>
+                <button
+                  *ngIf="canEdit"
+                  (click)="onEdit()"
+                  class="btn btn-sm btn-primary me-2">
+                  <em class="bi bi-pencil me-2"></em>Editar
+                </button>
+                <button
+                  *ngIf="canEdit && sale?.status !== 'cancelled'"
+                  (click)="onCancel()"
+                  class="btn btn-sm btn-danger">
+                  <em class="bi bi-x-circle me-2"></em>Cancelar
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body pt-0">
+              <!-- begin::Section -->
+              <div class="row mb-7">
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Información General</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Número</td>
+                          <td class="text-gray-900">{{ sale?.saleNumber }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Cliente</td>
+                          <td class="text-gray-900">{{ sale?.customerId?.fullName }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Fecha</td>
+                          <td class="text-gray-900">{{ sale?.saleDate | date:'medium' }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Vendedor</td>
+                          <td class="text-gray-900">{{ sale?.salesPersonId?.displayName || '—' }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Notas</td>
+                          <td class="text-gray-900">{{ sale?.notes || '—' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Pago</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Método</td>
+                          <td class="text-gray-900">{{ sale?.payment?.method | titlecase }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Estado</td>
+                          <td>
+                            <span
+                              class="badge"
+                              [ngClass]="{
+                                'badge-light-warning': sale?.payment?.status === 'pending',
+                                'badge-light-success': sale?.payment?.status === 'completed',
+                                'badge-light-danger': sale?.payment?.status === 'failed'
+                              }">
+                              {{ sale?.payment?.status }}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Referencia</td>
+                          <td class="text-gray-900">{{ sale?.payment?.reference || '—' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Totales</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Subtotal</td>
+                          <td class="text-gray-900">${{ sale?.totals?.subtotal }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Impuesto</td>
+                          <td class="text-gray-900">${{ sale?.totals?.taxAmount }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Descuento</td>
+                          <td class="text-gray-900">${{ sale?.totals?.discountAmount }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-800 fw-bold">Total</td>
+                          <td class="text-gray-800 fw-bold fs-5">${{ sale?.totals?.totalAmount }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end::Section -->
+
+
+              <!-- begin::Productos de la venta -->
+              <div class="row mb-7">
+                <div class="col-12">
+                  <h4 class="text-gray-800 fw-bold mb-4">Productos vendidos</h4>
+
+                  <div *ngIf="items.length === 0" class="text-gray-500">
+                    No hay productos en esta venta.
+                  </div>
+
+                  <div *ngIf="items.length > 0" class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <thead>
+                        <tr class="fw-bold text-gray-700">
+                          <th>Producto</th>
+                          <th>Cantidad</th>
+                          <th>Precio unit.</th>
+                          <th>Descuento</th>
+                          <th>Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let item of items">
+                          <td>{{ getProduct(item)?.name || '—' }}</td>
+                          <td>{{ item.quantity }}</td>
+                          <td>{{ item.unitPrice | currency }}</td>
+                          <td>{{ (item.discount || 0) | currency }}</td>
+                          <td class="fw-bold">
+                            {{ ((item.quantity || 0) * (item.unitPrice || 0) - (item.discount || 0)) | currency }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end::Productos de la venta -->
+
+
+            </div>
+          </div>
+          <!-- end::Card -->
+        </div>
+      </div>
+      <!-- end::Page -->
+    </div>
+  </div>
+</div>
+<!-- end::Root -->
+
+<!-- Loading & Error states -->
+<div *ngIf="loading" class="d-flex justify-content-center py-10">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<div *ngIf="error && !loading" class="d-flex justify-content-center py-10">
+  <div class="alert alert-danger w-auto mb-0">
+    <em class="bi bi-exclamation-triangle me-2"></em>{{ error }}
+    <a routerLink="/dashboard/sales" class="btn btn-sm btn-light-danger ms-3">
+      Volver al listado
+    </a>
+  </div>
+</div>

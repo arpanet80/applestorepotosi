@@ -1,0 +1,174 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <h2 class="card-title fw-bold">Nueva orden de servicio</h2>
+    <div class="card-toolbar">
+      <button type="button" class="btn btn-light me-3" routerLink="/dashboard/service-orders">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="save()">Guardar</button>
+    </div>
+  </div>
+
+  <div class="card-body fs-6">
+    <form [formGroup]="form" class="gy-4" novalidate>
+      <!-- cliente -->
+      <div class="row">
+        <div class="col-md-6">
+          <label class="form-label required">Cliente</label>
+          <select formControlName="customerId" class="form-select form-select-solid"
+                  [class.is-invalid]="submitted && form.get('customerId')?.errors">
+            <option value="" disabled selected>Seleccione un cliente</option>
+            <option *ngFor="let c of customers" [value]="c._id">{{ c.fullName }}</option>
+          </select>
+          <div *ngIf="submitted && form.get('customerId')?.errors" class="invalid-feedback">
+            Cliente requerido
+          </div>
+        </div>
+        <button
+              type="button"
+              class="btn btn-icon btn-light-primary"
+              (click)="openNewCustomerModal()"
+              title="Nuevo cliente"
+            >
+              <i class="ki-duotone ki-plus fs-3"></i>
+        </button>
+        <div class="col-md-6">
+          <label class="form-label">Meses de garantía</label>
+          <input type="number" formControlName="warrantyMonths" class="form-control form-control-solid" min="0">
+        </div>
+      </div>
+
+      <!-- dispositivo -->
+      <div formGroupName="device" class="row gy-3">
+        <div class="col-md-4">
+          <label class="form-label required">Tipo</label>
+          <select formControlName="type" class="form-select form-select-solid"
+                  [class.is-invalid]="submitted && form.get('device.type')?.errors">
+            <option>iPhone</option><option>iPad</option><option>Mac</option><option>Watch</option>
+          </select>
+          <div *ngIf="submitted && form.get('device.type')?.errors" class="invalid-feedback">Tipo requerido</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label required">Modelo</label>
+          <input type="text" formControlName="model" class="form-control form-control-solid"
+                 placeholder="Ej. 13 Pro" [class.is-invalid]="submitted && form.get('device.model')?.errors">
+          <div *ngIf="submitted && form.get('device.model')?.errors" class="invalid-feedback">Modelo requerido</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Condición estética</label>
+          <input type="text" formControlName="aestheticCondition" class="form-control form-control-solid"
+                 placeholder="Rayones leves">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">IMEI</label>
+          <input type="text" formControlName="imei" class="form-control form-control-solid">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Serial</label>
+          <input type="text" formControlName="serial" class="form-control form-control-solid">
+        </div>
+      </div>
+
+      <!-- síntoma / descripción -->
+      <div class="row">
+        <div class="col-12">
+          <label class="form-label required">Síntoma</label>
+          <textarea formControlName="symptom" rows="2" class="form-control form-control-solid"
+                    placeholder="Ej. No enciende"
+                    [class.is-invalid]="submitted && form.get('symptom')?.errors"></textarea>
+          <div *ngIf="submitted && form.get('symptom')?.errors" class="invalid-feedback">Síntoma requerido</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <label class="form-label">Descripción adicional</label>
+          <textarea formControlName="description" rows="2" class="form-control form-control-solid"></textarea>
+        </div>
+      </div>
+
+      <!-- mano de obra -->
+      <div class="row">
+        <div class="col-md-4">
+          <label class="form-label">Mano de obra (Bs)</label>
+          <input type="number" formControlName="laborCost" class="form-control form-control-solid"
+                 min="0" step="0.01">
+        </div>
+      </div>
+
+      <!-- repuestos -->
+      <div class="row mt-6">
+        <div class="col-12">
+          <div class="d-flex align-items-center mb-4">
+            <h5 class="mb-0">Repuestos / Items</h5>
+            <button type="button" class="btn btn-sm btn-light-primary ms-auto" (click)="addRow()">
+              <i class="ki-duotone ki-plus fs-2"></i> Agregar item
+            </button>
+          </div>
+
+          <div *ngFor="let row of rows; let i = index" class="row align-items-end mb-4">
+            <div class="col-md-4">
+              <label class="form-label">Repuesto</label>
+              <input type="text" [(ngModel)]="row.partName" [ngModelOptions]="{standalone: true}"
+                     class="form-control form-control-solid"
+                     [class.is-invalid]="submitted && !row.partName.trim()"
+                     placeholder="Ej. Pantalla iPhone 13 Pro">
+              <div *ngIf="submitted && !row.partName.trim()" class="invalid-feedback">Repuesto requerido</div>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">Cant</label>
+              <input type="number" [(ngModel)]="row.quantity" [ngModelOptions]="{standalone: true}"
+                     class="form-control form-control-solid" min="1">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Costo (Bs)</label>
+              <input type="number" [(ngModel)]="row.unitCost" [ngModelOptions]="{standalone: true}"
+                     class="form-control form-control-solid" min="0" step="0.01">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Precio (Bs)</label>
+              <input type="number" [(ngModel)]="row.unitPrice" [ngModelOptions]="{standalone: true}"
+                     class="form-control form-control-solid" min="0" step="0.01">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Notas</label>
+              <input type="text" [(ngModel)]="row.notes" [ngModelOptions]="{standalone: true}"
+                     class="form-control form-control-solid">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-icon btn-light-danger" (click)="removeRow(i)">
+                <i class="ki-duotone ki-trash fs-2"></i>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="submitted && validItemsCount === 0" class="text-danger mb-2">
+            Debe agregar al menos un repuesto
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal genérico (Keen) -->
+<app-generic-modal
+  #customerModal
+  modalId="newCustomerModal"
+  title="Nuevo cliente"
+  width="500px"
+  [contentTemplate]="contentTemplate"
+  [showSaveButton]="true"
+  (saveClicked)="onSaveCustomer()"
+>
+</app-generic-modal>
+
+<ng-template #contentTemplate>
+  <form [formGroup]="newCustomerForm" class="gy-3">
+    <label class="form-label required">Nombre completo</label>
+    <input type="text" formControlName="fullName" class="form-control form-control-solid" />
+
+    <label class="form-label required">Email</label>
+    <input type="email" formControlName="email" class="form-control form-control-solid" />
+
+    <label class="form-label required">Teléfono</label>
+    <input type="text" formControlName="phone" class="form-control form-control-solid" />
+  </form>
+</ng-template>

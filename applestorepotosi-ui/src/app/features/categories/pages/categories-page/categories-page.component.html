@@ -1,0 +1,296 @@
+<!--begin::Toolbar-->
+<div class="d-flex flex-wrap flex-stack mb-6">
+    <!--begin::Title-->
+    <h3 class="fw-bold my-2">
+        Categorías 
+        <span class="fs-6 text-gray-500 fw-semibold ms-1">({{ categories.length }})</span>
+    </h3>
+    <!--end::Title-->
+
+    <!--begin::Controls-->
+    <div class="d-flex align-items-center my-2">
+
+      <!-- 🔍 Buscador con debounce -->
+      <div class="position-relative">
+        <i class="bi bi-search fs-2 position-absolute ms-3 top-50 translate-middle-y"></i>
+        <input
+          type="text"
+          class="form-control form-control-solid w-250px ps-10 pe-10"
+          placeholder="Buscar categoría..."
+          [formControl]="searchControl"
+        />
+        <i *ngIf="searchControl.value" (click)="clearSearch()" class="bi bi-x-lg fs-4 position-absolute end-0 top-50 translate-middle-y me-3 cursor-pointer text-hover-primary"></i>
+      </div>
+
+      <!--begin::Select wrapper-->
+      <!-- <div class="w-100px me-5">
+          <select name="status" appSelect2 data-control="select2" data-hide-search="true" class="form-select form-select-sm bg-body border-body">
+              <option value="1" selected>30 Days</option>
+              <option value="2">90 Days</option>
+              <option value="3">6 Months</option>
+              <option value="4">1 Year</option>
+          </select>
+      </div> -->
+      <!--end::Select wrapper-->
+
+      <!-- ➕ Nueva categoría -->
+      <button *ngIf="canCreate" (click)="onCreateCategory()" class="btn btn-primary btn-sm" >
+        <i class="ki-duotone ki-plus fs-2 me-2"></i>
+        Nueva Categoría
+      </button>
+
+      <!-- ⚙️ Gestión avanzada -->
+      <button *ngIf="canManage" (click)="onManageCategories()" class="btn btn-secondary btn-sm" >
+        <i class="ki-duotone ki-setting-2 fs-2 me-2"></i>
+        Gestión Avanzada
+      </button>
+
+      <!-- 🔄 Actualizar -->
+      <button (click)="onRefresh()" class="btn btn-outline btn-outline-primary btn-sm" [disabled]="loading" >
+        <i class="ki-duotone ki-arrows-circle fs-2"></i>
+        Actualizar
+      </button>
+
+    </div>
+    <!--end::Controls-->
+</div>
+<!--end::Toolbar-->
+
+
+<app-stats-cards [cards]="statsCards" columnClass="col-xl-3"></app-stats-cards>
+
+<!-- Statistics Cards 
+  <div *ngIf="stats">
+    <div class="row g-5 g-xl-8 mb-4 justify-content-center">
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-tags fs-2x text-primary"></i>
+            </div>
+            <div class="flex-grow-1 ms-4">
+              <span class="text-gray-700 fw-bold fs-6 d-block">Total Categorias</span>
+              <span class="text-gray-900 fw-bolder fs-2hx">{{ stats.total }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-check-square-fill fs-2x text-success"></i>
+            </div>
+            <div class="flex-grow-1 ms-4">
+              <span class="text-gray-700 fw-bold fs-6 d-block">Activos</span>
+              <span class="text-gray-900 fw-bolder fs-2hx">{{ stats.active }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="bi bi-diagram-3 fs-2x text-warning"></i>
+            </div>
+            <div class="flex-grow-1 ms-4">
+              <span class="text-gray-700 fw-bold fs-6 d-block">Dependientes</span>
+              <span class="text-gray-900 fw-bolder fs-2hx">{{ stats.withParent }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <i class="ki-outline ki-setting-3 fs-2x text-danger"></i>
+            </div>
+            <div class="flex-grow-1 ms-4">
+              <span class="text-gray-700 fw-bold fs-6 d-block">Reparaciones</span>
+              <span class="text-gray-900 fw-bolder fs-2hx">12</span>
+            </div>
+          </div>
+        </div>
+      </div> 
+
+    </div>
+</div>
+
+-->
+
+
+
+<!--begin::List widget 20-->
+<div class="card h-xl-100">
+    <!--begin::Body-->
+    <div class="card-body pt-6">
+
+        <!-- Estados -->
+        <div *ngIf="loading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Cargando categorías...</p>
+        </div>
+
+        <div *ngIf="error && !loading" class="error-state">
+          <h3>Error al cargar categorías</h3>
+          <p>{{ error }}</p>
+          <button (click)="loadCategories()" class="btn btn-primary">Reintentar</button>
+        </div>
+
+        <!--begin::Loading-->
+        <div *ngIf="loading" class="d-flex justify-content-center py-10">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+        <!--end::Loading-->
+
+
+        
+
+        <!-- ----------------- Aqui entra la tabla -------------- -->
+        <div *ngIf="!loading && !error" class="categories-section">
+          <app-category-list
+            [filters]="{ search: searchTerm, isActive: activeFilter === 'all' ? undefined : activeFilter === 'active' }"
+            [showActions]="true"
+            (categorySelected)="onSelectCategory($event)"
+            (categoryEdit)="onEditCategory($event)"
+            (categoryDelete)="onDeleteCategory($event)"
+          ></app-category-list>
+
+          <div *ngIf="categories.length === 0" class="empty-state">
+            <div class="empty-icon">📂</div>
+            <h3>No se encontraron categorías</h3>
+            <p *ngIf="searchTerm || activeFilter !== 'all'">
+              Ajusta los filtros o
+              <button (click)="clearSearch(); activeFilter = 'all'; loadCategories()" class="btn-link">muestra todas</button>.
+            </p>
+            <p *ngIf="!searchTerm && activeFilter === 'all'">
+              No hay categorías registradas.
+              <button *ngIf="canCreate" (click)="onCreateCategory()" class="btn-link">Crear la primera</button>
+            </p>
+          </div>
+        </div>
+
+
+        <!--begin::Table wrapper-->
+        <!-- 
+        <div class="table-responsive" *ngIf="!loading">
+          <table
+            class="table align-middle table-row-dashed fs-6 gy-5"
+            *ngIf="categories.length > 0"
+          >
+            <thead>
+              <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+                <th>Nombre</th>
+                <th>Slug</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="fw-semibold text-gray-600">
+              <tr *ngFor="let cat of categories">
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="symbol symbol-50px me-3">
+                      <span class="symbol-label bg-light-primary text-primary fw-bold">
+                        {{ cat.name.charAt(0).toUpperCase() }}
+                      </span>
+                    </div>
+                    <div class="d-flex flex-column">
+                      <span class="text-gray-800 mb-1">{{ cat.name }}</span>
+                      <small class="text-gray-600">{{ cat.description }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <code class="text-gray-700">{{ cat.slug }}</code>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [ngClass]="cat.isActive ? 'badge-light-success' : 'badge-light-danger'"
+                  >
+                    {{ cat.isActive ? 'Activa' : 'Inactiva' }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <button
+                    (click)="onEditCategory(cat)"
+                    class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-2"
+                    title="Editar"
+                  >
+                    <i class="ki-duotone ki-pencil fs-2">
+                      <span class="path1"></span>
+                      <span class="path2"></span>
+                    </i>
+                  </button>
+                  <button
+                    (click)="onDeleteCategory(cat)"
+                    class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                    title="Eliminar"
+                  >
+                    <i class="ki-duotone ki-trash fs-2">
+                      <span class="path1"></span>
+                      <span class="path2"></span>
+                      <span class="path3"></span>
+                      <span class="path4"></span>
+                      <span class="path5"></span>
+                    </i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div *ngIf="categories.length === 0" class="text-center py-10">
+            <img
+              src="./assets/media/illustrations/empty-state.png"
+              class="h-150px mb-5"
+              alt="Sin categorías"
+            />
+            <div class="fw-semibold text-gray-600 fs-5 mb-5">
+              No hay categorías registradas
+            </div>
+            <button
+              (click)="onCreateCategory()"
+              class="btn btn-primary"
+            >
+              Crear la primera
+            </button>
+          </div>
+        </div>
+         -->
+        <!--end::Table wrapper-->
+
+    </div>
+    <!--end::Body-->
+</div>
+<!--end::List widget 20-->
+
+
+<!--begin::Tree card-->
+<div class="card card-flush mt-6" *ngIf="treeNodes.length > 0">
+  <div class="card-header">
+    <h3 class="card-title">Árbol de categorías</h3>
+  </div>
+  <div class="card-body">
+    <div class="tree-container">
+      <app-category-tree
+        [nodes]="treeNodes"
+        [showActions]="true"
+        (nodeEdit)="onEditCategory($event)"
+        (nodeDelete)="onDeleteCategory($event)"
+        (nodeAddChild)="onCreateChildCategory($event)"
+      ></app-category-tree>
+    </div>
+  </div>
+</div>
+
+<ng-template #noTree>
+  <p class="empty-tree">Cargando árbol de categorías...</p>
+</ng-template>
+
+

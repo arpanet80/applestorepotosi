@@ -1,0 +1,100 @@
+<!-- src/app/purchase-orders/components/purchase-order-form/purchase-order-form.component.html -->
+<div class="card card-body card-shadow-sm">
+  <!-- Título -->
+  <div class="d-flex align-items-center mb-6">
+    <h3 class="card-title fw-bolder text-gray-800 mb-0">
+      {{ isEditMode ? 'Editar Orden de Compra' : 'Crear Orden de Compra' }}
+    </h3>
+    <div class="ms-auto">
+      <button type="button" class="btn btn-sm btn-light-primary me-2" (click)="onCancel()">
+        <i class="ki-duotone ki-arrow-left fs-3"></i>Cancelar
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <!-- Row -->
+    <div class="row mb-6">
+      <!-- Proveedor -->
+      <div class="col-md-6">
+        <label class="form-label required">Proveedor</label>
+        <select formControlName="supplierId" class="form-select form-select-solid">
+          <option value="" disabled selected>Seleccione un proveedor</option>
+          <option *ngFor="let s of suppliers" [value]="s._id">{{ s.name }}</option>
+        </select>
+        <span *ngIf="form.get('supplierId')?.invalid && form.get('supplierId')?.touched" class="text-danger fs-7">
+          Campo requerido
+        </span>
+      </div>
+
+      <!-- Fecha -->
+      <div class="col-md-6">
+        <label class="form-label">Fecha de orden</label>
+        <input type="date" formControlName="orderDate" class="form-control form-control-solid" />
+      </div>
+    </div>
+
+    <!-- Productos -->
+    <div class="mb-6">
+      <label class="form-label required">Productos</label>
+      <div class="table-responsive">
+        <table class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4">
+          <thead>
+            <tr class="fw-bolder text-muted">
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Costo unitario</th>
+              <th width="50"></th>
+            </tr>
+          </thead>
+          <tbody formArrayName="items">
+            <tr *ngFor="let item of items.controls; let i = index" [formGroupName]="i">
+              <td>
+                <select formControlName="productId" class="form-select form-select-sm form-select-solid">
+                  <option value="" disabled selected>-- Producto --</option>
+                  <option *ngFor="let p of products" [value]="p._id">{{ p.name }}</option>
+                </select>
+              </td>
+              <td>
+                <input type="number" formControlName="quantity" min="1" class="form-control form-control-sm form-control-solid" placeholder="Cantidad" />
+              </td>
+              <td>
+                <input type="number" formControlName="unitCost" min="0" step="0.01" class="form-control form-control-sm form-control-solid" placeholder="Costo" />
+              </td>
+              <td>
+                <button type="button" (click)="removeItem(i)" class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm">
+                  <i class="ki-duotone ki-trash fs-3"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <button type="button" (click)="addItem()" class="btn btn-sm btn-light-success">
+          <i class="ki-duotone ki-plus fs-2"></i>Agregar producto
+        </button>
+        <span *ngIf="items.length === 0 && form.touched" class="text-danger fs-7">Debe agregar al menos un producto</span>
+      </div>
+    </div>
+
+    <!-- Notas -->
+    <div class="mb-6">
+      <label class="form-label">Notas</label>
+      <textarea formControlName="notes" rows="3" class="form-control form-control-solid" placeholder="Opcional"></textarea>
+    </div>
+
+    <!-- Acciones -->
+    <div class="d-flex justify-content-end gap-2">
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting">
+        <span *ngIf="!submitting">
+          <i class="ki-duotone ki-check fs-2"></i>{{ isEditMode ? 'Actualizar' : 'Crear' }}
+        </span>
+        <span *ngIf="submitting">
+          <span class="spinner-border spinner-border-sm align-middle me-2"></span>Guardando...
+        </span>
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error" class="alert alert-danger mt-4">{{ error }}</div>
+  </form>
+</div>

@@ -1,0 +1,238 @@
+<div class="d-flex flex-column h-100" *ngIf="session; else noSession">
+  <!-- Toolbar -->
+  <div class="d-flex align-items-center justify-content-between bg-primary text-white px-6 py-4">
+    <span class="fw-bold fs-3">Punto de Venta – Apple Store Potosí</span>
+    <div class="d-flex align-items-center gap-4">
+      <span class="fs-5">Caja: {{ session.sessionId }}</span>
+      <small class="text-white-50">
+        Ventas Efectivo: <strong>${{ session.cashSales | number:'1.2-2' }}</strong> |
+        Esperado Efectivo: <strong>${{ expectedCash | number:'1.2-2' }}</strong>
+      </small>
+      <button type="button" class="btn btn-light-danger fw-bold" (click)="closeSession()">
+        Cerrar Caja
+      </button>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="flex-grow-1 d-flex flex-column flex-lg-row gap-6 p-6">
+    <!-- Products side -->
+    <div class="flex-lg-row-fluid d-flex flex-column">
+      <div class="mb-4">
+        <input
+          type="text"
+          class="form-control form-control-solid"
+          placeholder="Buscar producto..."
+          [formControl]="productSearchControl"
+        />
+      </div>
+
+      <div class="row g-4 overflow-y-auto">
+        <div
+          class="col-xl-3 col-lg-4 col-md-6"
+          *ngFor="let p of filteredProducts$ | async"
+        >
+          <div
+            class="card card-flush bgi-no-repeat bgi-size-cover h-100"
+            [class.cursor-pointer]="(p.availableQuantity ?? 0) > 0"
+            [class.opacity-50]="(p.availableQuantity ?? 0) === 0"
+            (click)="addProduct(p)"
+          >
+            <div class="card-body d-flex flex-column text-center p-4">
+              <img
+                [src]="p.imageUrl || '/assets/no-image.png'"
+                class="w-100 h-125px object-fit-contain mb-3"
+                [alt]="p.name"
+              />
+              <div class="fw-bold text-gray-800 fs-5">{{ p.name }}</div>
+              <div class="text-muted fs-7">{{ p.sku }}</div>
+              <div class="d-flex justify-content-between align-items-center mt-auto">
+                <span class="fw-bold text-primary fs-6">${{ p.salePrice }}</span>
+                <span
+                  class="badge fs-7"
+                  [ngClass]="{
+                    'badge-light-success': (p.availableQuantity ?? 0) > p.minStock,
+                    'badge-light-warning': (p.availableQuantity ?? 0) <= p.minStock && (p.availableQuantity ?? 0) > 0,
+                    'badge-light-danger': (p.availableQuantity ?? 0) === 0
+                  }"
+                >
+                  Disp: {{ p.availableQuantity ?? 0 }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGINACIÓN -->
+      <div class="d-flex justify-content-between align-items-center mt-6" *ngIf="totalPages > 1">
+        <button class="btn btn-sm btn-light-primary" (click)="prevPage()" [disabled]="page === 1">
+          <i class="ki-duotone ki-arrow-left fs-3 me-2"></i>Anterior
+        </button>
+
+        <small class="text-gray-600 fw-semibold">
+          Página {{ page }} de {{ totalPages }}
+        </small>
+
+        <button class="btn btn-sm btn-light-primary" (click)="nextPage()" [disabled]="page === totalPages">
+          Siguiente<i class="ki-duotone ki-arrow-right fs-3 ms-2"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Cart side -->
+    <div class="w-lg-400px d-flex flex-column">
+      <div class="card card-flush shadow-sm h-100">
+        <div class="card-header">
+          <h3 class="card-title fw-bold text-gray-800">Carrito</h3>
+        </div>
+
+        <div class="card-body d-flex flex-column">
+          <!-- Customer search -->
+          <div class="mb-4 position-relative">
+            <label class="form-label fw-semibold text-gray-700">Cliente</label>
+            <input
+              type="text"
+              class="form-control form-control-solid"
+              placeholder="Escriba para buscar..."
+              [formControl]="customerSearchControl"
+              (focus)="customerDropdownOpen = true"
+              (blur)="customerDropdownOpen = false"
+            />
+            <div
+              class="position-absolute w-100 bg-white border rounded shadow-sm z-index-1"
+              *ngIf="customerDropdownOpen && (filteredCustomers$ | async)!.length"
+            >
+              <a
+                href="javascript:void(0)"
+                class="d-block px-4 py-2 text-hover-primary text-gray-700 fw-semibold"
+                *ngFor="let c of filteredCustomers$ | async"
+                (mousedown)="selectCustomer(c); customerDropdownOpen = false"
+              >
+                {{ c.fullName }} ({{ c.email }})
+              </a>
+            </div>
+          </div>
+
+          <!-- Items table -->
+          <div class="table-responsive mb-4">
+            <table class="table table-row-dashed align-middle gs-3 gy-3">
+              <thead>
+                <tr class="fw-bold text-gray-700">
+                  <th>Producto</th>
+                  <th class="text-center">Cant</th>
+                  <th class="text-end">Precio</th>
+                  <th class="text-end">Desc</th>
+                  <th class="text-end">Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of cart.controls; let i = index">
+                  <td class="fw-semibold text-gray-800">{{ item.value.name }}</td>
+                  <td class="text-center">
+                    <input
+                      type="number"
+                      min="1"
+                      class="form-control form-control-sm w-70px"
+                      [value]="item.value.quantity"
+                      (change)="item.get('quantity')?.setValue(+$event.target.value); updateSubtotals()"
+                    />
+                  </td>
+                  <td class="text-end">${{ item.value.unitPrice }}</td>
+                  <td class="text-end">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="form-control form-control-sm w-70px"
+                      [value]="item.value.discount"
+                      (change)="item.get('discount')?.setValue(+$event.target.value); updateSubtotals()"
+                    />
+                  </td>
+                  <td class="text-end fw-bold">${{ item.value.subtotal }}</td>
+                  <td class="text-end">
+                    <button
+                      type="button"
+                      class="btn btn-icon btn-light-danger btn-sm"
+                      (click)="removeItem(i)"
+                    >
+                      <i class="ki-duotone ki-trash fs-3"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Acciones rápidas -->
+          <div class="d-flex justify-content-between mb-3">
+            <button
+              type="button"
+              class="btn btn-sm btn-light-danger"
+              (click)="removeLastItem()"
+              [disabled]="cart.length === 0"
+            >
+              <i class="ki-duotone ki-trash fs-4 me-2"></i>Quitar último
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-sm btn-light-warning"
+              (click)="cancelSale()"
+              [disabled]="cart.length === 0"
+            >
+              <i class="ki-duotone ki-cross-circle fs-4 me-2"></i>Cancelar venta
+            </button>
+          </div>
+
+          <!-- Total -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <span class="fw-bold text-gray-700 fs-5">Total:</span>
+            <span class="fw-bolder text-primary fs-3">${{ cartTotal }}</span>
+          </div>
+
+          <!-- Payment -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-gray-700">Método de pago</label>
+            <select class="form-select form-select-solid" [(ngModel)]="paymentMethod">
+              <option value="cash">Efectivo</option>
+              <option value="card">Tarjeta</option>
+              <option value="transfer">Transferencia</option>
+            </select>
+          </div>
+
+          <div class="mb-4" *ngIf="paymentMethod !== 'cash'">
+            <label class="form-label fw-semibold text-gray-700">Referencia</label>
+            <input
+              type="text"
+              class="form-control form-control-solid"
+              [(ngModel)]="paymentReference"
+            />
+          </div>
+
+          <!-- Sell button -->
+          <button
+            type="button"
+            class="btn btn-primary fw-bold w-100"
+            (click)="sell()"
+            [disabled]="cart.length === 0"
+          >
+            Finalizar Venta
+          </button>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- No session -->
+<ng-template #noSession>
+  <div class="d-flex flex-column align-items-center justify-content-center h-100">
+    <h2 class="text-gray-600 mb-6">No hay caja abierta</h2>
+    <button type="button" class="btn btn-lg btn-primary" (click)="openSession()">
+      Abrir Caja
+    </button>
+  </div>
+</ng-template>

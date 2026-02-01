@@ -1,0 +1,142 @@
+<div class="card mb-5 mb-xl-10">
+  <div class="card-header">
+    <h3 class="card-title fw-bold fs-3 text-gray-800">
+      {{ isEditMode ? 'Editar Cliente' : 'Crear Cliente' }}
+    </h3>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+    <div class="card-body">
+      <!-- Usuario -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Usuario (opcional)</label>
+        <div class="col-lg-10">
+          <select
+            formControlName="userId"
+            class="form-select form-select-solid"
+            data-control="select2"
+            data-placeholder="Seleccione un usuario">
+            <option [ngValue]="null">-- Ninguno --</option>
+            <option *ngFor="let u of users" [ngValue]="u._id">
+              {{ u.displayName }} ({{ u.email }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Nombre -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Nombre completo</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="fullName"
+            placeholder="Juan Pérez" />
+          <ng-container *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">
+            <div class="fv-plugins-message-container">
+              <div class="fv-help-block">Campo requerido (mín. 2 caracteres)</div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Email</label>
+        <div class="col-lg-10">
+          <input
+            type="email"
+            class="form-control form-control-solid"
+            formControlName="email"
+            placeholder="juan@example.com" />
+          <ng-container *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+            <div class="fv-plugins-message-container">
+              <div class="fv-help-block">Email inválido</div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Teléfono -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Teléfono</label>
+        <div class="col-lg-10">
+          <input
+            type="tel"
+            class="form-control form-control-solid"
+            formControlName="phone"
+            placeholder="+591 7000 0000" />
+          <ng-container *ngIf="form.get('phone')?.invalid && form.get('phone')?.touched">
+            <div class="fv-plugins-message-container">
+              <div class="fv-help-block">Campo requerido</div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Tax ID -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Tax ID</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="taxId"
+            placeholder="NIT / CI" />
+        </div>
+      </div>
+
+      <!-- Dirección -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Dirección</label>
+        <div class="col-lg-10">
+          <div class="row g-3" formGroupName="address">
+            <div class="col-md-6"><input class="form-control form-control-solid" formControlName="street" placeholder="Calle" /></div>
+            <div class="col-md-6"><input class="form-control form-control-solid" formControlName="city" placeholder="Ciudad" /></div>
+            <div class="col-md-6"><input class="form-control form-control-solid" formControlName="state" placeholder="Estado / Depto" /></div>
+            <div class="col-md-6"><input class="form-control form-control-solid" formControlName="zipCode" placeholder="Código postal" /></div>
+            <div class="col-12"><input class="form-control form-control-solid" formControlName="country" placeholder="País" /></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Puntos de fidelidad -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Puntos de fidelidad</label>
+        <div class="col-lg-10">
+          <input
+            type="number"
+            class="form-control form-control-solid"
+            formControlName="loyaltyPoints"
+            min="0" />
+        </div>
+      </div>
+
+      <!-- Estado -->
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Estado</label>
+        <div class="col-lg-10">
+          <label class="form-check form-switch form-check-custom form-check-solid">
+            <input class="form-check-input" type="checkbox" formControlName="isActive" />
+            <span class="form-check-label fw-semibold">Activo</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="card-footer d-flex justify-content-end py-6 px-9">
+      <button type="button" (click)="onCancel()" class="btn btn-light me-3">Cancelar</button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="form.invalid || submitting">
+        <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger mx-9 mt-4">{{ error }}</div>
+  </form>
+</div>

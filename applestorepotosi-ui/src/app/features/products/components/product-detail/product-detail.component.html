@@ -1,0 +1,353 @@
+<!-- src/app/products/components/product-detail/product-detail.component.html -->
+<div class="card">
+  <div class="card-body">
+    
+    <!-- Loading State -->
+    <div *ngIf="loading" class="d-flex justify-content-center align-items-center h-300px">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="alert alert-danger d-flex align-items-center p-5">
+      <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
+        <span class="path1"></span>
+        <span class="path2"></span>
+      </i>
+      <div class="d-flex flex-column">
+        <h4 class="mb-1 text-danger">Error al cargar el producto</h4>
+        <span>{{ error }}</span>
+        <button routerLink="/products" class="btn btn-sm btn-primary mt-3">
+          <i class="ki-duotone ki-arrow-left fs-2"></i>
+          Volver a Productos
+        </button>
+      </div>
+    </div>
+
+    <!-- Product Detail -->
+    <div *ngIf="!loading && !error && product" class="d-flex flex-column flex-xl-row">
+      
+      <!-- Product Images -->
+      <div class="flex-column flex-lg-row-auto w-100 w-xl-350px mb-10">
+        <app-keen-image-viewer [images]="imageUrls"></app-keen-image-viewer>
+      </div>
+
+      <!-- Product Info -->
+      <div class="flex-lg-row-fluid ms-xl-10">
+        
+        <!-- Header -->
+        <div class="d-flex flex-wrap flex-stack mb-6">
+          <div class="d-flex flex-column flex-grow-1">
+            <div class="d-flex flex-wrap fw-semibold align-items-center mb-2">
+              <h1 class="text-dark fs-2hx me-3">{{ product.name }}</h1>
+              <span *ngIf="product.isFeatured" class="badge badge-light-warning fs-7">
+                <i class="bi bi-star-fill text-warning fs-6 me-1"></i>
+                Destacado
+              </span>
+            </div>
+            <div class="d-flex flex-wrap gap-6">
+              <div class="d-flex align-items-center">
+                <i class="ki-duotone ki-tag fs-3 text-gray-500 me-2"></i>
+                <span class="text-gray-700 fw-bold fs-6">SKU: {{ product.sku }}</span>
+              </div>
+              <div *ngIf="product.barcode" class="d-flex align-items-center">
+                <i class="ki-duotone ki-qr-code fs-3 text-gray-500 me-2"></i>
+                <span class="text-gray-700 fw-bold fs-6">{{ product.barcode }}</span>
+              </div>
+              <div class="d-flex align-items-center">
+                <span class="badge" [ngClass]="{
+                  'badge-light-danger': product.stockStatus === 'out-of-stock',
+                  'badge-light-warning': product.stockStatus === 'low-stock',
+                  'badge-light-success': product.stockStatus === 'in-stock',
+                  'badge-light-info': product.stockStatus === 'over-stock'
+                }">
+                  {{ getStockStatusText() }}
+                </span>
+              </div>
+              <div class="d-flex align-items-center">
+                <span class="badge" [ngClass]="{
+                  'badge-light-success': product.isActive,
+                  'badge-light-danger': !product.isActive
+                }">
+                  {{ product.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-flex my-2">
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                    *ngIf="canEdit"
+                    (click)="onEditProduct()"
+                    class="btn btn-sm btn-success"
+                    data-bs-toggle="tooltip"
+                    data-bs-title="Editar producto"
+                    data-bs-placement="top">
+                    <i class="bi bi-pencil fs-2"></i>
+                    Editar
+                  </button>
+              <button *ngIf="canManageStock"
+                      (click)="onManageStock()"
+                      class="btn btn-sm btn-info"
+                      data-bs-toggle="tooltip"
+                      data-bs-title="Gestionar Stock"
+                      data-bs-placement="top">
+                <i class="bi bi-boxes fs-2"></i>
+                <!-- <i class="bi bi-plus fs-2"></i> -->
+                Gestionar Stock
+              </button>
+              <button (click)="onToggleFeatured()" 
+                      class="btn btn-sm btn-warning"
+                      data-bs-toggle="tooltip"
+                      [attr.data-bs-title]="toggleTextDestacado"
+                      data-bs-placement="top">
+                <i class="bi bi-star fs-2"></i>
+                {{ product.isFeatured ? 'Quitar Destacado' : 'Destacar' }}
+              </button>
+              <button (click)="onToggleActive()" 
+                      class="btn btn-sm btn-danger"
+                      data-bs-toggle="tooltip"
+                      [attr.data-bs-title]="toggleTextDesactivar"
+                      data-bs-placement="top">
+                <i class="fas fa-toggle-on fs-2" [ngClass]="{
+                  'ki-toggle-on': product.isActive,
+                  'ki-toggle-off': !product.isActive
+                }"></i>
+                {{ product.isActive ? 'Desactivar' : 'Activar' }}
+              </button>
+              <!-- <button *ngIf="canDelete"
+                      (click)="onDeleteProduct()" 
+                      class="btn btn-sm btn-danger"
+                      data-bs-toggle="tooltip"
+                      data-bs-title="Eliminar"
+                      data-bs-placement="top">
+                <i class="fas fa-toggle-on fs-2"></i>
+                Eliminar 
+              </button> -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="d-flex overflow-auto pb-5">
+          <ul class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bolder flex-nowrap">
+            <li class="nav-item">
+              <a class="nav-link text-active-primary me-6" 
+                 [class.active]="activeTab === 'details'"
+                 (click)="setActiveTab('details')"
+                 href="#">
+                Información General
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-active-primary me-6" 
+                 [class.active]="activeTab === 'specifications'"
+                 (click)="setActiveTab('specifications')"
+                 href="#">
+                Especificaciones
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-active-primary me-6" 
+                 [class.active]="activeTab === 'stock'"
+                 (click)="setActiveTab('stock')"
+                 href="#">
+                Inventario
+              </a>
+            </li>
+            <li *ngIf="productImages.length > 0" class="nav-item">
+              <a class="nav-link text-active-primary me-6" 
+                 [class.active]="activeTab === 'images'"
+                 (click)="setActiveTab('images')"
+                 href="#">
+                Imágenes ({{ productImages.length }})
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+          
+          <!-- Details Tab -->
+          <div *ngIf="activeTab === 'details'" class="tab-pane fade show active">
+            <div class="row g-5">
+              <div class="col-md-6">
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Precio de Venta</label>
+                  <div class="fs-2hx fw-bold text-success">${{ product.salePrice | number:'1.2-2' }}</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Precio de Costo</label>
+                  <div class="fs-2hx fw-bold text-danger">${{ product.costPrice | number:'1.2-2' }}</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Margen de Ganancia</label>
+                  <div class="fs-2hx fw-bold" [class.text-success]="(product.profitMargin || 0) >= 0" 
+                       [class.text-danger]="(product.profitMargin || 0) < 0">
+                    {{ product.profitMargin | number:'1.2-2' }}%
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Categoría</label>
+                  <div class="fs-5 fw-bold">{{ product.categoryId?.name || 'N/A' }}</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Marca</label>
+                  <div class="fs-5 fw-bold">{{ product.brandId?.name || 'N/A' }}</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Proveedor</label>
+                  <div class="fs-5 fw-bold">{{ product.supplierId?.name || 'N/A' }}</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Garantía</label>
+                  <div class="fs-5 fw-bold">{{ product.warrantyMonths }} meses</div>
+                </div>
+                <div class="mb-8">
+                  <label class="fs-6 fw-semibold mb-2">Ubicación</label>
+                  <div class="fs-5 fw-bold">{{ product.location || 'No especificada' }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-8">
+              <label class="fs-6 fw-semibold mb-2">Descripción</label>
+              <div class="fs-5">{{ product.description || 'Sin descripción' }}</div>
+            </div>
+          </div>
+
+          <!-- Specifications Tab -->
+          <div *ngIf="activeTab === 'specifications'" class="tab-pane fade show active">
+            <div *ngIf="hasSpecifications()" class="row g-5">
+              <div *ngFor="let spec of getSpecifications()" class="col-md-6">
+                <div class="d-flex flex-stack mb-2">
+                  <label class="fs-6 fw-semibold">{{ spec.key }}:</label>
+                  <span class="fs-6 fw-bold">{{ spec.value || 'N/A' }}</span>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!hasSpecifications()" class="text-center py-10">
+              <img src="assets/media/illustrations/empty-state.svg" class="h-150px" alt="No hay especificaciones">
+              <div class="mt-4">
+                <h4 class="text-gray-900 mb-2">No hay especificaciones</h4>
+                <p class="text-gray-600">No se han registrado especificaciones técnicas para este producto.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stock Tab -->
+          <div *ngIf="activeTab === 'stock'" class="tab-pane fade show active">
+            <div class="row g-5 mb-8">
+              <div class="col-md-3">
+                <div class="bg-light rounded p-5 text-center">
+                  <div class="fs-2hx fw-bold text-gray-900">{{ product.stockQuantity }}</div>
+                  <div class="fs-6 text-gray-600">Stock Total</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="bg-light rounded p-5 text-center">
+                  <div class="fs-2hx fw-bold text-warning">{{ product.reservedQuantity }}</div>
+                  <div class="fs-6 text-gray-600">Stock Reservado</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="bg-light rounded p-5 text-center">
+                  <div class="fs-2hx fw-bold text-success">{{ product.availableQuantity || 0 }}</div>
+                  <div class="fs-6 text-gray-600">Stock Disponible</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="bg-light rounded p-5 text-center">
+                  <div class="fs-2hx fw-bold text-danger">{{ product.minStock }}</div>
+                  <div class="fs-6 text-gray-600">Stock Mínimo</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-8">
+              <label class="fs-6 fw-semibold mb-2">Nivel de Stock</label>
+              <div class="progress h-10px">
+                <div class="progress-bar" 
+                     [class.bg-danger]="getStockLevelClass() === 'level-empty'"
+                     [class.bg-warning]="getStockLevelClass() === 'level-low'"
+                     [class.bg-info]="getStockLevelClass() === 'level-medium'"
+                     [class.bg-success]="getStockLevelClass() === 'level-high'"
+                     [style.width.%]="getStockLevelPercentage()">
+                </div>
+              </div>
+              <div class="text-muted mt-2">
+                {{ product.availableQuantity || 0 }} / {{ product.maxStock || product.stockQuantity }} unidades
+              </div>
+            </div>
+
+            <div *ngIf="product.stockStatus === 'out-of-stock'" class="alert alert-danger d-flex align-items-center p-5">
+              <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4"></i>
+              <div class="d-flex flex-column">
+                <h4 class="mb-1 text-danger">Producto sin stock</h4>
+                <span>Se necesitan al menos {{ product.minStock }} unidades</span>
+              </div>
+            </div>
+            
+            <div *ngIf="product.stockStatus === 'low-stock'" class="alert alert-warning d-flex align-items-center p-5">
+              <i class="ki-duotone ki-information-5 fs-2hx text-warning me-4"></i>
+              <div class="d-flex flex-column">
+                <h4 class="mb-1 text-warning">Stock bajo</h4>
+                <span>Por debajo del mínimo de {{ product.minStock }} unidades</span>
+              </div>
+            </div>
+            
+            <div *ngIf="product.stockStatus === 'over-stock'" class="alert alert-info d-flex align-items-center p-5">
+              <i class="ki-duotone ki-information-5 fs-2hx text-info me-4"></i>
+              <div class="d-flex flex-column">
+                <h4 class="mb-1 text-info">Stock excedido</h4>
+                <span>El stock excede el máximo recomendado de {{ product.maxStock }} unidades</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Images Tab -->
+          <div *ngIf="activeTab === 'images'" class="tab-pane fade show active">
+            <div class="row g-5">
+              <div *ngFor="let image of productImages" class="col-md-4">
+                <div class="card card-flush border-0">
+                  <div class="card-body p-0">
+                    <div class="symbol symbol-2by3">
+                      <img [src]="image.url" [alt]="image.altText || product.name" class="w-100">
+                    </div>
+                    <div class="p-5">
+                      <div class="fs-6 fw-bold">{{ image.altText || 'Sin descripción' }}</div>
+                      <div class="text-muted fs-7 mt-1">Orden: {{ image.sortOrder }}</div>
+                      <div *ngIf="image.isPrimary" class="badge badge-primary mt-2">Principal</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- System Info -->
+        <div class="separator separator-dashed my-10"></div>
+        <div class="row g-5">
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Creado por</label>
+            <div class="fs-6">{{ product.createdBy?.displayName || 'Sistema' }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Fecha de creación</label>
+            <div class="fs-6">{{ product.createdAt | date:'medium' }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Última actualización</label>
+            <div class="fs-6">{{ product.updatedAt | date:'medium' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

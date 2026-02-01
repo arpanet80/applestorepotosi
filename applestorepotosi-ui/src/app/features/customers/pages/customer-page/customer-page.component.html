@@ -1,0 +1,108 @@
+<!-- src/app/customers/pages/customer-page/customer-page.component.html -->
+<div class="customers-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Clientes</h1>
+        <p>Administra los clientes de la tienda</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateCustomer()" class="btn btn-primary">➕ Nuevo Cliente</button>
+        <button *ngIf="canManage" (click)="onManageCustomers()" class="btn btn-secondary">⚙️ Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div *ngIf="stats" class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total">👥</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total Clientes</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon active">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.active }}</span>
+          <span class="stat-label">Activos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon loyalty">💎</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.withLoyaltyPoints }}</span>
+          <span class="stat-label">Con Puntos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon points">🔢</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.totalLoyaltyPoints }}</span>
+          <span class="stat-label">Pts Totales</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BÚSQUEDA Y FILTROS -->
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar cliente por nombre, email o teléfono..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass('all')" (click)="onFilterChange('all')">Todos</button>
+      <button [class]="getFilterClass('active')" (click)="onFilterChange('active')">Activos</button>
+      <button [class]="getFilterClass('inactive')" (click)="onFilterChange('inactive')">Inactivos</button>
+    </div>
+  </div>
+
+  <!-- ESTADOS -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando clientes...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar clientes</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadCustomers()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <!-- LISTADO -->
+  <div *ngIf="!loading && !error" class="customers-section">
+    <app-customer-list
+      [filters]="{ search: searchTerm, isActive: activeFilter === 'all' ? undefined : activeFilter === 'active' }"
+      [showActions]="true"
+      (customerSelected)="onSelectCustomer($event)"
+      (customerEdit)="onEditCustomer($event)"
+      (customerDelete)="onDeleteCustomer($event)"
+    ></app-customer-list>
+
+    <div *ngIf="customers.length === 0" class="empty-state">
+      <div class="empty-icon">👥</div>
+      <h3>No se encontraron clientes</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all'">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; activeFilter = 'all'; loadCustomers()" class="btn-link">
+          muestra todos
+        </button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all'">
+        No hay clientes registrados.
+        <button *ngIf="canCreate" (click)="onCreateCustomer()" class="btn-link">Crear el primero</button>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,120 @@
+<div class="container-fluid py-6">
+  <div class="row justify-content-center">
+    <div class="col-xl-10">
+
+      <!-- Header Card -->
+      <div *ngIf="!loading && brand" class="card shadow-sm mb-6">
+        <div class="row g-0">
+          <!-- Logo + Nombre -->
+          <div class="col-md-3 d-flex flex-column align-items-center justify-content-center p-5">
+            <img *ngIf="brand.logoUrl" [src]="brand.logoUrl" [alt]="brand.name + ' logo'"
+                 class="img-fluid rounded border theme-bg-base p-4 shadow-sm"
+                 style="max-height: 160px;" />
+            <div *ngIf="!brand.logoUrl"
+                 class="d-flex align-items-center justify-content-center border rounded p-4 theme-bg-base"
+                 style="height: 160px; width: 100%;">
+              <span class="text-muted fs-6">Sin logo</span>
+            </div>
+            <h3 class="fw-bold brand-name-static mt-4 mb-0 text-center">{{ brand.name }}</h3>
+          </div>
+
+          <!-- Info -->
+          <div class="col-md-9">
+            <div class="card-body h-100 d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex flex-wrap justify-content-between align-items-start mb-4">
+                  <div>
+                    <span class="badge fs-7 px-3 py-2"
+                          [ngClass]="brand.isActive ? 'badge-light-success' : 'badge-light-danger'">
+                      {{ brand.isActive ? 'Marca Activa' : 'Marca Inactiva' }}
+                    </span>
+                  </div>
+
+                  <div class="d-flex gap-2 mt-3 mt-lg-0" *ngIf="canEdit">
+                    <button class="btn btn-sm btn-outline btn-outline-primary" (click)="onEdit()">Editar</button>
+                    <button class="btn btn-sm btn-outline btn-outline-danger" (click)="onToggleActive()">
+                      {{ brand.isActive ? 'Desactivar' : 'Activar' }}
+                    </button>
+                    <button class="btn btn-sm btn-outline btn-outline-warning" (click)="onBack()">Volver</button>
+                  </div>
+                </div>
+
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="d-flex align-items-start mb-3">
+                      <i class="ki-duotone ki-profile-circle fs-2x text-gray-500 me-3 mt-1"></i>
+                      <div>
+                        <div class="fw-semibold text-gray-800">Descripción</div>
+                        <div class="text-gray-600 fs-7">{{ brand.description || 'Sin descripción' }}</div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex align-items-start">
+                      <i class="ki-duotone ki-geolocation fs-2x text-gray-500 me-3 mt-1"></i>
+                      <div>
+                        <div class="fw-semibold text-gray-800">País</div>
+                        <div class="text-gray-600 fs-7">{{ brand.country || 'No especificado' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="d-flex align-items-start mb-3">
+                      <i class="ki-duotone ki-monitor fs-2x text-gray-500 me-3 mt-1"></i>
+                      <div>
+                        <div class="fw-semibold text-gray-800">Sitio web</div>
+                        <a *ngIf="brand.website" [href]="brand.website" target="_blank" class="link-primary fs-7">
+                          {{ brand.website }}
+                        </a>
+                        <span *ngIf="!brand.website" class="text-gray-600 fs-7">No disponible</span>
+                      </div>
+                    </div>
+
+                    <div class="d-flex align-items-start">
+                      <i class="ki-duotone ki-support fs-2x text-gray-500 me-3 mt-1"></i>
+                      <div>
+                        <div class="fw-semibold text-gray-800">Soporte</div>
+                        <a *ngIf="brand.supportUrl" [href]="brand.supportUrl" target="_blank" class="link-primary fs-7">
+                          Ver soporte
+                        </a>
+                        <span *ngIf="!brand.supportUrl" class="text-gray-600 fs-7">No disponible</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <div class="d-flex align-items-start">
+                    <i class="ki-duotone ki-security-shield fs-2x text-success me-3 mt-1"></i>
+                    <div>
+                      <div class="fw-semibold text-gray-800">Garantía</div>
+                      <div class="text-gray-600 fs-7">{{ brand.warrantyInfo || 'No especificada' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="d-flex justify-content-center align-items-center min-vh-100">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<!-- Error -->
+<div *ngIf="error && !loading" class="d-flex justify-content-center align-items-center min-vh-100">
+  <div class="text-center">
+    <i class="ki-duotone ki-information-2 fs-3x text-danger mb-3"></i>
+    <h5 class="text-gray-800">Error al cargar la marca</h5>
+    <p class="text-gray-600">{{ error }}</p>
+    <a routerLink="/brands" class="btn btn-sm btn-primary">Volver al catálogo</a>
+  </div>
+</div>

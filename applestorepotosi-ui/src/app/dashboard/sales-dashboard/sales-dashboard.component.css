@@ -1,0 +1,102 @@
+:host {
+    display: block;
+    background-color: transparent !important;
+  }
+
+  .container-xxl {
+    background-color: transparent !important;
+  }
+
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  .hover-elevate-up {
+    transition: all 0.3s ease;
+  }
+
+  .hover-elevate-up:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--kt-box-shadow);
+  }
+
+  .card {
+    transition: all 0.3s ease;
+    background-color: var(--kt-card-bg) !important;
+  }
+
+  .card-body {
+    background-color: var(--kt-card-bg) !important;
+  }
+
+  .card-header {
+    background-color: var(--kt-card-bg) !important;
+  }
+
+  .table {
+    background-color: var(--kt-card-bg) !important;
+  }
+
+  .table tbody tr {
+    transition: background-color 0.2s ease;
+    background-color: var(--kt-card-bg) !important;
+  }
+
+  .table tbody tr:hover {
+    background-color: var(--kt-table-row-hover-bg) !important;
+  }
+
+  .btn-flex {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .progress {
+    background-color: var(--kt-progress-bg);
+  }
+
+  /* Asegurar que el fondo de la página principal sea transparente */
+  .d-flex.flex-column.flex-root {
+    background-color: transparent !important;
+  }
+  
+  .d-flex.flex-column-fluid {
+    background-color: transparent !important;
+  }
+
+  /* Estilos para los badges y elementos internos */
+  .badge {
+    background-color: var(--kt-badge-bg) !important;
+    color: var(--kt-badge-color) !important;
+  }
+
+  .symbol-label {
+    transition: all 0.3s ease;
+    background-color: var(--kt-symbol-label-bg) !important;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .card {
+    animation: fadeInUp 0.5s ease;
+  }
+
+  @media (max-width: 768px) {
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .d-flex.gap-5 {
+      gap: 0.75rem !important;
+    }
+  }

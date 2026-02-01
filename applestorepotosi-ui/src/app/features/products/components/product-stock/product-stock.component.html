@@ -1,0 +1,377 @@
+<!-- src/app/products/components/product-stock/product-stock.component.html -->
+<div class="card">
+  <div class="card-body">
+    
+    <!-- Loading State -->
+    <div *ngIf="loading" class="d-flex justify-content-center align-items-center h-300px">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="alert alert-danger d-flex align-items-center p-5">
+      <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
+        <span class="path1"></span>
+        <span class="path2"></span>
+      </i>
+      <div class="d-flex flex-column">
+        <h4 class="mb-1 text-danger">Error al cargar el producto</h4>
+        <span>{{ error }}</span>
+        <div class="d-flex gap-3 mt-3">
+          <button (click)="loadProduct()" class="btn btn-sm btn-primary">
+            <i class="ki-duotone ki-arrow-counter-clockwise fs-2"></i>
+            Reintentar
+          </button>
+          <button (click)="onCancel()" class="btn btn-sm btn-secondary">
+            <i class="ki-duotone ki-arrow-left fs-2"></i>
+            Volver al Producto
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Management -->
+    <div *ngIf="!loading && !error && product">
+      
+      <!-- Header -->
+      <div class="d-flex flex-wrap flex-stack mb-10">
+        <div class="d-flex flex-column flex-grow-1">
+          <div class="d-flex align-items-center mb-2">
+            <h1 class="text-dark fs-2hx me-3">Gestión de Stock</h1>
+          </div>
+          <div class="d-flex flex-wrap gap-6">
+            <div class="d-flex align-items-center">
+              <i class="ki-duotone ki-tag fs-3 text-gray-500 me-2"></i>
+              <span class="text-gray-700 fw-bold fs-6">SKU: {{ product.sku }}</span>
+            </div>
+            <div *ngIf="product.barcode" class="d-flex align-items-center">
+              <i class="ki-duotone ki-qr-code fs-3 text-gray-500 me-2"></i>
+              <span class="text-gray-700 fw-bold fs-6">{{ product.barcode }}</span>
+            </div>
+            <div class="d-flex align-items-center">
+              <span class="badge" [ngClass]="getStockStatusClass()">
+                {{ getStockStatusText() }}
+              </span>
+            </div>
+          </div>
+          <h2 class="text-primary fs-2x mt-4">{{ product.name }}</h2>
+        </div>
+        
+        <div class="d-flex my-2">
+          <button (click)="onCancel()" class="btn btn-sm btn-secondary">
+            <i class="ki-duotone ki-arrow-left fs-2"></i>
+            Volver al Producto
+          </button>
+        </div>
+      </div>
+
+      <!-- Stock Summary -->
+      <div class="row g-6 mb-10">
+        <div class="col-md-8">
+          <div class="row g-6">
+            <div class="col-md-3">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <div class="fs-2hx fw-bold text-gray-900">{{ product.stockQuantity }}</div>
+                  <div class="fs-6 text-gray-600">Stock Total</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <div class="fs-2hx fw-bold text-warning">{{ product.reservedQuantity }}</div>
+                  <div class="fs-6 text-gray-600">Stock Reservado</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <div class="fs-2hx fw-bold text-success">{{ product.availableQuantity || 0 }}</div>
+                  <div class="fs-6 text-gray-600">Stock Disponible</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-light">
+                <div class="card-body text-center">
+                  <div class="fs-2hx fw-bold text-danger">{{ product.minStock }}</div>
+                  <div class="fs-6 text-gray-600">Stock Mínimo</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body">
+              <div class="text-center mb-4">
+                <span class="badge fs-6 px-4 py-2" [ngClass]="getStockStatusClass()">
+                  {{ getStockStatusText() }}
+                </span>
+              </div>
+              
+              <div class="mb-4">
+                <label class="fs-6 fw-semibold mb-2">Nivel de Stock</label>
+                <div class="progress h-10px">
+                  <div class="progress-bar" 
+                       [class.bg-danger]="getStockLevelClass() === 'level-empty'"
+                       [class.bg-warning]="getStockLevelClass() === 'level-low'"
+                       [class.bg-info]="getStockLevelClass() === 'level-medium'"
+                       [class.bg-success]="getStockLevelClass() === 'level-high'"
+                       [style.width.%]="getStockLevelPercentage()">
+                  </div>
+                </div>
+                <div class="text-muted text-center mt-2">
+                  {{ product.availableQuantity || 0 }} / {{ product.maxStock || product.stockQuantity }} unidades
+                </div>
+              </div>
+
+              <div *ngIf="product.stockStatus === 'out-of-stock'" class="alert alert-danger d-flex p-4">
+                <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4"></i>
+                <div class="d-flex flex-column">
+                  <h4 class="mb-1 text-danger">Sin stock</h4>
+                  <span>Se necesitan {{ product.minStock }} unidades</span>
+                </div>
+              </div>
+              
+              <div *ngIf="product.stockStatus === 'low-stock'" class="alert alert-warning d-flex p-4">
+                <i class="ki-duotone ki-information-5 fs-2hx text-warning me-4"></i>
+                <div class="d-flex flex-column">
+                  <h4 class="mb-1 text-warning">Stock bajo</h4>
+                  <span>Por debajo del mínimo de {{ product.minStock }} unidades</span>
+                </div>
+              </div>
+              
+              <div *ngIf="product.stockStatus === 'over-stock'" class="alert alert-info d-flex p-4">
+                <i class="ki-duotone ki-information-5 fs-2hx text-info me-4"></i>
+                <div class="d-flex flex-column">
+                  <h4 class="mb-1 text-info">Stock excedido</h4>
+                  <span>Excede el máximo de {{ product.maxStock }} unidades</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operations Navigation -->
+      <div class="d-flex overflow-auto pb-5">
+        <ul class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bolder flex-nowrap">
+          <li class="nav-item">
+            <a class="nav-link text-active-primary me-6" 
+               [class.active]="activeOperation === 'quick'"
+               (click)="setActiveOperation('quick')"
+               href="#">
+              <i class="ki-duotone ki-package-2 fs-2hx me-2"></i>
+              Operaciones Rápidas
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-active-primary me-6" 
+               [class.active]="activeOperation === 'adjust'"
+               (click)="setActiveOperation('adjust')"
+               href="#">
+              <i class="ki-duotone ki-setting-2 fs-2hx me-2"></i>
+              Ajuste Manual
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-active-primary me-6" 
+               [class.active]="activeOperation === 'history'"
+               (click)="setActiveOperation('history')"
+               href="#">
+              <i class="ki-duotone ki-chart-line fs-2hx me-2"></i>
+              Historial de Movimientos
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Operations Content -->
+      <div class="tab-content">
+        
+        <!-- Quick Operations -->
+        <div *ngIf="activeOperation === 'quick'" class="tab-pane fade show active">
+          <div class="row">
+            <div class="col-md-8">
+              <form [formGroup]="stockForm" (ngSubmit)="onQuickOperation()">
+                <div class="row g-6 mb-6">
+                  <div class="col-md-6">
+                    <label class="required fs-6 fw-semibold mb-2">Operación</label>
+                    <select class="form-select form-select-solid" formControlName="operation">
+                      <option value="increment">➕ Incrementar Stock</option>
+                      <option value="decrement">➖ Decrementar Stock</option>
+                      <option value="reserve">🔒 Reservar Stock</option>
+                      <option value="release">🔓 Liberar Stock Reservado</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="required fs-6 fw-semibold mb-2">Cantidad</label>
+                    <input type="number" 
+                           class="form-control form-control-solid"
+                           formControlName="quantity"
+                           min="1"
+                           [class.is-invalid]="isFieldInvalid(stockForm, 'quantity')">
+                    <div *ngIf="isFieldInvalid(stockForm, 'quantity')" class="invalid-feedback">
+                      {{ getFieldError(stockForm, 'quantity') }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-6">
+                  <label class="required fs-6 fw-semibold mb-2">Motivo / Referencia</label>
+                  <input type="text" 
+                         class="form-control form-control-solid"
+                         formControlName="reason"
+                         placeholder="Ej: Compra a proveedor, Venta #12345, etc."
+                         [class.is-invalid]="isFieldInvalid(stockForm, 'reason')">
+                  <div *ngIf="isFieldInvalid(stockForm, 'reason')" class="invalid-feedback">
+                    {{ getFieldError(stockForm, 'reason') }}
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                  <button type="submit" 
+                          class="btn btn-primary"
+                          [disabled]="stockForm.invalid || submitting">
+                    <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                    <i *ngIf="!submitting" class="ki-duotone ki-check fs-2"></i>
+                    {{ submitting ? 'Procesando...' : 'Ejecutar Operación' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Adjustment -->
+        <div *ngIf="activeOperation === 'adjust'" class="tab-pane fade show active">
+          <div class="row">
+            <div class="col-md-8">
+              <form [formGroup]="adjustmentForm" (ngSubmit)="onAdjustStock()">
+                <div class="alert alert-info d-flex align-items-center p-5 mb-6">
+                  <i class="ki-duotone ki-information-5 fs-2hx text-info me-4"></i>
+                  <div class="d-flex flex-column">
+                    <h4 class="mb-1 text-info">Ajuste Manual</h4>
+                    <span>Establece el valor exacto del stock total. Útil para correcciones o inventarios físicos.</span>
+                  </div>
+                </div>
+
+                <div class="bg-light rounded p-5 mb-6">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="fs-6 fw-semibold">Stock Actual:</span>
+                    <span class="fs-3 fw-bold text-primary">{{ product.stockQuantity }} unidades</span>
+                  </div>
+                </div>
+
+                <div class="mb-6">
+                  <label class="required fs-6 fw-semibold mb-2">Nuevo Stock Total</label>
+                  <input type="number" 
+                         class="form-control form-control-solid"
+                         formControlName="newQuantity"
+                         min="0"
+                         [class.is-invalid]="isFieldInvalid(adjustmentForm, 'newQuantity')">
+                  <div *ngIf="isFieldInvalid(adjustmentForm, 'newQuantity')" class="invalid-feedback">
+                    {{ getFieldError(adjustmentForm, 'newQuantity') }}
+                  </div>
+                </div>
+
+                <div class="mb-6">
+                  <label class="required fs-6 fw-semibold mb-2">Motivo del Ajuste</label>
+                  <input type="text" 
+                         class="form-control form-control-solid"
+                         formControlName="reason"
+                         placeholder="Ej: Inventario físico, Corrección de error, etc."
+                         [class.is-invalid]="isFieldInvalid(adjustmentForm, 'reason')">
+                  <div *ngIf="isFieldInvalid(adjustmentForm, 'reason')" class="invalid-feedback">
+                    {{ getFieldError(adjustmentForm, 'reason') }}
+                  </div>
+                </div>
+
+                <div class="mb-6">
+                  <label class="fs-6 fw-semibold mb-2">Notas Adicionales (Opcional)</label>
+                  <textarea class="form-control form-control-solid" 
+                            formControlName="note"
+                            placeholder="Información adicional sobre el ajuste..."
+                            rows="3"></textarea>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                  <button type="submit" 
+                          class="btn btn-primary"
+                          [disabled]="adjustmentForm.invalid || submitting">
+                    <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                    <i *ngIf="!submitting" class="ki-duotone ki-check fs-2"></i>
+                    {{ submitting ? 'Ajustando...' : 'Ajustar Stock' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock History -->
+        <div *ngIf="activeOperation === 'history'" class="tab-pane fade show active">
+          <div *ngIf="stockMovements.length === 0" class="text-center py-10">
+            <img src="assets/media/illustrations/empty-state.svg" class="h-150px" alt="Sin historial">
+            <div class="mt-4">
+              <h4 class="text-gray-900 mb-2">Sin movimientos</h4>
+              <p class="text-gray-600">No hay movimientos de stock registrados para este producto.</p>
+            </div>
+          </div>
+
+          <div *ngIf="stockMovements.length > 0" class="timeline">
+            <div *ngFor="let movement of stockMovements" class="timeline-item">
+              <div class="timeline-line w-40px"></div>
+              <div class="timeline-icon symbol symbol-circle symbol-40px" [ngClass]="{
+                'symbol-light-success': movement.type === 'in',
+                'symbol-light-danger': movement.type === 'out',
+                'symbol-light-primary': movement.type === 'adjustment'
+              }">
+                <div class="symbol-label">
+                  <i class="ki-duotone fs-2hx" [ngClass]="{
+                    'ki-arrow-up': movement.type === 'in',
+                    'ki-arrow-down': movement.type === 'out',
+                    'ki-setting-2': movement.type === 'adjustment'
+                  }"></i>
+                </div>
+              </div>
+              <div class="timeline-content mb-10">
+                <div class="overflow-auto pb-0">
+                  <div class="d-flex align-items-center mb-3">
+                    <a href="#" class="fs-5 text-gray-900 text-hover-primary fw-semibold">
+                      {{ getMovementText(movement.type) }}
+                    </a>
+                    <span class="badge ms-auto" [ngClass]="{
+                      'badge-light-success': movement.type === 'in',
+                      'badge-light-danger': movement.type === 'out',
+                      'badge-light-primary': movement.type === 'adjustment'
+                    }">
+                      {{ getMovementSign(movement.type) }}{{ movement.quantity }}
+                    </span>
+                  </div>
+                  <div class="fs-6 text-gray-600 mb-2">{{ movement.reason }}</div>
+                  <div class="fs-7 text-muted">
+                    <i class="ki-duotone ki-time fs-3 me-1"></i>
+                    {{ movement.timestamp | date:'medium' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Error -->
+      <div *ngIf="error" class="alert alert-danger mt-6">
+        <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4"></i>
+        {{ error }}
+      </div>
+    </div>
+  </div>
+</div>

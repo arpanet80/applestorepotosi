@@ -1,0 +1,141 @@
+<!-- begin::Root -->
+<div class="d-flex flex-column flex-root">
+  <div class="page d-flex flex-row flex-column-fluid">
+    <div class="wrapper d-flex flex-column flex-row-fluid" id="kt_wrapper">
+
+      <!-- begin::Page -->
+      <div class="content fs-6 d-flex flex-column flex-column-fluid" id="kt_content">
+        <div class="container-xxl">
+          <!-- begin::Card -->
+          <div class="card card-flush">
+            <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+              <div class="card-title">
+                <h2 class="d-flex align-items-center fs-2 fw-bold">
+                  <span class="svg-icon svg-icon-1 me-2">
+                    <em class="bi bi-box-seam text-primary"></em>
+                  </span>
+                  Movimiento
+                </h2>
+                <span class="badge badge-light-primary ms-3">
+                  {{ movement?.type | uppercase }}
+                </span>
+                <span class="badge badge-light-secondary ms-2">
+                  {{ movement?.reason }}
+                </span>
+              </div>
+              <div class="card-toolbar">
+                <a
+                  routerLink="/dashboard/stock-movements"
+                  class="btn btn-sm btn-light-primary me-2">
+                  <em class="bi bi-arrow-left me-2"></em>Volver
+                </a>
+                <button *ngIf="canEdit"
+                  (click)="onEdit()"
+                  class="btn btn-sm btn-primary me-2">
+                  <i class="bi bi-pencil me-2"></i>Editar
+                </button>
+                <button
+                  *ngIf="canEdit"
+                  (click)="onDelete()"
+                  class="btn btn-sm btn-danger">
+                  <i class="bi bi-trash me-2"></i>Eliminar
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body pt-0">
+              <!-- begin::Section -->
+              <div class="row mb-7">
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Información General</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Producto ID</td>
+                          <td class="text-gray-900">{{ movement?.productId?.name}}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Cantidad</td>
+                          <td class="text-gray-900">{{ movement?.quantity }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Stock anterior</td>
+                          <td class="text-gray-900">{{ movement?.previousStock }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Stock nuevo</td>
+                          <td class="text-gray-900">{{ movement?.newStock }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Fecha</td>
+                          <td class="text-gray-900">{{ movement?.timestamp | date:'medium' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Referencia</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Referencia</td>
+                          <td class="text-gray-900">{{ movement?.reference || '—' }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Modelo de referencia</td>
+                          <td class="text-gray-900">{{ movement?.referenceModel || '—' }}</td>
+                        </tr>
+                        <tr>
+                          <td class="text-gray-600 fw-bold">Notas</td>
+                          <td class="text-gray-900">{{ movement?.notes || '—' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="col-lg-4 mb-4">
+                  <h4 class="text-gray-800 fw-bold mb-4">Usuario</h4>
+                  <div class="table-responsive">
+                    <table class="table table-row-bordered align-middle gs-4 gy-3">
+                      <tbody>
+                        <tr>
+                          <td class="text-gray-600 fw-bold min-w-150px">Usuario ID</td>
+                          <td class="text-gray-900">{{ movement?.userId }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <!-- end::Section -->
+            </div>
+          </div>
+          <!-- end::Card -->
+        </div>
+      </div>
+      <!-- end::Page -->
+    </div>
+  </div>
+</div>
+<!-- end::Root -->
+
+<!-- Loading & Error states -->
+<div *ngIf="loading" class="d-flex justify-content-center py-10">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<div *ngIf="error && !loading" class="d-flex justify-content-center py-10">
+  <div class="alert alert-danger w-auto mb-0">
+    <em class="bi bi-exclamation-triangle me-2"></em>{{ error }}
+    <a routerLink="/dashboard/stock-movements" class="btn btn-sm btn-light-danger ms-3">
+      Volver al listado
+    </a>
+  </div>
+</div>

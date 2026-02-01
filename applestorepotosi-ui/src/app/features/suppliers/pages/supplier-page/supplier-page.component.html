@@ -1,0 +1,81 @@
+<div class="supplier-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Catálogo de Proveedores</h1>
+        <p>Administra los proveedores de la tienda</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateSupplier()" class="btn btn-primary">➕ Nuevo Proveedor</button>
+        <button *ngIf="canManage" (click)="onManageSuppliers()" class="btn btn-secondary">⚙️ Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar proveedor por nombre, email, teléfono..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>País</label>
+        <select [(ngModel)]="countryFilter" (change)="onFilterChange()" class="form-control">
+          <option [ngValue]="null">Todos los países</option>
+          <option *ngFor="let c of countries" [ngValue]="c">{{ c }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Estado</label>
+        <select [(ngModel)]="activeFilter" (change)="onFilterChange()" class="form-control">
+          <option [ngValue]="null">Todos</option>
+          <option [ngValue]="true">Activos</option>
+          <option [ngValue]="false">Inactivos</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando proveedores...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar proveedores</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadSuppliers()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="suppliers-section">
+    <app-supplier-list
+      [filters]="getSupplierFilters()"
+      [showActions]="true"
+      (supplierSelected)="onSelectSupplier($event)"
+      (supplierEdit)="onEditSupplier($event)"
+      (supplierDelete)="onDeleteSupplier($event)"
+    ></app-supplier-list>
+
+    <div *ngIf="suppliers.length === 0" class="empty-state">
+      <div class="empty-icon">🏭</div>
+      <h3>No se encontraron proveedores</h3>
+      <p *ngIf="searchTerm || countryFilter || activeFilter !== null">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; countryFilter = null; activeFilter = null; loadSuppliers()" class="btn-link">muestra todos</button>.
+      </p>
+      <p *ngIf="!searchTerm && !countryFilter && activeFilter === null">
+        No hay proveedores registrados.
+        <button *ngIf="canCreate" (click)="onCreateSupplier()" class="btn-link">Crear el primero</button>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,274 @@
+<!-- Keen Layout Structure -->
+    <div class="d-flex flex-column flex-root">
+      <div class="page d-flex flex-row flex-column-fluid">
+        
+        <!-- Main Content -->
+        <div class="wrapper d-flex flex-column flex-row-fluid" id="kt_wrapper">
+          
+          <!-- Page Header -->
+          <div id="kt_header" class="header" data-kt-sticky="true" data-kt-sticky-name="header" data-kt-sticky-offset="{default: '200px', lg: '300px'}">
+            <div class="container-fluid d-flex align-items-center justify-content-between" id="kt_header_container">
+              <div class="page-title d-flex flex-column align-items-start justify-content-center flex-wrap me-2">
+                <!--begin::Title-->
+                <h1 class="text-dark fw-bolder my-1 fs-2">
+                  <i class="ki-outline ki-setting-3 text-warning fs-1 me-2"></i>
+                  Panel de Servicio Técnico
+                </h1>
+                <!--end::Title-->
+                <!--begin::Subtitle-->
+                <span class="text-muted fw-bold fs-6 my-1">Gestión de reparaciones y diagnósticos Apple</span>
+                <!--end::Subtitle-->
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Content Container -->
+          <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+            <div class="container-xxl" id="kt_content_container">
+              
+              <!-- Statistics Cards -->
+              <div class="row g-5 g-xl-8 mb-4">
+                <div class="col-xl-3">
+                  <div class="card card-dashed h-xl-100">
+                    <div class="card-body d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <i class="ki-outline ki-abstract-26 fs-2x text-primary"></i>
+                      </div>
+                      <div class="flex-grow-1 ms-4">
+                        <span class="text-gray-700 fw-bold fs-6 d-block">En Proceso</span>
+                        <span class="text-gray-900 fw-bolder fs-2hx">8</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xl-3">
+                  <div class="card card-dashed h-xl-100">
+                    <div class="card-body d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <i class="ki-outline ki-time fs-2x text-warning"></i>
+                      </div>
+                      <div class="flex-grow-1 ms-4">
+                        <span class="text-gray-700 fw-bold fs-6 d-block">En Espera</span>
+                        <span class="text-gray-900 fw-bolder fs-2hx">4</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xl-3">
+                  <div class="card card-dashed h-xl-100">
+                    <div class="card-body d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <i class="ki-outline ki-check fs-2x text-success"></i>
+                      </div>
+                      <div class="flex-grow-1 ms-4">
+                        <span class="text-gray-700 fw-bold fs-6 d-block">Completadas Hoy</span>
+                        <span class="text-gray-900 fw-bolder fs-2hx">12</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xl-3">
+                  <div class="card card-dashed h-xl-100">
+                    <div class="card-body d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <i class="ki-outline ki-information fs-2x text-danger"></i>
+                      </div>
+                      <div class="flex-grow-1 ms-4">
+                        <span class="text-gray-700 fw-bold fs-6 d-block">Urgentes</span>
+                        <span class="text-gray-900 fw-bolder fs-2hx">2</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Technician Modules Grid -->
+              <div class="row g-5 g-xl-8 mb-8">
+                <!-- Gestión de Reparaciones -->
+                <div class="col-xl-6">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6" 
+                       [routerLink]="['/technician/repairs']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-setting-3 text-warning fs-1 me-2"></i>
+                        Gestión de Reparaciones
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Administrar reparaciones en proceso y nuevas
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-danger fs-7 fw-bold">8 activas</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Diagnósticos -->
+                <div class="col-xl-6">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/technician/diagnostics']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-search-list text-info fs-1 me-2"></i>
+                        Diagnósticos
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Realizar diagnósticos y evaluaciones técnicas
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-primary fs-7 fw-bold">4 pendientes</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Gestión de Repuestos -->
+                <div class="col-xl-6">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/technician/parts']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-basket text-success fs-1 me-2"></i>
+                        Gestión de Repuestos
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Control de inventario de partes y componentes
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-success fs-7 fw-bold">45 repuestos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Catálogo de Productos -->
+                <div class="col-xl-6">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/products']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-abstract-42 text-primary fs-1 me-2"></i>
+                        Catálogo de Productos
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Información técnica de modelos Apple
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-info fs-7 fw-bold">24 modelos</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Urgent Repairs Section -->
+              <div class="card mb-8">
+                <div class="card-header border-0 pt-6">
+                  <h3 class="card-title align-items-start flex-column">
+                    <span class="card-label fw-bolder fs-3 mb-1 text-danger">
+                      <i class="ki-outline ki-information fs-2 me-2 text-danger"></i>
+                      Reparaciones Urgentes
+                    </span>
+                    <span class="text-muted fw-bold fs-7">Reparaciones que requieren atención inmediata</span>
+                  </h3>
+                </div>
+                <div class="card-body pt-0">
+                  <div class="table-responsive">
+                    <table class="table align-middle table-row-dashed fs-6 gy-5">
+                      <thead>
+                        <tr class="text-start text-gray-400 fw-bolder fs-7 text-uppercase gs-0">
+                          <th class="min-w-150px">Dispositivo</th>
+                          <th class="min-w-150px">Cliente</th>
+                          <th class="min-w-200px">Problema</th>
+                          <th class="min-w-100px">Prioridad</th>
+                          <th class="min-w-100px text-end">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody class="fw-semibold text-gray-600">
+                        <tr *ngFor="let repair of urgentRepairs">
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="symbol symbol-50px me-3">
+                                <span class="symbol-label bg-light-warning">
+                                  <i class="ki-outline ki-abstract-42 text-warning fs-2x"></i>
+                                </span>
+                              </div>
+                              <div class="d-flex flex-column">
+                                <span class="text-gray-800 fw-bold">{{ repair.device }}</span>
+                                <span class="text-muted fs-7">{{ repair.id }}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="text-gray-800 fw-bold">{{ repair.client }}</span>
+                          </td>
+                          <td>
+                            <span class="text-gray-700">{{ repair.issue }}</span>
+                          </td>
+                          <td>
+                            <span class="badge badge-light-danger">ALTA</span>
+                          </td>
+                          <td class="text-end">
+                            <a class="btn btn-sm btn-light-danger fw-bold" 
+                               [routerLink]="['/technician/repairs']">
+                              Atender
+                            </a>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Actions -->
+              <div class="card">
+                <div class="card-header border-0 pt-6">
+                  <h3 class="card-title align-items-start flex-column">
+                    <span class="card-label fw-bolder fs-3 mb-1">Acciones Rápidas</span>
+                    <span class="text-muted fw-bold fs-7">Accesos directos a funciones frecuentes</span>
+                  </h3>
+                </div>
+                <div class="card-body pt-0">
+                  <div class="row g-6">
+                    <div class="col-lg-3 col-sm-6">
+                      <a class="d-flex flex-column flex-center h-100 p-6 bg-light bg-hover-light-warning rounded 
+                                border border-dashed border-gray-300 border-hover-warning cursor-pointer"
+                         [routerLink]="['/technician/repairs']">
+                        <i class="ki-outline ki-plus fs-2hx text-warning mb-4"></i>
+                        <span class="text-gray-900 fw-bolder fs-5">Nueva Reparación</span>
+                      </a>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                      <a class="d-flex flex-column flex-center h-100 p-6 bg-light bg-hover-light-info rounded 
+                                border border-dashed border-gray-300 border-hover-info cursor-pointer"
+                         [routerLink]="['/technician/diagnostics']">
+                        <i class="ki-outline ki-search-list fs-2hx text-info mb-4"></i>
+                        <span class="text-gray-900 fw-bolder fs-5">Nuevo Diagnóstico</span>
+                      </a>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                      <a class="d-flex flex-column flex-center h-100 p-6 bg-light bg-hover-light-success rounded 
+                                border border-dashed border-gray-300 border-hover-success cursor-pointer"
+                         [routerLink]="['/technician/parts']">
+                        <i class="ki-outline ki-basket fs-2hx text-success mb-4"></i>
+                        <span class="text-gray-900 fw-bolder fs-5">Ver Repuestos</span>
+                      </a>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                      <a class="d-flex flex-column flex-center h-100 p-6 bg-light bg-hover-light-primary rounded 
+                                border border-dashed border-gray-300 border-hover-primary cursor-pointer"
+                         [routerLink]="['/products']">
+                        <i class="ki-outline ki-abstract-42 fs-2hx text-primary mb-4"></i>
+                        <span class="text-gray-900 fw-bolder fs-5">Ver Productos</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

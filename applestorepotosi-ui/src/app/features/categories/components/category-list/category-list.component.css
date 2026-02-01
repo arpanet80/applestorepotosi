@@ -1,0 +1,101 @@
+/* src/app/categories/components/category-list/category-list.component.css */
+
+/* Grid de categorías */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Hover personalizado para cards */
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.5rem 1.5rem 0.5rem rgba(0, 0, 0, 0.075) !important;
+}
+
+/* Cursor pointer en el título */
+.cursor-pointer {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.cursor-pointer:hover {
+  color: var(--bs-primary) !important;
+}
+
+/* Card inactivo */
+.opacity-50 {
+  opacity: 0.6;
+}
+
+.opacity-50 .card-body {
+  background-color: var(--bs-gray-100);
+}
+
+/* Ajustes para badges */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  font-weight: 600;
+}
+
+/* Estados de loading, error y empty */
+.loading,
+.error,
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.spinner {
+  border: 4px solid var(--bs-gray-200);
+  border-top: 4px solid var(--bs-primary);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Botón retry */
+.btn-retry {
+  margin-top: 1rem;
+}
+
+/* Responsive: cards más pequeños en móviles */
+@media (max-width: 576px) {
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .card-footer {
+    justify-content: center;
+  }
+  
+  .card-footer .btn {
+    flex: 1 1 auto;
+    min-width: 80px;
+  }
+}
+
+/* Mejoras adicionales para botones en card-footer */
+.card-footer .btn {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.card-footer .btn i {
+  margin: 0;
+}

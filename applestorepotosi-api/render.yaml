@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: applestorepotosi-api
+    env: node
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false  # Se configura en dashboard de Render ( secreto )
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://applestorepotosi.vercel.app  # URL final del frontend
+    healthCheckPath: /health
+    autoDeploy: true

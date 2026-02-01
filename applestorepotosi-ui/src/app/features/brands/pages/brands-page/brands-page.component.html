@@ -1,0 +1,88 @@
+<!-- src/app/brands/pages/brands-page/brands-page.component.html -->
+<div class="brands-page">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>Catálogo de Marcas</h1>
+        <p>Administra las marcas disponibles en la tienda</p>
+      </div>
+      <div class="header-actions">
+        <button *ngIf="canCreate" (click)="onCreateBrand()" class="btn btn-primary">➕ Nueva Marca</button>
+        <button *ngIf="canManage" (click)="onManageBrands()" class="btn btn-secondary">⚙️ Gestión Avanzada</button>
+        <button (click)="onRefresh()" class="btn btn-outline" [disabled]="loading">🔄 Actualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="stats" class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total">🏷️</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total Marcas</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon active">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.active }}</span>
+          <span class="stat-label">Activas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar marca por nombre o país..."
+        [value]="searchTerm"
+        (input)="onSearch($any($event.target).value)"
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="filter-buttons">
+      <button [class]="getFilterClass('all')" (click)="onFilterChange('all')">Todas</button>
+      <button [class]="getFilterClass('active')" (click)="onFilterChange('active')">Activas</button>
+      <button [class]="getFilterClass('inactive')" (click)="onFilterChange('inactive')">Inactivas</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando marcas...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar marcas</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadBrands()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="brands-section">
+    <app-brand-list
+      [filters]="{ search: searchTerm, isActive: activeFilter === 'all' ? undefined : activeFilter === 'active' }"
+      [showActions]="true"
+      (brandSelected)="onSelectBrand($event)"
+      (brandEdit)="onEditBrand($event)"
+      (brandDelete)="onDeleteBrand($event)"
+    ></app-brand-list>
+
+    <div *ngIf="brands.length === 0" class="empty-state">
+      <div class="empty-icon">🏷️</div>
+      <h3>No se encontraron marcas</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all'">
+        Ajusta los filtros o
+        <button (click)="searchTerm = ''; activeFilter = 'all'; loadBrands()" class="btn-link">muestra todas</button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all'">
+        No hay marcas registradas.
+        <button *ngIf="canCreate" (click)="onCreateBrand()" class="btn-link">Crear la primera</button>
+      </p>
+    </div>
+  </div>
+</div>

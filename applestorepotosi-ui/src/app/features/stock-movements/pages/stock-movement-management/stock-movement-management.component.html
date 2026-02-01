@@ -1,0 +1,40 @@
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Movimientos de Stock</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nuevo Movimiento</button>
+    <button (click)="onCreateAdjustment()" class="btn btn-secondary">⚙️ Ajuste de Stock</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando movimientos...</div>
+
+  <table *ngIf="!loading && movements.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Tipo</th>
+        <th>Razón</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+        <th>Fecha</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let movement of movements">
+        <td>{{ movement.type | uppercase }}</td>
+        <td>{{ movement.reason }}</td>
+        <td>{{ movement.productId }}</td>
+        <td>{{ movement.quantity }}</td>
+        <td>{{ movement.timestamp | date:'short' }}</td>
+        <td>
+          <button (click)="onEdit(movement)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(movement)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && movements.length === 0" class="empty">
+    No hay movimientos registrados.
+    <button (click)="onCreate()" class="btn-link">Crear el primero</button>
+  </div>
+</div>

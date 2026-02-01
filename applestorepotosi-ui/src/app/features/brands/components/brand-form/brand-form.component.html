@@ -1,0 +1,238 @@
+<!-- begin::Form card -->
+<div class="d-flex flex-column flex-column-fluid">
+  <div class="fs-6 flex-column-fluid">
+    <div class="container-xxl">
+
+      <!-- begin::Header -->
+      <div class="card mb-5 mb-xl-10">
+        <div class="card-header border-0 cursor-pointer">
+          <div class="card-title m-0">
+            <h3 class="fw-bold text-gray-900 m-0">
+              {{ isEditMode ? 'Editar Marca' : 'Crear Nueva Marca' }}
+            </h3>
+          </div>
+          <div class="card-toolbar">
+            <button
+              (click)="onCancel()"
+              class="btn btn-sm btn-flex btn-light btn-active-light-primary">
+              <i class="ki-duotone ki-left fs-2"></i>Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- end::Header -->
+
+      <!-- begin::Form -->
+      <form
+        [formGroup]="brandForm"
+        (ngSubmit)="onSubmit()"
+        class="form fv-plugins-bootstrap5 fv-plugins-framework">
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="card card-flush mb-10">
+          <div class="card-body d-flex justify-content-center align-items-center min-h-200px">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error card -->
+        <div *ngIf="error && !loading" class="card card-flush mb-10">
+          <div class="card-body text-center">
+            <i class="ki-duotone ki-information-2 fs-3x text-danger mb-4"></i>
+            <div class="text-gray-800 fw-bold mb-2">Error al cargar la marca</div>
+            <div class="text-gray-600 mb-4">{{ error }}</div>
+            <button
+              (click)="isEditMode ? loadBrand() : initForm()"
+              class="btn btn-sm btn-flex btn-primary">
+              <i class="ki-duotone ki-refresh fs-2"></i>Reintentar
+            </button>
+          </div>
+        </div>
+
+        <!-- Campos del formulario -->
+        <div *ngIf="!loading" class="card card-flush card-shadow">
+
+          <!-- Card body -->
+          <div class="card-body">
+
+            <!-- Información Básica -->
+            <div class="mb-8">
+              <h4 class="text-gray-800 fw-bold mb-5">Información Básica</h4>
+              <div class="row g-6">
+                <div class="col-md-12">
+                  <label class="form-label required">Nombre de la Marca</label>
+                  <input
+                    type="text"
+                    formControlName="name"
+                    class="form-control form-control-solid"
+                    [class.is-invalid]="isFieldInvalid('name')"
+                    placeholder="Ej: Apple, Samsung, Xiaomi">
+                  <div *ngIf="isFieldInvalid('name')" class="invalid-feedback">
+                    {{ getFieldError('name') }}
+                  </div>
+                </div>
+
+                <div class="col-md-12">
+                  <label class="form-label">Descripción</label>
+                  <textarea
+                    formControlName="description"
+                    class="form-control form-control-solid"
+                    rows="3"
+                    placeholder="Breve descripción de la marca..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Imagen y Logo -->
+            <div class="mb-8">
+              <h4 class="text-gray-800 fw-bold mb-5">Imagen y Logo</h4>
+
+              <!-- Logo actual -->
+              <div *ngIf="isEditMode && currentLogoUrl && !isReplacing" class="mb-6">
+                <div class="text-center">
+                  <img
+                    [src]="currentLogoUrl"
+                    alt="Logo actual"
+                    class="rounded w-150px h-75px object-fit-contain border p-2 bg-light">
+                  <div class="mt-3">
+                    <button
+                      type="button"
+                      (click)="startReplace()"
+                      class="btn btn-sm btn-flex btn-light btn-active-light-primary">
+                      <i class="ki-duotone ki-arrows-loop fs-2"></i>Reemplazar logo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Área de carga (aparece cuando isReplacing = true) -->
+              <div *ngIf="!isEditMode || isReplacing" class="mb-4">
+                <label class="form-label">Subir nuevo logo</label>
+
+                <!-- input oculto que usamos para limpiar -->
+                <input
+                  #fileInput
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  (change)="onLogoSelected(fileInput.files?.[0] ?? null)"
+                  hidden />
+
+                <app-logo-upload
+                  (fileSelected)="onLogoSelected($event)"
+                  (cancelled)="onLogoCancelled()">
+                </app-logo-upload>
+              </div>
+
+              <!-- Upload / reemplazo -->
+              <div *ngIf="!isEditMode || isReplacing" class="mb-4">
+                <label class="form-label">Subir nuevo logo</label>
+                <app-logo-upload
+                  (fileSelected)="onLogoSelected($event)"
+                  (cancelled)="onLogoCancelled()">
+                </app-logo-upload>
+              </div>
+
+              <!-- URL externa -->
+              <div class="mb-4">
+                <label class="form-label">O ingresar URL externa</label>
+                <input
+                  type="url"
+                  formControlName="logoUrl"
+                  class="form-control form-control-solid"
+                  placeholder="https://example.com/logo.png">
+              </div>
+
+              <!-- Sitio web -->
+              <div class="mb-4">
+                <label class="form-label">Sitio Web Oficial</label>
+                <input
+                  type="url"
+                  formControlName="website"
+                  class="form-control form-control-solid"
+                  placeholder="https://www.apple.com">
+              </div>
+            </div>
+
+            <!-- País y Soporte -->
+            <div class="mb-8">
+              <h4 class="text-gray-800 fw-bold mb-5">País y Soporte</h4>
+              <div class="row g-6">
+                <div class="col-md-6">
+                  <label class="form-label">País de Origen</label>
+                  <select formControlName="country" class="form-select form-select-solid">
+                    <option value="">Seleccionar país</option>
+                    <option *ngFor="let c of countries" [value]="c.code">
+                      {{ c.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">URL de Soporte</label>
+                  <input
+                    type="url"
+                    formControlName="supportUrl"
+                    class="form-control form-control-solid"
+                    placeholder="https://support.apple.com">
+                </div>
+              </div>
+
+              <div class="mt-6">
+                <label class="form-label">Información de Garantía</label>
+                <textarea
+                  formControlName="warrantyInfo"
+                  class="form-control form-control-solid"
+                  rows="3"
+                  placeholder="Detalles de garantía oficiales..."></textarea>
+              </div>
+            </div>
+
+            <!-- Configuración -->
+            <div class="mb-8">
+              <h4 class="text-gray-800 fw-bold mb-5">Configuración</h4>
+              <label class="form-check form-check-custom form-check-solid">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  formControlName="isActive">
+                <span class="form-check-label text-gray-800">
+                  Marca Activa
+                </span>
+              </label>
+              <div class="text-gray-600 fs-7 mt-1">
+                Las marcas inactivas no aparecerán en el catálogo.
+              </div>
+            </div>
+
+          </div>
+          <!-- end::Card body -->
+
+          <!-- begin::Actions -->
+          <div class="card-footer d-flex justify-content-end py-6 px-9">
+            <button
+              type="button"
+              (click)="onCancel()"
+              class="btn btn-flex btn-light btn-active-light-primary me-4">
+              <i class="ki-duotone ki-left fs-2"></i>Cancelar
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-flex btn-primary"
+              [disabled]="brandForm.invalid || submitting">
+              <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!submitting" class="ki-duotone ki-save-2 fs-2"></i>
+              {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+            </button>
+          </div>
+          <!-- end::Actions -->
+
+        </div>
+        <!-- end::Card -->
+      </form>
+
+    </div>
+  </div>
+</div>

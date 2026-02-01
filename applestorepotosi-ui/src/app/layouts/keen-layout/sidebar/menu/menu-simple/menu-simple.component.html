@@ -1,0 +1,31 @@
+<!-- -------------- Simple sin submenus ------------------------ -->
+@if (tienePermiso) {
+
+  <!--begin:Menu item-->
+  <div class="menu-item">
+
+    <!--begin:Menu link-->
+    <a class="menu-link"
+        routerLinkActive="active"
+        [routerLink]="menusimple()!.url" >
+
+      <span class="menu-icon">
+
+        <i class="fas fa-envelope-open-tex"></i>
+        <i [class]="menusimple()!.icono"></i>
+
+        <!-- <i class="ki-duotone ki-rocket fs-2">
+          <span class="path1"></span><span class="path2"></span>
+        </i> -->
+      </span
+
+      ><span class="menu-title">
+        {{menusimple()!.titulo}}
+      </span>
+    </a>
+    <!--end:Menu link-->
+  </div>
+  <!--end:Menu item-->
+
+
+}

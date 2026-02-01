@@ -1,0 +1,146 @@
+<div class="d-flex flex-column flex-column-fluid">
+  <!--begin::Content-->
+  <div class="fs-6 flex-column-fluid">
+    <div class="container-xxl">
+      <!--begin::Products card-->
+      <div class="card card-flush">
+        <!--begin::Card header-->
+        <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+          <!--begin::Card title-->
+          <div class="card-title">
+            <!-- <h2 class="d-flex align-items-center text-gray-900 fw-bold fs-3 my-1">
+              Gestión de Marcas
+            </h2> -->
+          </div>
+          <!--end::Card title-->
+
+          <!--begin::Card toolbar-->
+          <div class="card-toolbar flex-row-fluid justify-content-end gap-5">
+            <button
+              (click)="onCreate()"
+              class="btn btn-flex btn-primary btn-sm">
+              <i class="ki-duotone ki-plus fs-2"></i>Nueva marca
+            </button>
+          </div>
+          <!--end::Card toolbar-->
+        </div>
+        <!--end::Card header-->
+
+        <!--begin::Card body-->
+        <div class="card-body pt-0">
+          <!--begin::Table-->
+          <div class="table-responsive">
+            <table
+              class="table table-row-bordered table-row-gray-300 align-middle gs-0 gy-4">
+              <thead>
+                <tr class="fw-bold text-muted bg-light">
+                  <th class="min-w-250px">Nombre</th>
+                  <th class="min-w-150px">País</th>
+                  <th class="min-w-90px">Estado</th>
+                  <th class="min-w-100px text-end">Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let brand of brands">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div
+                        class="symbol symbol-50px symbol-2by3 me-3">
+                        <img
+                          *ngIf="brand.logoUrl"
+                          [src]="brand.logoUrl"
+                          [alt]="brand.name"
+                          class="w-100" />
+                        <span
+                          *ngIf="!brand.logoUrl"
+                          class="symbol-label bg-light text-muted fs-8">
+                          SIN LOGO
+                        </span>
+                      </div>
+                      <div class="d-flex justify-content-start flex-column">
+                        <span
+                          class="text-gray-900 fw-bold fs-6 mb-1">
+                          {{ brand.name }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="text-gray-800 fw-semibold fs-7">
+                      {{ brand.country || '—' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      class="badge fs-7 px-3 py-2"
+                      [ngClass]="
+                        brand.isActive
+                          ? 'badge-light-success'
+                          : 'badge-light-danger'
+                      ">
+                      {{ brand.isActive ? 'Activa' : 'Inactiva' }}
+                    </span>
+                  </td>
+
+                  <td class="text-end">
+                    <button
+                      (click)="onDetail(brand)"
+                      class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                      title="Ver detalle">
+                      <i class="bi bi-eye fs-2"></i>
+                    </button>
+                    <button
+                      (click)="onEdit(brand)"
+                      class="btn btn-icon btn-flex btn-sm btn-light btn-active-light-warning w-30px h-30px me-2">
+                      <i class="bi bi-pencil fs-3"></i>
+                    </button>
+                    <button
+                      (click)="onToggleStatus(brand)"
+                      class="btn btn-icon btn-flex btn-sm btn-light btn-active-light-danger w-30px h-30px">
+                      <i class="fas fa-toggle-on fs-3"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!--end::Table-->
+
+          <!--begin::Empty state-->
+          <div
+            *ngIf="!loading && brands.length === 0"
+            class="text-center py-10">
+            <img
+              src="/assets/media/illustrations/empty.png"
+              class="h-150px mb-5"
+              alt=""/>
+            <div class="fw-semibold text-gray-500 mb-5">
+              No hay marcas registradas
+            </div>
+            <button
+              (click)="onCreate()"
+              class="btn btn-flex btn-primary btn-sm">
+              <i class="ki-duotone ki-plus fs-2"></i>Crear la primera
+            </button>
+          </div>
+          <!--end::Empty state-->
+        </div>
+        <!--end::Card body-->
+      </div>
+      <!--end::Products card-->
+    </div>
+  </div>
+  <!--end::Content-->
+</div>
+
+<!-- Loading overlay -->
+<div *ngIf="loading" class="card card-flush">
+  <div class="card-body d-flex justify-content-center align-items-center min-h-300px">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+</div>

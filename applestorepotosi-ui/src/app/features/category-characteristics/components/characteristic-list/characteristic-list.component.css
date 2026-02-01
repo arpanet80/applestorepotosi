@@ -1,0 +1,18 @@
+/* src/app/category-characteristics/components/characteristic-list/characteristic-list.component.css */
+
+/* Hereda colores y fondos del tema (light / dark) */
+.card.border-hover-primary {
+  transition: all 0.2s ease-in-out;
+}
+
+.card.border-hover-primary:hover {
+  border-color: var(--kt-primary) !important;
+  box-shadow: var(--kt-box-shadow-sm);
+}
+
+.text-truncate {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

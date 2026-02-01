@@ -1,0 +1,77 @@
+<div class="card card-flush bgi-position-y-end bgi-no-repeat mb-5 mb-xl-10">
+  <div class="card-header pt-5">
+    <div class="d-flex align-items-center justify-content-between">
+      <h3 class="fw-bolder text-gray-900">Detalle de Usuario</h3>
+      <div>
+        <button *ngIf="canEdit" class="btn btn-sm btn-primary me-2" (click)="onEdit()">
+          <i class="ki-duotone ki-pencil fs-2"></i> Editar
+        </button>
+        <button class="btn btn-sm btn-light" routerLink="/dashboard/users">
+          <i class="ki-duotone ki-arrow-left fs-2"></i> Regresar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body pt-5">
+    <div *ngIf="loading" class="d-flex justify-content-center">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+    <div *ngIf="user && !loading">
+      <div class="row mb-6">
+        <label class="col-lg-3 fw-semibold text-muted">Nombre completo</label>
+        <div class="col-lg-9">
+          <span class="fw-bold fs-6 text-gray-900">
+            {{ user.profile?.firstName }} {{ user.profile?.lastName }}
+          </span>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-3 fw-semibold text-muted">Correo electrónico</label>
+        <div class="col-lg-9">
+          <span class="fw-bold fs-6 text-gray-900">{{ user.email }}</span>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-3 fw-semibold text-muted">Teléfono</label>
+        <div class="col-lg-9">
+          <span class="fw-bold fs-6 text-gray-900">{{ user.phoneNumber || 'N/A' }}</span>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-3 fw-semibold text-muted">Rol</label>
+        <div class="col-lg-9">
+          <span class="badge badge-light-primary fs-7 fw-bold">{{ user.role }}</span>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-3 fw-semibold text-muted">Estado</label>
+        <div class="col-lg-9">
+          <span [class]="user.isActive ? 'badge badge-light-success' : 'badge badge-light-danger'">
+            {{ user.isActive ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="row mb-6" *ngIf="user.lastLogin">
+        <label class="col-lg-3 fw-semibold text-muted">Último acceso</label>
+        <div class="col-lg-9">
+          <span class="fw-semibold fs-6 text-gray-700">{{ user.lastLogin | date:'medium' }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end mt-10">
+        <button class="btn btn-sm btn-outline btn-outline-danger" (click)="onToggleStatus()">
+          {{ user.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

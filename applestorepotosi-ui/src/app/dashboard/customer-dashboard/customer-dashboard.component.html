@@ -1,0 +1,245 @@
+<!-- Keen Layout Structure -->
+    <div class="d-flex flex-column flex-root">
+      <div class="page d-flex flex-row flex-column-fluid">
+        
+        <!-- Main Content -->
+        <div class="wrapper d-flex flex-column flex-row-fluid" id="kt_wrapper">
+          
+          <!-- Page Header -->
+          <div id="kt_header" class="header" data-kt-sticky="true" data-kt-sticky-name="header" data-kt-sticky-offset="{default: '200px', lg: '300px'}">
+            <div class="container-fluid d-flex align-items-center justify-content-between" id="kt_header_container">
+              <div class="page-title d-flex flex-column align-items-start justify-content-center flex-wrap me-2">
+                <!--begin::Title-->
+                <h1 class="text-dark fw-bolder my-1 fs-2">
+                  <i class="ki-outline ki-user text-primary fs-1 me-2"></i>
+                  Mi Cuenta - Apple Store Potosí
+                </h1>
+                <!--end::Title-->
+                <!--begin::Subtitle-->
+                <span class="text-muted fw-bold fs-6 my-1">Bienvenido a tu centro de servicios Apple</span>
+                <!--end::Subtitle-->
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Content Container -->
+          <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+            <div class="container-xxl" id="kt_content_container">
+              
+              <!-- Welcome Card with Loyalty Points -->
+              <div class="card mb-8">
+                <div class="card-body p-9">
+                  <div class="row align-items-center">
+                    <div class="col-lg-8">
+                      <h2 class="text-gray-800 fw-bolder mb-3">¡Hola, {{ customerName }}! 👋</h2>
+                      <p class="text-gray-600 fs-6 mb-0">
+                        Gracias por confiar en Apple Store Potosí para tus productos y servicios Apple
+                      </p>
+                    </div>
+                    <div class="col-lg-4">
+                      <div class="d-flex flex-center flex-column bg-light-primary rounded p-6">
+                        <span class="text-primary fw-bolder fs-2hx">1,250</span>
+                        <span class="text-primary fw-bold fs-6">Puntos de Fidelidad</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Services Section -->
+              <div class="card mb-8">
+                <div class="card-header border-0 pt-6">
+                  <h3 class="card-title align-items-start flex-column">
+                    <span class="card-label fw-bolder fs-3 mb-1">
+                      <i class="ki-outline ki-abstract-26 fs-2 me-2 text-primary"></i>
+                      Mis Servicios Activos
+                    </span>
+                    <span class="text-muted fw-bold fs-7">Servicios y reparaciones en curso</span>
+                  </h3>
+                </div>
+                <div class="card-body pt-0">
+                  <div class="row g-6">
+                    <div class="col-xl-4" *ngFor="let service of activeServices">
+                      <div class="card card-dashed h-xl-100">
+                        <div class="card-body d-flex flex-column">
+                          <div class="d-flex align-items-center mb-4">
+                            <div class="symbol symbol-50px me-4">
+                              <span class="symbol-label bg-light-{{getStatusColor(service.status)}}">
+                                <i class="ki-outline {{getServiceIcon(service.icon)}} text-{{getStatusColor(service.status)}} fs-2x"></i>
+                              </span>
+                            </div>
+                            <div class="d-flex flex-column">
+                              <span class="text-gray-800 fw-bold fs-5">{{ service.title }}</span>
+                              <span class="text-muted fs-7">{{ service.description }}</span>
+                            </div>
+                          </div>
+                          <div class="d-flex align-items-center justify-content-between mt-auto">
+                            <span class="badge badge-light-{{getStatusColor(service.status)}}">{{ service.statusText }}</span>
+                            <a class="btn btn-sm btn-light-{{getStatusColor(service.status)}} fw-bold" 
+                               [routerLink]="service.link">
+                              Ver Detalles
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Customer Modules Grid -->
+              <div class="row g-5 g-xl-8 mb-8">
+                <!-- Mis Compras -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6" 
+                       [routerLink]="['/customer/orders']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-basket text-success fs-1 me-2"></i>
+                        Mis Compras
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Historial y seguimiento de pedidos
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-success fs-7 fw-bold">12 pedidos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mis Servicios -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/customer/services']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-setting-3 text-warning fs-1 me-2"></i>
+                        Mis Servicios
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Reparaciones y mantenimientos
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-warning fs-7 fw-bold">3 servicios</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mis Garantías -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/customer/warranty']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-security text-info fs-1 me-2"></i>
+                        Mis Garantías
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Gestionar garantías y soporte
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-info fs-7 fw-bold">2 activas</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Comprar Productos -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/products']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-abstract-42 text-primary fs-1 me-2"></i>
+                        Comprar Productos
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Explorar catálogo de productos Apple
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-primary fs-7 fw-bold">Nuevos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Soporte Apple -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/customer/support']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-message-text-2 text-danger fs-1 me-2"></i>
+                        Soporte Apple
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Ayuda y asistencia técnica
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light-danger fs-7 fw-bold">24/7</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mi Configuración -->
+                <div class="col-xl-4">
+                  <div class="card card-dashed h-xl-100 flex-row flex-stack flex-wrap p-6"
+                       [routerLink]="['/profile']" style="cursor: pointer;">
+                    <div class="d-flex flex-column py-2">
+                      <div class="d-flex align-items-center fs-4 fw-bolder mb-2">
+                        <i class="ki-outline ki-profile-circle text-gray-600 fs-1 me-2"></i>
+                        Mi Configuración
+                      </div>
+                      <span class="text-gray-600 fw-semibold fs-6">
+                        Preferencias y datos personales
+                      </span>
+                    </div>
+                    <div class="d-flex align-items-center py-2">
+                      <span class="badge badge-light fs-7 fw-bold">Perfil</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recommended Products -->
+              <div class="card">
+                <div class="card-header border-0 pt-6">
+                  <h3 class="card-title align-items-start flex-column">
+                    <span class="card-label fw-bolder fs-3 mb-1">
+                      <i class="ki-outline ki-star text-warning fs-2 me-2"></i>
+                      Productos Recomendados para Ti
+                    </span>
+                    <span class="text-muted fw-bold fs-7">Basado en tu historial y preferencias</span>
+                  </h3>
+                </div>
+                <div class="card-body pt-0">
+                  <div class="row g-6">
+                    <div class="col-xl-3 col-lg-6" *ngFor="let product of recommendedProducts">
+                      <div class="card card-dashed h-100">
+                        <div class="card-body d-flex flex-column flex-center p-6">
+                          <div class="symbol symbol-75px mb-4">
+                            <span class="symbol-label bg-light-primary">
+                              <i class="ki-outline {{getProductIcon(product.emoji)}} text-primary fs-2x"></i>
+                            </span>
+                          </div>
+                          <h4 class="text-gray-800 fw-bold fs-5 mb-2">{{ product.name }}</h4>
+                          <span class="text-primary fw-bolder fs-3 mb-4">{{ product.price }}</span>
+                          <a class="btn btn-sm btn-light-primary fw-bold w-100" 
+                             [routerLink]="['/products']">
+                            Ver Producto
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

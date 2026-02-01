@@ -1,0 +1,72 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <div class="card-title">
+      <h3>Imágenes del Producto</h3>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="fv-row">
+      <div
+        class="dropzone dropzone-queue mb-2"
+        [class.dropzone-active]="isDragging"
+        (drop)="onDrop($event)"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+      >
+        <div class="dz-message needsclick">
+          <i class="ki-duotone ki-file-up fs-3x text-primary">
+            <span class="path1"></span>
+            <span class="path2"></span>
+          </i>
+          <div class="ms-4">
+            <h3 class="fs-5 fw-bold text-gray-900 mb-1">
+              Arrastra imágenes aquí o haz clic para seleccionar
+            </h3>
+            <span class="fs-7 fw-semibold text-gray-500">
+              Formatos permitidos: JPG, PNG, WEBP. Máximo 5MB por imagen
+            </span>
+          </div>
+        </div>
+
+        <input
+          type="file"
+          #fileInput
+          [multiple]="multiple"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          class="d-none"
+        />
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-light-primary me-2"
+        (click)="fileInput.click()"
+      >
+        <i class="ki-duotone ki-folder-up fs-2"></i>
+        Seleccionar Imágenes
+      </button>
+
+      <button
+        *ngIf="previews.length > 0"
+        (click)="cancel()"
+        class="btn btn-light-danger"
+      >
+        <i class="ki-duotone ki-cross-circle fs-2"></i>
+        Cancelar
+      </button>
+    </div>
+
+    <!-- Preview Grid -->
+    <div *ngIf="previews.length" class="mt-6">
+      <h4 class="mb-4">Vista previa</h4>
+      <div class="row g-6">
+        <div *ngFor="let preview of previews; let i = index" class="col-md-3">
+          <div class="symbol symbol-200px symbol-2by3">
+            <img [src]="preview" [alt]="'Preview ' + (i + 1)" class="w-100 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

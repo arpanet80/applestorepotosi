@@ -1,0 +1,57 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <h2 class="card-title fw-bold">Reporte de ingresos – Servicio técnico</h2>
+  </div>
+
+  <div class="card-body">
+    <form [formGroup]="form" class="row gy-3 mb-6" (ngSubmit)="load()">
+      <div class="col-md-4">
+        <label class="form-label">Desde</label>
+        <input type="date" formControlName="startDate" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Hasta</label>
+        <input type="date" formControlName="endDate" class="form-control">
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary me-3">Consultar</button>
+      </div>
+    </form>
+
+    <div *ngIf="report$ | async as r" class="row g-6">
+      <!-- KPI -->
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Órdenes</div>
+          <div class="fs-2x fw-bolder">{{ r.orderCount }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Mano de obra</div>
+          <div class="fs-2x fw-bolder">{{ r.totalLabor | currency:'BOB':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Repuestos</div>
+          <div class="fs-2x fw-bolder">{{ r.totalParts | currency:'BOB':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Facturado</div>
+          <div class="fs-2x fw-bolder">{{ r.totalInvoiced | currency:'BOB':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+
+      <!-- Margen -->
+      <div class="col-12">
+        <div class="bg-secondary rounded p-4 text-white">
+          <div class="fw-bold mb-2">Margen bruto</div>
+          <div class="fs-1 fw-bolder">{{ r.grossMargin | currency:'BOB':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

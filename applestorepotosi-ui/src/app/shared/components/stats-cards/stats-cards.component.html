@@ -1,0 +1,16 @@
+<div class="row g-5 g-xl-8 mb-4" *ngIf="cards.length">
+  <div [class]="columnClass" *ngFor="let c of cards">
+    <!-- solo agregamos la clase card-hover -->
+    <div class="card card-dashed h-xl-100 card-hover">
+      <div class="card-body d-flex align-items-center">
+        <div class="shrink-0">
+          <i [class]="c.icon + ' fs-2x text-' + c.color"></i>
+        </div>
+        <div class="grow ms-4">
+          <span class="text-gray-900 fw-bolder fs-2hx">{{ c.value }}</span>
+          <span class="text-gray-700 fw-bold fs-6 d-block">{{ c.label }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

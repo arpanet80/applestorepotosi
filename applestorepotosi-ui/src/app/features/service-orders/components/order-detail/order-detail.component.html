@@ -1,0 +1,175 @@
+<div class="card card-flush">
+  <!-- Cabecera -->
+  <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+    <div class="card-title">
+      <h2 class="fw-bold text-gray-900 mb-0">Orden #{{ order.orderNumber }}</h2>
+    </div>
+    <div class="card-toolbar">
+      <a routerLink="/service-orders" class="btn btn-sm btn-light">
+        <i class="ki-duotone ki-arrow-left fs-2"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <!-- Cuerpo -->
+  <div class="card-body fs-6">
+    <!-- Datos principales -->
+    <div class="row mb-6">
+      <div class="col-md-3">
+        <label class="text-muted">Cliente</label>
+        <div class="fw-bold fs-5">{{ getCustomerName() }}</div>
+      </div>
+      <div class="col-md-3">
+        <label class="text-muted">Técnico</label>
+        <div class="fw-bold fs-5">{{ getTechnicianName() }}</div>
+      </div>
+      <div class="col-md-3">
+        <label class="text-muted">Estado actual</label>
+        <div>
+          <span class="badge badge-light-{{ mapColor(safeStatus) }} fs-6">
+            {{ safeStatus }}
+          </span>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="text-muted">Total orden</label>
+        <div class="fw-bold fs-5">Bs {{ order.totalCost }}</div>
+      </div>
+    </div>
+
+    <!-- Dispositivo -->
+    <div class="row mb-6">
+      <div class="col-md-4">
+        <label class="text-muted">Dispositivo</label>
+        <div class="fw-bold">{{ order.device.type }} {{ order.device.model }}</div>
+      </div>
+      <div class="col-md-4">
+        <label class="text-muted">IMEI</label>
+        <div>{{ order.device.imei || '—' }}</div>
+      </div>
+      <div class="col-md-4">
+        <label class="text-muted">Serial</label>
+        <div>{{ order.device.serial || '—' }}</div>
+      </div>
+    </div>
+
+    <!-- Síntoma / Descripción -->
+    <div class="row mb-6">
+      <div class="col-12">
+        <label class="text-muted">Síntoma</label>
+        <div class="fw-bold">{{ order.symptom }}</div>
+      </div>
+      <div class="col-12 mt-3">
+        <label class="text-muted">Descripción</label>
+        <div>{{ order.description || 'Sin descripción' }}</div>
+      </div>
+    </div>
+
+    <!-- Cambiar estado -->
+    <div class="separator separator-dashed my-6"></div>
+    <h5 class="mb-4">Cambiar estado</h5>
+    <form [formGroup]="statusForm" class="row align-items-end gy-3">
+      <div class="col-md-4">
+        <label class="form-label">Nuevo estado</label>
+        <select formControlName="status" class="form-select form-select-solid">
+          <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Notas (opcional)</label>
+        <input type="text" formControlName="notes" class="form-control form-control-solid" />
+      </div>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-primary w-100" (click)="updateStatus()">
+          Actualizar
+        </button>
+      </div>
+    </form>
+
+    <!-- Items / repuestos -->
+    <div class="separator separator-dashed my-6"></div>
+    <div class="d-flex align-items-center mb-4">
+      <h5 class="mb-0">Repuestos / Items</h5>
+      <button
+        type="button"
+        class="btn btn-sm btn-light-primary ms-auto"
+        (click)="addItem()"
+      >
+        <i class="ki-duotone ki-plus fs-2"></i> Agregar item
+      </button>
+    </div>
+
+    <form [formGroup]="itemForm" class="row align-items-end gy-3 mb-4">
+      <div class="col-md-4">
+        <label class="form-label">Repuesto</label>
+        <input type="text" formControlName="partName" class="form-control form-control-solid" placeholder="Ej. Pantalla iPhone 13 Pro" />
+      </div>
+      <div class="col-md-1">
+        <label class="form-label">Cant</label>
+        <input type="number" formControlName="quantity" class="form-control form-control-solid" min="1" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Costo (Bs)</label>
+        <input type="number" formControlName="unitCost" class="form-control form-control-solid" min="0" step="0.01" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Precio (Bs)</label>
+        <input type="number" formControlName="unitPrice" class="form-control form-control-solid" min="0" step="0.01" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Notas</label>
+        <input type="text" formControlName="notes" class="form-control form-control-solid" />
+      </div>
+      <div class="col-md-1">
+        <button type="button" class="btn btn-icon btn-light-success" (click)="addItem()">
+          <i class="ki-duotone ki-check fs-2"></i>
+        </button>
+      </div>
+    </form>
+
+    <!-- Tabla de items -->
+    <div class="table-responsive">
+      <table class="table table-row-dashed align-middle gs-4 gy-3">
+        <thead>
+          <tr class="text-gray-500 fw-bold fs-7">
+            <th>Repuesto</th>
+            <th>Cant</th>
+            <th>P. Unit</th>
+            <th>Total</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let i of order.items">
+            <td class="fw-bold">{{ i.partName }}</td>
+            <td>{{ i.quantity }}</td>
+            <td>Bs {{ i.unitPrice }}</td>
+            <td>Bs {{ i.quantity * i.unitPrice }}</td>
+            <td>{{ i.notes || '—' }}</td>
+          </tr>
+          <tr *ngIf="!order.items?.length">
+            <td colspan="5" class="text-muted text-center">Sin repuestos agregados</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Resumen -->
+    <div class="d-flex justify-content-end mt-6">
+      <div class="w-250px">
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-muted">Sub-total items:</span>
+          <span class="fw-bold">Bs {{ getTotalItems() }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-muted">Mano de obra:</span>
+          <span class="fw-bold">Bs {{ order.laborCost }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="fs-5 fw-bold text-gray-800">Total:</span>
+          <span class="fs-5 fw-bold text-gray-800">Bs {{ order.totalCost }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

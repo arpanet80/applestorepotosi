@@ -1,0 +1,237 @@
+<!--begin::Content container-->
+<div id="kt_app_content_container" class="app-container  container-xxl ">
+
+  <!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+      <!--begin::Title-->
+      <h3 class="fw-bold my-2">Productos 
+          <span class="fs-6 text-gray-500 fw-semibold ms-1">({{ products.length }})</span>
+      </h3>
+      <!--end::Title-->
+
+      <!--begin::Controls-->
+      <div class="d-flex align-items-center my-2">
+
+        <!-- ➕ Nuevo producto -->
+        <button routerLink="/dashboard/products/create" class="btn btn-primary btn-sm" >
+          <i class="ki-duotone ki-plus fs-2 me-2"></i>Nuevo Producto
+        </button>
+
+        <!-- ⚙️ Exportar -->
+        <button (click)="onBulkAction('export')"  class="btn btn-secondary btn-sm" >
+          <i class="bi bi-download fs-2 me-2"></i>Exportar
+        </button>
+
+        <!-- 🔄 Actualizar -->
+        <button (click)="onRefresh()" class="btn btn-outline btn-outline-primary btn-sm" [disabled]="loading" >
+          <i class="bi bi-arrow-repeat fs-2"></i>Actualizar
+        </button>
+
+      </div>
+      <!--end::Controls-->
+  </div>
+  <!--end::Toolbar-->
+ 
+  <!-- Filtros Avanzados -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title">Filtros Avanzados</h3>
+      <div class="card-toolbar">
+        <span *ngIf="getActiveFiltersCount() > 0" class="text-muted me-3">
+          {{ getActiveFiltersCount() }} filtro(s) activo(s)
+        </span>
+        <button *ngIf="getActiveFiltersCount() > 0" (click)="clearAllFilters()" class="btn btn-sm btn-light-danger">
+          🗑️ Limpiar filtros
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row mb-6">
+        <div class="col-md-4">
+          <label class="form-label">Búsqueda</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Buscar por nombre, SKU, descripción..."
+            [value]="searchTerm"
+            (input)="onSearch($any($event.target).value)"
+          />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Estado</label>
+          <select class="form-select" [value]="statusFilter" (change)="onStatusFilterChange($any($event.target).value)">
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Stock</label>
+          <select class="form-select" [value]="stockFilter" (change)="onStockFilterChange($any($event.target).value)">
+            <option value="all">Todo</option>
+            <option value="in-stock">En stock</option>
+            <option value="low-stock">Stock bajo</option>
+            <option value="out-of-stock">Sin stock</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Categoría</label>
+          <select class="form-select" [value]="categoryFilter" (change)="onCategoryFilterChange($any($event.target).value)">
+            <option value="">Todas</option>
+            <option value="1">Smartphones</option>
+            <option value="2">Laptops</option>
+            <option value="3">Tablets</option>
+            <option value="4">Wearables</option>
+            <option value="5">Accessories</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Marca</label>
+          <select class="form-select" [value]="brandFilter" (change)="onBrandFilterChange($any($event.target).value)">
+            <option value="">Todas</option>
+            <option value="1">Apple</option>
+            <option value="2">Samsung</option>
+            <option value="3">Huawei</option>
+            <option value="4">Xiaomi</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--begin::Card body-->
+  <div class="card-body pt-0">
+    
+    <!-- Tabla de Productos -->
+    <!-- <div class="card"> -->
+      <!-- <div class="card-header">
+        <h3 class="card-title">Listado de Productos</h3>
+      </div> -->
+      <!-- <div class="card-body"> -->
+    <div *ngIf="loading" class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <div *ngIf="error && !loading" class="alert alert-danger">
+      {{ error }}
+    </div>
+
+    <div *ngIf="!loading && !error && products.length === 0" class="alert alert-info">
+      No se encontraron productos con los filtros aplicados.
+    </div>
+
+    <div *ngIf="!loading && !error && products.length > 0" class="table-responsive">
+
+      <table class="table align-middle table-row-dashed fs-6 gy-5" id="kt_ecommerce_products_table">
+        <thead>
+          <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">  
+            <th>Producto</th>
+            <th>SKU</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="fw-semibold text-gray-600">
+          <tr *ngFor="let product of products">
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center">
+                  <!--begin::Thumbnail-->
+                  <a [routerLink]="['/dashboard/products/detail', product._id]" class="symbol symbol-50px">
+                    <!-- <span style="background-image: url(/assets/imgs/product-no-image.png)" class="symbol-label"></span> -->
+                      <span [style.background-image]="'url(' + (product.imageUrl || '/assets/imgs/product-no-image.png') + ')'" class="symbol-label"></span>
+                  </a>
+                  <!--end::Thumbnail-->
+
+                  <div class="ms-5">
+                      <a [routerLink]="['/dashboard/products/detail', product._id]" class="text-gray-800 text-hover-primary fs-5 fw-bold" data-kt-ecommerce-product-filter="product_name" >
+                        <div class="text-gray-800 fw-bold">{{ product.name }}</div>
+                        <small class="text-muted">{{ product.categoryId?.name }}</small>
+                      </a>
+                  </div>
+
+                </div>
+              </div>
+            </td>
+            <td class="text-end pe-0">
+                <span class="fw-bold">{{ product.sku }}</span>
+            </td>
+            <td class="text-end pe-0" data-order="12">
+                <span class="fw-bold ms-3">${{ product.salePrice | number:'1.2-2' }}</span>
+            </td>
+            <td>
+                <span class="badge" [ngClass]="{
+                    'badge-light-success': product.stockStatus === 'in-stock',
+                    'badge-light-warning': product.stockStatus === 'low-stock',
+                    'badge-light-danger': product.stockStatus === 'out-of-stock'
+                  }">
+                  {{ product.availableQuantity || 0 }} / {{ product.stockQuantity }}
+                </span>
+            </td>
+            <td>
+                <span class="badge"
+                  [ngClass]="{
+                    'badge-light-success': product.isActive,
+                    'badge-light-danger': !product.isActive
+                  }" >
+                  {{ product.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+            </td>
+            <td>
+                <button
+                  (click)="onProductSelected(product)"
+                  class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                  title="Ver detalle">
+                  <i class="bi bi-eye fs-2"></i>
+                </button>
+                <button
+                  (click)="onProductEdit(product)"
+                  class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-1"
+                  title="Editar">
+                  <i class="bi bi-pencil-square fs-2"></i>
+                </button>
+
+
+                <!-- ACTIVAR / DESACTIVAR -->
+                <button *ngIf="canManage"
+                        class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                        (click)="onToggleStatus(product)"
+                        title="Activar/Desactivar">
+                  <i class="fas fa-toggle-on"></i>
+                </button>
+
+                <!-- <button
+                  (click)="onProductDelete(product)"
+                  class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                  title="Eliminar">
+                  <i class="bi bi-trash-fill fs-2"></i>
+                </button> -->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="d-flex justify-content-between align-items-center mt-6" *ngIf="totalPages > 1">
+      <span class="text-muted">Mostrando {{ getDisplayedRange() }} de {{ totalItems }} productos</span>
+      <ul class="pagination">
+        <li class="page-item" [class.disabled]="currentPage === 1">
+          <a class="page-link" (click)="onPageChange(currentPage - 1)">Anterior</a>
+        </li>
+        <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+          <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
+        </li>
+        <li class="page-item" [class.disabled]="currentPage === totalPages">
+          <a class="page-link" (click)="onPageChange(currentPage + 1)">Siguiente</a>
+        </li>
+      </ul>
+    </div>
+    <br>
+  </div>
+  
+</div>

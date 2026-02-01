@@ -1,0 +1,191 @@
+<div class="card card-flush">
+  <!-- Cabecera -->
+  <div class="card-header">
+    <div class="card-title"><h3>Caja</h3></div>
+    <div class="card-toolbar">
+      <button *ngIf="!activeSession" class="btn btn-primary btn-sm" (click)="abrir()">
+        <i class="ki-duotone ki-plus fs-2"></i>Abrir caja
+      </button>
+      <button *ngIf="activeSession" class="btn btn-danger btn-sm" (click)="cerrar()">
+        <i class="ki-duotone ki-cross-circle fs-2"></i>Cerrar caja
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <!-- Spinner -->
+    <div *ngIf="loading" class="d-flex justify-content-center py-15">
+      <div class="text-center">
+        <div class="spinner-border text-primary spinner-md"></div>
+        <div class="text-gray-700 fw-semibold mt-4">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- SESIÓN ACTIVA -->
+    <div *ngIf="!loading && activeSession" class="mb-10">
+      <h5 class="mb-4">Sesión activa</h5>
+      <div class="row mb-6">
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 text-center">
+            <div class="text-gray-500 fw-semibold">Saldo inicial</div>
+            <div class="fs-2 fw-bold text-gray-800">${{ activeSession.openingBalance }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 text-center">
+            <div class="text-gray-500 fw-semibold">Ventas efectivo</div>
+            <div class="fs-2 fw-bold text-success">${{ activeSession.cashSales }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 text-center">
+            <div class="text-gray-500 fw-semibold">Devoluciones</div>
+            <div class="fs-2 fw-bold text-danger">${{ activeSession.cashRefunds }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="bg-info rounded p-4 text-center text-white">
+            <div class="fw-semibold">Saldo esperado</div>
+            <div class="fs-2 fw-bold">${{ activeSession.expectedCash }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mb-6">
+        <button class="btn btn-light-success btn-sm" (click)="movimiento('in')">
+          <i class="ki-duotone ki-arrow-up fs-2"></i>Ingreso manual
+        </button>
+        <button class="btn btn-light-danger btn-sm" (click)="movimiento('out')">
+          <i class="ki-duotone ki-arrow-down fs-2"></i>Retiro manual
+        </button>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div *ngIf="!loading">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5>Histórico de sesiones</h5>
+        <button class="btn btn-light btn-sm" (click)="resetFilters()">Limpiar filtros</button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <label class="form-label">Desde</label>
+          <input type="date"
+            class="form-control form-control-sm"
+            [value]="toInputDate(filterStart)"
+            (input)="filterStart = $any($event.target).valueAsDate; onFilter()" />
+          <!-- <input type="date"
+                class="form-control form-control-sm"
+                [(ngModel)]="filterStart"
+                (ngModelChange)="onFilter()" /> -->
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Hasta</label>
+          <input type="date"
+              class="form-control form-control-sm"
+              [value]="toInputDate(filterEnd)"
+              (input)="filterEnd = $any($event.target).valueAsDate; onFilter()" />
+          <!-- <input type="date"
+                class="form-control form-control-sm"
+                [(ngModel)]="filterEnd"
+                (ngModelChange)="onFilter()" /> -->
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Corte</label>
+          <select class="form-select form-select-sm" [(ngModel)]="filterCloseType" (change)="onFilter()">
+            <option value="">Todos</option>
+            <option value="X">X</option>
+            <option value="Z">Z</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Cajero</label>
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="filterUser" (input)="onFilter()" placeholder="uid o nombre" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-primary btn-sm w-100" (click)="onFilter()">Buscar</button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="table-responsive">
+        <table class="table table-row-bordered table-row-dashed gy-4 align-middle fw-bold">
+          <thead class="fs-7 text-gray-500 text-uppercase">
+            <tr>
+              <th>ID Sesión</th>
+              <th>Apertura</th>
+              <th>Cierre</th>
+              <th>Cajero</th>
+              <th>Tipo</th>
+              <th class="text-end">Esperado</th>
+              <th class="text-end">Contado</th>
+              <th class="text-end">Diferencia</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="fs-6">
+            <tr *ngFor="let s of sessions">
+              <td>{{ s.sessionId }}</td>
+              <td>{{ s.openedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ s.closedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ s.openedBy }}</td>
+              <td>
+                <span class="badge badge-light-{{ s.closeType === 'Z' ? 'primary' : 'warning' }}">
+                  {{ s.closeType }}
+                </span>
+              </td>
+              <td class="text-end">${{ s.expectedCash }}</td>
+              <td class="text-end">${{ s.actualCash || 0 }}</td>
+              <td class="text-end">
+                <span [class.text-success]="(s.actualCash || 0) - s.expectedCash >= 0"
+                      [class.text-danger]="(s.actualCash || 0) - s.expectedCash < 0">
+                  ${{ ((s.actualCash || 0) - s.expectedCash).toFixed(2) }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                        (click)="verDetalle(s)" title="Ver detalle">
+                  <i class="ki-duotone ki-eye fs-2"></i>
+                </button>
+                <button class="btn btn-icon btn-bg-light btn-active-color-info btn-sm"
+                        (click)="reimprimir(s)" title="Re-imprimir">
+                  <i class="ki-duotone ki-printer fs-2"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="sessions.length === 0">
+              <td colspan="9" class="text-center text-muted py-5">No hay sesiones que coincidan con el filtro</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación manual -->
+      <div class="d-flex justify-content-between align-items-center py-4" *ngIf="total > pageSize">
+        <span class="text-muted fs-7">
+          Pág {{ page }} de {{ totalPages }} ({{ total }} registros)
+        </span>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-light"
+                  [disabled]="page === 1"
+                  (click)="goPage(page - 1)">Anterior</button>
+          <button *ngFor="let p of pagesArray"
+                  class="btn btn-light"
+                  [class.active]="p === page"
+                  (click)="goPage(p)">{{ p }}</button>
+          <button class="btn btn-light"
+                  [disabled]="page === totalPages"
+                  (click)="goPage(page + 1)">Siguiente</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Off-canvas detalle -->
+<app-off-canvas-session [(visible)]="showCanvas"
+                        [session]="canvasSession"
+                        (print)="reimprimir($event)">
+</app-off-canvas-session>

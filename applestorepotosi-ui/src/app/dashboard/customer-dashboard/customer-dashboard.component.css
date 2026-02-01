@@ -1,0 +1,22 @@
+/* Solo mantenemos estilos mínimos para interacciones específicas */
+    
+    .cursor-pointer {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .cursor-pointer:hover {
+      transform: translateY(-2px);
+    }
+    
+    /* Aseguramos que los enlaces dentro de las cards no tengan subrayado */
+    a {
+      text-decoration: none;
+    }
+
+    /* Estilos para centrado vertical en cards de productos */
+    .flex-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }

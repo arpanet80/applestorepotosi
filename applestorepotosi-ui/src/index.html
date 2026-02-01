@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Apple Store Potosi</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- ---- variables de entorno ---- -->
+  <!-- <script src="env.js"></script> -->
+
+  <!-- ----------------- Template Keen --------------------------------------------- -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
+  <link rel="stylesheet" href="assets/keen/plugins/global/plugins.bundle.css">
+  <link rel="stylesheet" href="assets/keen/css/style.bundle.css">
+  <!-- ------------------------------------------------------------------------------------------- -->
+
+  <script>
+    // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
+    if (window.top != window.self) {
+        window.top.location.replace(window.self.location.href);
+    }
+  </script>
+
+
+</head>
+<body id="kt_app_body" data-kt-app-layout="dark-sidebar" 
+      data-kt-app-header-fixed="true" data-kt-app-sidebar-enabled="true" 
+      data-kt-app-sidebar-fixed="true" data-kt-app-sidebar-hoverable="true" 
+      data-kt-app-sidebar-push-header="true" data-kt-app-sidebar-push-toolbar="true" 
+      data-kt-app-sidebar-push-footer="true" data-kt-app-toolbar-enabled="true"  
+      class="app-default mat-typography" >
+
+
+
+
+  <app-root></app-root>
+
+  
+  <!--begin::Global Javascript Bundle(mandatory for all pages)-->
+  <script src="assets/keen/plugins/global/plugins.bundle.js"></script>
+  <script src="assets/keen/js/scripts.bundle.js"></script>
+  <!--end::Global Javascript Bundle-->
+
+</body>
+</html>

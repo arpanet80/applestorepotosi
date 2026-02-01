@@ -1,0 +1,50 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <div class="card-title"><h3>Ajuste de Stock</h3></div>
+    <div class="card-toolbar">
+      <a routerLink="/dashboard/stock-movements"
+         class="btn btn-sm btn-light-primary">
+        <i class="ki-duotone ki-arrow-left fs-2"></i>Volver
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body pt-0">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="row mb-6">
+        <div class="col-md-6">
+          <label class="form-label required">Producto</label>
+          <select formControlName="productId" class="form-select form-select-solid">
+            <option value="" disabled>Seleccione un producto</option>
+            <option *ngFor="let p of products" [value]="p._id">{{ p.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required">Nueva cantidad</label>
+          <input type="number" min="0" formControlName="newQuantity" class="form-control form-control-solid">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label required">Motivo</label>
+          <select formControlName="reason" class="form-select form-select-solid">
+            <option value="manual">Manual</option>
+            <option value="damaged">Dañado</option>
+            <option value="expired">Vencido</option>
+            <option value="correction">Corrección</option>
+          </select>
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Notas</label>
+          <textarea formControlName="notes" rows="3" class="form-control form-control-solid"></textarea>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-3">
+        <button type="button" (click)="onCancel()" class="btn btn-light-secondary">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting">
+          <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+          {{ submitting ? 'Guardando...' : 'Guardar ajuste' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

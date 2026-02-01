@@ -1,0 +1,436 @@
+<!-- src/app/products/components/product-form/product-form.component.html -->
+<div class="card">
+  <!-- <div class="card-header">
+    <h3 class="card-title">{{ isEditMode ? 'Editar Producto' : 'Crear Nuevo Producto' }}</h3>
+    <div class="card-toolba ms-auto">
+      <button type="button" class="btn btn-sm btn-secondary" (click)="onCancel()">
+        <i class="ki-duotone ki-arrow-left fs-2"></i>
+        Cancelar
+      </button>
+    </div>
+  </div> -->
+
+  <div class="card-body">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="d-flex justify-content-center align-items-center h-300px">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="alert alert-danger d-flex align-items-center p-5">
+      <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
+        <span class="path1"></span>
+        <span class="path2"></span>
+      </i>
+      <div class="d-flex flex-column">
+        <h4 class="mb-1 text-danger">Error</h4>
+        <span>{{ error }}</span>
+        <button (click)="isEditMode ? loadProductData() : initForm()" class="btn btn-sm btn-primary mt-3">
+          <i class="ki-duotone ki-arrow-counter-clockwise fs-2"></i>
+          Reintentar
+        </button>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form *ngIf="!loading" [formGroup]="productForm" (ngSubmit)="onSubmit()" novalidate>
+      
+      <!-- Información Básica -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-12">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-information-5 text-primary fs-2hx me-2"></i>
+            Información Básica
+          </h4>
+        </div>
+        
+        <div class="col-md-6">
+          <label class="required fs-6 fw-semibold mb-2">SKU</label>
+          <input type="text" 
+                 class="form-control form-control-solid"
+                 formControlName="sku"
+                 placeholder="Ej: APL-IPH14-128-BLK"
+                 [class.is-invalid]="isFieldInvalid('sku')">
+          <div class="form-text">Código único del producto</div>
+          <div *ngIf="skuChecking" class="form-text text-info">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Verificando SKU...
+          </div>
+          <div *ngIf="!skuChecking && skuAvailable && productForm.get('sku')?.valid" class="form-text text-success">
+            <i class="ki-duotone ki-check-circle fs-2"></i> SKU disponible
+          </div>
+          <div *ngIf="isFieldInvalid('sku')" class="invalid-feedback">
+            {{ getFieldError('sku') }}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="fs-6 fw-semibold mb-2">Código de Barras</label>
+          <input type="text" 
+                 class="form-control form-control-solid"
+                 formControlName="barcode"
+                 placeholder="Ej: 194253708642"
+                 [class.is-invalid]="isFieldInvalid('barcode')">
+          <div class="form-text">Código de barras del producto</div>
+          <div *ngIf="barcodeChecking" class="form-text text-info">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Verificando código...
+          </div>
+          <div *ngIf="!barcodeChecking && barcodeAvailable && productForm.get('barcode')?.valid" class="form-text text-success">
+            <i class="ki-duotone ki-check-circle fs-2"></i> Código disponible
+          </div>
+          <div *ngIf="isFieldInvalid('barcode')" class="invalid-feedback">
+            {{ getFieldError('barcode') }}
+          </div>
+        </div>
+
+        <div class="col-md-12">
+          <label class="required fs-6 fw-semibold mb-2">Nombre del Producto</label>
+          <input type="text" 
+                 class="form-control form-control-solid"
+                 formControlName="name"
+                 placeholder="Ej: iPhone 14 128GB Negro"
+                 [class.is-invalid]="isFieldInvalid('name')">
+          <div *ngIf="isFieldInvalid('name')" class="invalid-feedback">
+            {{ getFieldError('name') }}
+          </div>
+        </div>
+
+        <div class="col-md-12">
+          <label class="fs-6 fw-semibold mb-2">Descripción</label>
+          <textarea class="form-control form-control-solid" 
+                    formControlName="description"
+                    rows="3"
+                    placeholder="Descripción detallada del producto..."></textarea>
+        </div>
+      </div>
+
+      <!-- Categorización -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-12">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-element-11 text-primary fs-2hx me-2"></i>
+            Categorización
+          </h4>
+        </div>
+        
+        <div class="col-md-4">
+          <label class="required fs-6 fw-semibold mb-2">Categoría</label>
+          <select class="form-select form-select-solid" 
+                  formControlName="categoryId"
+                  [class.is-invalid]="isFieldInvalid('categoryId')">
+            <option value="">Seleccionar categoría</option>
+            <option *ngFor="let category of categories" [value]="category._id">
+              {{ category.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('categoryId')" class="invalid-feedback">
+            {{ getFieldError('categoryId') }}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="required fs-6 fw-semibold mb-2">Marca</label>
+          <select class="form-select form-select-solid" 
+                  formControlName="brandId"
+                  [class.is-invalid]="isFieldInvalid('brandId')">
+            <option value="">Seleccionar marca</option>
+            <option *ngFor="let brand of brands" [value]="brand._id">
+              {{ brand.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('brandId')" class="invalid-feedback">
+            {{ getFieldError('brandId') }}
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="required fs-6 fw-semibold mb-2">Proveedor</label>
+          <select class="form-select form-select-solid" 
+                  formControlName="supplierId"
+                  [class.is-invalid]="isFieldInvalid('supplierId')">
+            <option value="">Seleccionar proveedor</option>
+            <option *ngFor="let supplier of suppliers" [value]="supplier._id">
+              {{ supplier.name }}
+            </option>
+          </select>
+          <div *ngIf="isFieldInvalid('supplierId')" class="invalid-feedback">
+            {{ getFieldError('supplierId') }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Especificaciones -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-12">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-setting-2 text-primary fs-2hx me-2"></i>
+            Especificaciones Técnicas
+          </h4>
+        </div>
+        
+        <div formGroupName="specifications" class="row g-9">
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Color</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="color"
+                   placeholder="Ej: Negro, Blanco, Rojo">
+          </div>
+
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Almacenamiento</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="storage"
+                   placeholder="Ej: 128GB, 256GB">
+          </div>
+
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Memoria RAM</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="memory"
+                   placeholder="Ej: 8GB, 16GB">
+          </div>
+
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Tamaño de Pantalla</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="screenSize"
+                   placeholder="Ej: 6.1&quot;">
+          </div>
+
+          <div class="col-md-4">
+            <label class="fs-6 fw-semibold mb-2">Procesador</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="processor"
+                   placeholder="Ej: A15 Bionic, M1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Precios y Stock -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-6">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-dollar text-primary fs-2hx me-2"></i>
+            Precios
+          </h4>
+          
+          <div class="row g-6">
+            <div class="col-md-6">
+              <label class="required fs-6 fw-semibold mb-2">Precio de Costo</label>
+              <div class="input-group input-group-solid">
+                <span class="input-group-text">$</span>
+                <input type="number" 
+                       class="form-control" 
+                       formControlName="costPrice"
+                       min="0"
+                       step="0.01"
+                       [class.is-invalid]="isFieldInvalid('costPrice')">
+              </div>
+              <div *ngIf="isFieldInvalid('costPrice')" class="invalid-feedback">
+                {{ getFieldError('costPrice') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="required fs-6 fw-semibold mb-2">Precio de Venta</label>
+              <div class="input-group input-group-solid">
+                <span class="input-group-text">$</span>
+                <input type="number" 
+                       class="form-control" 
+                       formControlName="salePrice"
+                       min="0"
+                       step="0.01"
+                       [class.is-invalid]="isFieldInvalid('salePrice')">
+              </div>
+              <div *ngIf="isFieldInvalid('salePrice')" class="invalid-feedback">
+                {{ getFieldError('salePrice') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Información de Margen -->
+          <div *ngIf="productForm.get('costPrice')?.value > 0 && productForm.get('salePrice')?.value > 0" 
+               class="bg-light rounded p-5 mt-6">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="fs-6 fw-semibold">Ganancia:</span>
+              <span class="fs-5 fw-bold" [class.text-danger]="profitAmount < 0">
+                $ {{ profitAmount | number:'1.2-2' }}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fs-6 fw-semibold">Margen:</span>
+              <span class="fs-5 fw-bold" [class.text-danger]="profitMargin < 0">
+                {{ profitMargin | number:'1.2-2' }}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-package text-primary fs-2hx me-2"></i>
+            Inventario
+          </h4>
+          
+          <div class="mb-6">
+            <label class="fs-6 fw-semibold mb-2">Stock Inicial</label>
+            <input type="number" 
+                   class="form-control form-control-solid"
+                   formControlName="stockQuantity"
+                   min="0"
+                   step="1">
+          </div>
+
+          <div class="row g-6">
+            <div class="col-md-6">
+              <label class="fs-6 fw-semibold mb-2">Stock Mínimo</label>
+              <input type="number" 
+                     class="form-control form-control-solid"
+                     formControlName="minStock"
+                     min="0"
+                     step="1"
+                     placeholder="Alerta cuando baje">
+            </div>
+
+            <div class="col-md-6">
+              <label class="fs-6 fw-semibold mb-2">Stock Máximo</label>
+              <input type="number" 
+                     class="form-control form-control-solid"
+                     formControlName="maxStock"
+                     min="0"
+                     step="1"
+                     placeholder="Límite de almacén">
+            </div>
+          </div>
+
+          <div class="mb-6 mt-6">
+            <label class="fs-6 fw-semibold mb-2">Ubicación en Almacén</label>
+            <input type="text" 
+                   class="form-control form-control-solid"
+                   formControlName="location"
+                   placeholder="Ej: A1-B2-C3">
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuraciones Adicionales -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-12">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-gear text-primary fs-2hx me-2"></i>
+            Configuraciones Adicionales
+          </h4>
+        </div>
+        
+        <div class="col-md-4">
+          <label class="fs-6 fw-semibold mb-2">Meses de Garantía</label>
+          <input type="number" 
+                 class="form-control form-control-solid"
+                 formControlName="warrantyMonths"
+                 min="0"
+                 step="1">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-check form-switch form-switch-sm form-check-custom form-check-solid">
+            <input class="form-check-input" type="checkbox" formControlName="isActive">
+            <span class="form-check-label fw-semibold text-muted">Producto Activo</span>
+          </label>
+          <div class="form-text">Los productos inactivos no aparecerán en el catálogo</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-check form-switch form-switch-sm form-check-custom form-check-solid">
+            <input class="form-check-input" type="checkbox" formControlName="isFeatured">
+            <span class="form-check-label fw-semibold text-muted">Producto Destacado</span>
+          </label>
+          <div class="form-text">Aparecerá en secciones especiales del catálogo</div>
+        </div>
+      </div>
+
+      <!-- Imágenes -->
+      <div class="row g-9 mb-8">
+        <div class="col-md-12">
+          <h4 class="mb-4">
+            <i class="ki-duotone ki-picture text-primary fs-2hx me-2"></i>
+            Imágenes del Producto
+          </h4>
+        </div>
+        
+        <div class="col-md-12">
+          <app-image-upload
+            [productId]="imageUploadProductId" 
+            [multiple]="true"
+            (uploaded)="onImagesUploaded($event)">
+          </app-image-upload>
+        </div>
+
+        <!-- Preview nuevas imágenes -->
+        <div *ngIf="newImageFiles.length" class="col-md-12">
+          <h5 class="mb-4">Imágenes a agregar</h5>
+          <div class="row g-6">
+            <div *ngFor="let file of newImageFiles; let i = index" class="col-md-3">
+              <div class="symbol symbol-150px symbol-2by3">
+                <img [src]="file | objectUrl" class="w-100" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Imágenes existentes (edit) -->
+        <div *ngIf="isEditMode && existingImages.length" class="col-md-12">
+          <h5 class="mb-4">Imágenes actuales</h5>
+          <div class="row g-6">
+            <div *ngFor="let img of existingImages" class="col-md-3">
+              <div class="symbol symbol-150px symbol-2by3">
+                <img [src]="img.url" class="w-100" />
+                <button type="button" 
+                        (click)="onRemoveImage(img)"
+                        class="btn btn-icon btn-circle btn-color-danger btn-sm position-absolute top-0 end-0">
+                  <i class="ki-duotone ki-cross fs-1">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                  </i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="d-flex justify-content-end">
+        <button type="button" 
+                (click)="onCancel()"
+                class="btn btn-secondary me-3"
+                [disabled]="submitting">
+          <i class="ki-duotone ki-arrow-left fs-2"></i>
+          Cancelar
+        </button>
+        
+        <button type="submit" 
+                class="btn btn-primary"
+                [disabled]="productForm.invalid || submitting || skuChecking || barcodeChecking">
+          <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!submitting" class="ki-duotone ki-save-2 fs-2"></i>
+          {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar Producto' : 'Crear Producto') }}
+        </button>
+      </div>
+
+      <!-- Global Form Error -->
+      <div *ngIf="error" class="alert alert-danger mt-6">
+        <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4"></i>
+        {{ error }}
+      </div>
+
+    </form>
+  </div>
+</div>

@@ -1,0 +1,104 @@
+<div class="card mb-5 mb-xl-10">
+  <div class="card-header">
+    <h3 class="card-title fw-bold fs-3 text-gray-800">
+      {{ isEditMode ? 'Editar Categoría' : 'Crear Categoría' }}
+    </h3>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+    <div class="card-body">
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Nombre</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="name"
+            placeholder="Ej: iPhone"
+          />
+          <div *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="text-danger fs-7 mt-1">
+            Nombre requerido (mín. 2 caracteres)
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Slug</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="slug"
+            placeholder="ej-iphone"
+          />
+          <div *ngIf="form.get('slug')?.invalid && form.get('slug')?.touched" class="text-danger fs-7 mt-1">
+            Slug requerido
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Descripción</label>
+        <div class="col-lg-10">
+          <textarea
+            class="form-control form-control-solid"
+            formControlName="description"
+            rows="3"
+            placeholder="Breve descripción de la categoría"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label required fw-semibold fs-6">Imagen URL</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="imageUrl"
+            placeholder="https://..."
+          />
+          <div *ngIf="form.get('imageUrl')?.invalid && form.get('imageUrl')?.touched" class="text-danger fs-7 mt-1">
+            Imagen requerida
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Categoría padre</label>
+        <div class="col-lg-10">
+          <input
+            type="text"
+            class="form-control form-control-solid"
+            formControlName="parentId"
+            placeholder="ID de Mongo (opcional)"
+          />
+        </div>
+      </div>
+
+      <div class="row mb-6">
+        <label class="col-lg-2 col-form-label fw-semibold fs-6">Estado</label>
+        <div class="col-lg-10">
+          <label class="form-check form-check-custom form-check-solid">
+            <input class="form-check-input" type="checkbox" formControlName="isActive" />
+            <span class="form-check-label fw-semibold">Activa</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones alineados a la derecha -->
+    <div class="card-footer d-flex justify-content-end py-6 px-9">
+      <button type="button" (click)="onCancel()" class="btn btn-light me-3">Cancelar</button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="form.invalid || submitting">
+        <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+        {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger mx-9 mt-4">{{ error }}</div>
+  </form>
+</div>
