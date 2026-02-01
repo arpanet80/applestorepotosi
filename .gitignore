@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+
+# Testing
+coverage/
+
+# Build artifacts - these are handled by each project's .gitignore
+# applestorepotosi-api/dist/
+# applestorepotosi-ui/dist/
