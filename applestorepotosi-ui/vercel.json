@@ -1,8 +1,11 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": "angular",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/applestorepotosi/browser",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api|assets|.*\\.(js|css|ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot|json|txt|webp|gif)).*)",
       "destination": "/index.html"
     }
   ],
@@ -25,7 +28,7 @@
       ]
     },
     {
-      "source": "/(.*).(js|css|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)",
+      "source": "/(.*)\\.(js|css|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot|webp)",
       "headers": [
         {
           "key": "Cache-Control",
