@@ -42,4 +42,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 .vercel
-.env*.local
+
+# Environment - aunque Angular no lo use, por precaución
+.env
+.env.*
