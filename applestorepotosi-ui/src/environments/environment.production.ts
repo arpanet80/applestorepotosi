@@ -10,6 +10,7 @@ export const environment = {
   },
   // ⚠️ CAMBIAR ESTA URL DESPUÉS DE DESPLEGAR EL BACKEND EN RENDER
   // Debe ser: https://applestorepotosi-api.onrender.com
+  // apiUrl: 'http://localhost:3000'
   apiUrl: 'https://applestorepotosi-api-i0xu.onrender.com'
 };
 

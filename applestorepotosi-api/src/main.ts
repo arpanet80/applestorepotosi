@@ -96,6 +96,8 @@ async function bootstrap() {
     }
   });
 
+
+
   // Configurar timeouts para el tier gratuito de Render
   const port = process.env.PORT || 3000;
   const server = await app.listen(port, '0.0.0.0');
