@@ -32,3 +32,5 @@ coverage/
 # Build artifacts - these are handled by each project's .gitignore
 # applestorepotosi-api/dist/
 # applestorepotosi-ui/dist/
+.vercel
+.env*.local

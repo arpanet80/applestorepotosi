@@ -46,3 +46,4 @@ Thumbs.db
 # Environment - aunque Angular no lo use, por precaución
 .env
 .env.*
+.env*.local

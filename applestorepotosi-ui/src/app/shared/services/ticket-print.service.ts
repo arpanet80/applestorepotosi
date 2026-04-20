@@ -47,8 +47,8 @@ export class TicketPrintService {
   
   private defaultConfig: TicketConfig = {
     businessName: 'APPLE STORE POTOSÍ',
-    businessAddress: 'Calle Ayacucho #123, Potosí - Bolivia',
-    businessPhone: '+591 2 6222222',
+    businessAddress: 'Calle Litoral #123, Potosí - Bolivia',
+    businessPhone: '+591 78712089',
     businessRUC: '123456789',
     ticketWidth: 80,
     includeQR: true,

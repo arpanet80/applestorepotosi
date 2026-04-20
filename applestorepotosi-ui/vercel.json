@@ -4,10 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/applestorepotosi/browser",
   "rewrites": [
-    {
-      "source": "/((?!api|assets|.*\\.(js|css|ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot|json|txt|webp|gif)).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
