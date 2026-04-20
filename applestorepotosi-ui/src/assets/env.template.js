@@ -3,7 +3,8 @@
 
     // Environment variables
     window["env"]["apiUrl"] = "${API_URL}";
-    window["env"]["apiUsuarios"] = "${API_URL_USER}";
-    window["env"]["reportsUrl"] = "${REPORTS_URL}";
+    window["env"]["telegramBotToken"] = "${TELEGRAM_BOT_TOKEN}";
+    window["env"]["telegramChatId"] = "${TELEGRAM_CHAT_ID}";
+    window["env"]["publicUrl"] = "${PUBLIC_URL}";
     window["env"]["debug"] = "${DEBUG}";
   })(this);

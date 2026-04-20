@@ -49,4 +49,11 @@ export class SaleService {
   findItemsBySale(saleId: string): Observable<SaleItem[]> {
     return this.http.get<SaleItem[]>(`${this.apiUrl}/${saleId}/items`);
   }
+
+  /**
+   * Obtiene una venta completa con items para impresión
+   */
+  getSaleForPrint(id: string): Observable<Sale> {
+    return this.http.get<Sale>(`${this.apiUrl}/${id}`);
+  }
 }

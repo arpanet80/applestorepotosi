@@ -8,8 +8,9 @@
 
   /* Local */
   window["env"]["apiUrl"] = "http://localhost:3000/";
-  // window["env"]["apiUsuarios"] = "http://10.51.15.41:3001/";
-  // window["env"]["reportsUrl"] = "http://10.51.15.110:8123/api/reports/";
+  window["env"]["telegramBotToken"] = "8263595117:AAHIy0aro2uwCe9iD-bm4V3aTF6BdFrbcwE";
+  window["env"]["telegramChatId"] = "-4973074977";
+  window["env"]["publicUrl"] = "http://localhost:4200";
   window["env"]["debug"] = true;
 
 })(this);

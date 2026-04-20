@@ -5,6 +5,8 @@ import { RouterModule } from '@angular/router';
 import { MySalesService, PaginatedResponse } from '../../services/my-sales.service';
 import { Sale } from '../../models/sale.model';
 import { SaleStatus } from '../../../sales/models/sale.model';
+import { TicketPrintService } from '../../../../shared/services/ticket-print.service';
+import { ToastrAlertService } from '../../../../shared/services/toastr-alert.service';
 
 @Component({
   selector: 'app-my-sales-list',
@@ -14,8 +16,10 @@ import { SaleStatus } from '../../../sales/models/sale.model';
 })
 export class MySalesListComponent implements OnInit {
   private service = inject(MySalesService);
+  private ticketService = inject(TicketPrintService);
+  private toastrAlertService = inject(ToastrAlertService);
 
-  saleStatus = SaleStatus; // ← para usar en template
+  saleStatus = SaleStatus;
 
   data: Sale[] = [];
   total = 0;
@@ -40,7 +44,6 @@ export class MySalesListComponent implements OnInit {
       .subscribe({
         next: (res: PaginatedResponse<Sale>) => {
           this.data = res.data;
-          console.log("🚀 ~ MySalesListComponent ~ load ~ data:", this.data)
           this.total = res.total;
           this.totalPages = res.totalPages;
         }
@@ -64,5 +67,49 @@ export class MySalesListComponent implements OnInit {
       this.page++;
       this.load();
     }
+  }
+
+  // NUEVO: Imprimir ticket de venta
+  printTicket(sale: Sale): void {
+    this.service.one(sale._id).subscribe({
+      next: (fullSale) => {
+        const printable = this.buildPrintableSale(fullSale);
+        this.ticketService.generateAndPrint(printable);
+        this.toastrAlertService.success('Ticket enviado a impresión');
+      },
+      error: () => {
+        this.toastrAlertService.error('No se pudo cargar la venta para imprimir');
+      }
+    });
+  }
+
+  // NUEVO: Construir objeto imprimible
+  private buildPrintableSale(sale: Sale): any {
+    const items = sale.items?.map(item => ({
+      name: item.productId?.name || 'Producto',
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discount || 0,
+      subtotal: item.subtotal
+    })) || [];
+
+    const subtotal = sale.totals.subtotal;
+    const taxAmount = sale.totals.taxAmount;
+    const totalAmount = sale.totals.totalAmount;
+
+    return {
+      saleNumber: sale.saleNumber,
+      saleDate: new Date(sale.saleDate),
+      customerName: sale.customerId?.fullName || 'PÚBLICO GENERAL',
+      items: items,
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      discountAmount: sale.totals.discountAmount || 0,
+      totalAmount: totalAmount,
+      paymentMethod: sale.payment?.method || 'cash',
+      paymentReference: sale.payment?.reference,
+      cashierName: 'Vendedor', // MySales es solo del vendedor actual
+      notes: sale.notes
+    };
   }
 }

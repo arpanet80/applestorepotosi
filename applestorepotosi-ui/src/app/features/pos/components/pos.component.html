@@ -236,3 +236,21 @@
     </button>
   </div>
 </ng-template>
+
+
+<!-- Ticket Preview Modal -->
+<app-ticket-preview
+  [sale]="lastSaleForTicket"
+  [isOpen]="showTicketPreview"
+  (close)="onTicketPreviewClose()"
+></app-ticket-preview>
+
+<!-- Botón flotante para reimprimir (opcional) -->
+<button 
+  *ngIf="lastSaleForTicket && !showTicketPreview"
+  class="btn-float-reprint"
+  (click)="reprintLastTicket()"
+  title="Reimprimir último ticket"
+>
+  🖨️
+</button>

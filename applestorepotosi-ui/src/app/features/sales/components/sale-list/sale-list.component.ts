@@ -20,6 +20,7 @@ export class SaleListComponent implements OnInit {
   saleSelected = output<Sale>();
   saleEdit = output<Sale>();
   saleDelete = output<Sale>();
+  salePrint = output<Sale>(); 
 
   sales: Sale[] = [];
   loading = false;
@@ -57,5 +58,9 @@ export class SaleListComponent implements OnInit {
     if (confirm(`¿Eliminar venta ${sale.saleNumber}?`)) {
       this.saleDelete.emit(sale);
     }
+  }
+
+  onPrintSale(sale: Sale) {
+    this.salePrint.emit(sale);
   }
 }

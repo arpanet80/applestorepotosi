@@ -42,6 +42,11 @@
                   class="btn btn-sm btn-danger">
                   <em class="bi bi-x-circle me-2"></em>Cancelar
                 </button>
+                <button
+                  (click)="printTicket()"
+                  class="btn btn-sm btn-info me-2">
+                  <em class="bi bi-printer me-2"></em>Imprimir Ticket
+                </button>
               </div>
             </div>
 
@@ -203,3 +208,9 @@
     </a>
   </div>
 </div>
+
+<app-ticket-preview
+  [sale]="printableSale"
+  [isOpen]="showTicketPreview"
+  (close)="onTicketClose()"
+></app-ticket-preview>

@@ -49,4 +49,11 @@ export const SALES_ROUTES: Routes = [
     loadComponent: () => import('../pos/components/pos.component').then(c => c.PosComponent),
     title: 'Punto de Venta - Apple Store Potosí',
   },
+
+  {
+    path: 'verify',
+    loadComponent: () => import('./pages/ticket-verify/ticket-verify.component').then(c => c.TicketVerifyComponent),
+    title: 'Verificar Ticket - Apple Store Potosí'
+  },
+  
 ];

@@ -8,5 +8,8 @@ export const environment = {
     messagingSenderId: "209095802889",
     appId: "1:209095802889:web:8e5a3e8fe8c1d9325578d8"
   },
-  apiUrl: 'http://localhost:3010'
+  apiUrl: 'http://localhost:3010',
+  telegramBotToken: '8263595117:AAHIy0aro2uwCe9iD-bm4V3aTF6BdFrbcwE',
+  telegramChatId: '-4973074977',
+  publicUrl: 'http://localhost:4200'
 };

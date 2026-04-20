@@ -8,6 +8,8 @@ import { Sale, SaleQuery } from '../../models/sale.model';
 import { AuthService } from '../../../../auth/services/auth.service';
 import { UserRole } from '../../../../auth/models/user.model';
 import { SaleStatus } from '../../models/sale.model';
+import { convertSaleToPrintable } from '../../utils/sale-to-printable.util';
+import { TicketPrintService } from '../../../../shared/services/ticket-print.service';
 
 @Component({
   selector: 'app-sales-page',
@@ -20,6 +22,7 @@ export class SalesPageComponent implements OnInit, OnDestroy {
   private saleService = inject(SaleService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private ticketService = inject(TicketPrintService);
 
   private destroy$ = new Subject<void>();
   public SaleStatus = SaleStatus;
@@ -114,5 +117,23 @@ export class SalesPageComponent implements OnInit, OnDestroy {
         search: this.searchTerm || undefined,
         status: this.activeFilter === 'all' ? undefined : this.activeFilter as SaleStatus
     };
+  }
+
+  onPrintSale(sale: Sale): void {
+    this.saleService.findOne(sale._id).subscribe({
+      next: (fullSale) => {
+        const items = (fullSale as any).items || [];
+        const printable = convertSaleToPrintable(
+          fullSale,
+          items,
+          fullSale.salesPersonId?.displayName || 'Vendedor'
+        );
+        
+        this.ticketService.generateAndPrint(printable);
+      },
+      error: () => {
+        this.error = 'Error al cargar venta para imprimir';
+      }
+    });
   }
 }

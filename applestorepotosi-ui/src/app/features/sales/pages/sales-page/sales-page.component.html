@@ -51,6 +51,7 @@
       (saleSelected)="onSelectSale($event)"
       (saleEdit)="onEditSale($event)"
       (saleDelete)="onDeleteSale($event)"
+      (salePrint)="onPrintSale($event)" 
     ></app-sale-list>
 
     <div *ngIf="sales.length === 0" class="empty-state">

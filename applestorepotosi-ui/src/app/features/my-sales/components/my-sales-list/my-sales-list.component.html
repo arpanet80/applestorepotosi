@@ -19,7 +19,6 @@
             <input type="date" class="form-control" [(ngModel)]="endDate" (change)="resetPage()" />
           </div>
 
-          <!-- 👇 SELECT DE ESTADO -->
           <div class="col-md-2">
             <label class="form-label">Estado</label>
             <select class="form-select" [(ngModel)]="selectedStatus" (change)="resetPage()">
@@ -46,7 +45,7 @@
                 <th>Fecha</th>
                 <th>Total</th>
                 <th>Estado</th>
-                <th></th>
+                <th class="text-end">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -67,7 +66,8 @@
                   </span>
                 </td>
                 <td class="text-end">
-                  <a [routerLink]="[sale._id]" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm">
+                  <!-- Botón Ver Detalle -->
+                  <a [routerLink]="[sale._id]" class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-2">
                     <span class="svg-icon svg-icon-3">
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                         <path d="M17.5 11H6.5C5 11 4 10 4 8.5V6C4 4.5 5 3.5 6.5 3.5H17.5C19 3.5 20 4.5 20 6V8.5C20 10 19 11 17.5 11Z" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -75,6 +75,21 @@
                       </svg>
                     </span>
                   </a>
+                  
+                  <!-- NUEVO: Botón Imprimir Ticket -->
+                  <button 
+                    (click)="printTicket(sale)" 
+                    class="btn btn-icon btn-bg-light btn-active-color-info btn-sm"
+                    title="Imprimir ticket">
+                    <span class="svg-icon svg-icon-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9V3H18V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M6 14H4.5C3.5 14 3 13.5 3 12.5V9H21V12.5C21 13.5 20.5 14 19.5 14H18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18 14V20H6V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M9 17H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                  </button>
                 </td>
               </tr>
             </tbody>

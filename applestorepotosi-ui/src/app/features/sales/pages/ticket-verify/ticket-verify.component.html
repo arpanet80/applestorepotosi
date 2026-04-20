@@ -1,0 +1,97 @@
+<div class="verify-container" *ngIf="!loading && !error">
+    <div class="verify-card">
+    <div class="verify-header">
+        <h1>🍎 Apple Store Potosí</h1>
+        <h2>Verificación de Ticket</h2>
+    </div>
+
+    <div class="verify-status" [class.valid]="sale?.status === 'confirmed'" [class.cancelled]="sale?.status === 'cancelled'">
+        <div class="status-icon">
+        {{ sale?.status === 'confirmed' ? '✅' : sale?.status === 'cancelled' ? '❌' : '⏳' }}
+        </div>
+        <div class="status-text">
+        {{ sale?.status === 'confirmed' ? 'VENTA VÁLIDA' : sale?.status === 'cancelled' ? 'VENTA CANCELADA' : 'PENDIENTE' }}
+        </div>
+    </div>
+
+    <div class="verify-details">
+        <div class="detail-row">
+        <span class="label">Número:</span>
+        <span class="value">{{ sale?.saleNumber }}</span>
+        </div>
+        <div class="detail-row">
+        <span class="label">Fecha:</span>
+        <span class="value">{{ sale?.saleDate | date:'medium' }}</span>
+        </div>
+        <div class="detail-row">
+        <span class="label">Cliente:</span>
+        <span class="value">{{ sale?.customerId?.fullName || 'Público General' }}</span>
+        </div>
+        <div class="detail-row">
+        <span class="label">Vendedor:</span>
+        <span class="value">{{ sale?.salesPersonId?.displayName || 'No disponible' }}</span>
+        </div>
+        <div class="detail-row">
+        <span class="label">Método de Pago:</span>
+        <span class="value">{{ sale?.payment?.method | titlecase }}</span>
+        </div>
+    </div>
+
+    <div class="verify-totals" *ngIf="sale?.totals">
+        <div class="detail-row">
+        <span class="label">Subtotal:</span>
+        <span class="value">${{ sale?.totals?.subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="detail-row" *ngIf="sale?.totals?.discountAmount">
+        <span class="label">Descuento:</span>
+        <span class="value">-${{ sale?.totals?.discountAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="detail-row">
+        <span class="label">Impuesto (16%):</span>
+        <span class="value">${{ sale?.totals?.taxAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="detail-row total">
+        <span class="label">TOTAL:</span>
+        <span class="value">${{ sale?.totals?.totalAmount | number:'1.2-2' }}</span>
+        </div>
+    </div>
+
+    <div class="verify-items" *ngIf="sale?.items && sale!.items!.length > 0">
+        <h3>Productos</h3>
+        <table>
+        <thead>
+            <tr>
+            <th>Producto</th>
+            <th>Cant</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let item of sale?.items">
+            <td>{{ item.productId.name || 'Producto' }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>${{ item.unitPrice | number:'1.2-2' }}</td>
+            <td>${{ item.subtotal | number:'1.2-2' }}</td>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+
+    <div class="verify-footer">
+        <p>Apple Store Potosí - Calidad Garantizada</p>
+        <p class="verify-time">Verificado el: {{ currentDate | date:'medium' }}</p>
+    </div>
+    </div>
+</div>
+
+<div class="verify-loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Verificando ticket...</p>
+</div>
+
+<div class="verify-error" *ngIf="error && !loading">
+    <h2>⚠️ Ticket no encontrado</h2>
+    <p>{{ error }}</p>
+    <p>El número de venta no existe o ha sido eliminado.</p>
+</div>

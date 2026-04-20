@@ -6,11 +6,13 @@ import { Sale } from '../../models/sale.model';
 import { ProductPopulated, SaleItem } from '../../models/sale-item.model';
 import { AuthService } from '../../../../auth/services/auth.service';
 import { UserRole } from '../../../../auth/models/user.model';
+import { PrintableSale, TicketPrintService } from '../../../../shared/services/ticket-print.service';
+import { TicketPreviewComponent } from "../../../../shared/components/ticket-preview/ticket-preview.component";
 
 @Component({
   selector: 'app-sale-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgIf],
+  imports: [CommonModule, RouterModule, NgIf, TicketPreviewComponent],
   templateUrl: './sale-detail.component.html',
   styleUrls: ['./sale-detail.component.css']
 })
@@ -19,13 +21,17 @@ export class SaleDetailComponent implements OnInit {
   private router = inject(Router);
   private saleService = inject(SaleService);
   private authService = inject(AuthService);
+  private ticketService = inject(TicketPrintService);
 
   sale: Sale | null = null;
   items: SaleItem[] = [];
   loading = true;
   error = '';
+  showTicketPreview = false;
+  printableSale: PrintableSale | null = null;
 
   canEdit = false;
+  
 
   ngOnInit() {
     this.checkPermissions();
@@ -83,5 +89,45 @@ export class SaleDetailComponent implements OnInit {
   getProduct(item: SaleItem): ProductPopulated | null {
     const prod = item.productId;
     return typeof prod === 'object' ? (prod as ProductPopulated) : null;
+  }
+
+  printTicket() {
+    if (!this.sale) return;
+    
+    this.printableSale = this.convertToPrintable(this.sale, this.items);
+    this.showTicketPreview = true;
+  }
+
+  private convertToPrintable(sale: Sale, items: SaleItem[]): PrintableSale {
+    return {
+      saleNumber: sale.saleNumber,
+      saleDate: new Date(sale.saleDate),
+      customerName: sale.customerId?.fullName || 'PÚBLICO GENERAL',
+      customerNIT: undefined,  // Agregar a modelo si existe
+      items: items.map(item => {
+        const product = typeof item.productId === 'object' 
+          ? item.productId 
+          : { name: 'Producto' };
+        return {
+          name: product.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount || 0,
+          subtotal: item.subtotal
+        };
+      }),
+      subtotal: sale.totals.subtotal,
+      taxAmount: sale.totals.taxAmount,
+      discountAmount: sale.totals.discountAmount,
+      totalAmount: sale.totals.totalAmount,
+      paymentMethod: sale.payment.method,
+      paymentReference: sale.payment.reference,
+      cashierName: sale.salesPersonId?.displayName || 'Vendedor',
+      notes: sale.notes
+    };
+  }
+
+  onTicketClose() {
+    this.showTicketPreview = false;
   }
 }

@@ -6,16 +6,18 @@ import { CommonModule } from '@angular/common';
 import { ProductService } from '../../products/services/product.service';
 import { CustomerService } from '../../customers/services/customer.service';
 import { PosService } from '../services/pos.service';
+import { TicketPrintService, PrintableSale } from '../../../shared/services/ticket-print.service';
 
 import { Product } from '../../products/models/product.model';
 import { Customer } from '../../customers/models/customer.model';
 import { PaymentMethod } from '../../sales/models/sale.model';
 import { PosCartItemForm } from '../models/pos-cart-item.form';
 import { ToastrAlertService } from '../../../shared/services/toastr-alert.service';
+import { TicketPreviewComponent } from "../../../shared/components/ticket-preview/ticket-preview.component";
 
 @Component({
   selector: 'app-pos',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, TicketPreviewComponent],
   templateUrl: './pos.component.html',
   styleUrls: ['./pos.component.css'],
 })
@@ -25,6 +27,7 @@ export class PosComponent implements OnInit {
   private productService = inject(ProductService);
   private customerService = inject(CustomerService);
   private toastrAlertService = inject(ToastrAlertService);
+  private ticketService = inject(TicketPrintService);
 
   session: any = null;
   products: Product[] = [];
@@ -46,6 +49,11 @@ export class PosComponent implements OnInit {
 
   filteredProducts$: Observable<Product[]> | null = null;
   filteredCustomers$: Observable<Customer[]> | null = null;
+
+  // NUEVAS PROPIEDADES PARA TICKET
+  showTicketPreview = false;
+  lastSaleForTicket: PrintableSale | null = null;
+  currentUserName = 'Vendedor';
 
   ngOnInit(): void {
     this.loadSession();
@@ -97,14 +105,12 @@ export class PosComponent implements OnInit {
   }
 
   addProduct(product: Product) {
-
     const available = product.availableQuantity ?? 0;
     if (available <= 0) {
       alert('Producto sin stock disponible');
       return;
     }
 
-    
     const existing = this.cart.controls.find(c => c.get('productId')?.value === product._id);
     const currentInCart = existing ? existing.get('quantity')?.value || 0 : 0;
     const requested = currentInCart + 1;
@@ -196,21 +202,96 @@ export class PosComponent implements OnInit {
       notes: 'Venta desde POS',
     };
 
-    
-
     this.posService.sell(payload).subscribe({
-      next: () => {
+      next: async (response: any) => {
+        const printableSale = this.buildPrintableSale(response, payload);
+        
+        // NUEVO FLUJO: Imprimir local + Notificar Telegram (solo mensaje)
+        await this.ticketService.processSaleComplete(printableSale, {
+          ticketWidth: 80,
+          includeQR: true
+        });
+
+        // Mostrar preview local
+        this.lastSaleForTicket = printableSale;
+        this.showTicketPreview = true;
+
+        // Limpiar
         this.cart.clear();
         this.selectedCustomer = null;
         this.paymentReference = '';
         this.loadSession();
-        this.setupFilters()
-        this.toastrAlertService.success('Operación exitosa');
+        this.setupFilters();
+        
+        this.toastrAlertService.success('Venta realizada. Notificación enviada al grupo.');
       },
       error: (err) => {
         alert(err.error?.message || 'Error al finalizar la venta');
       },
     });
+  }
+
+  // NUEVO MÉTODO: Construir objeto imprimible - CORREGIDO CON VALIDACIONES
+  private buildPrintableSale(response: any, payload: any): PrintableSale {
+    const items = this.cart.value.map(item => {
+      const quantity = item.quantity ?? 0;
+      const unitPrice = item.unitPrice ?? 0;
+      const discount = item.discount ?? 0;
+      const name = item.name ?? 'Producto sin nombre';
+      
+      return {
+        name: name,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        discount: discount,
+        subtotal: (quantity * unitPrice) - discount
+      };
+    });
+
+    const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
+    const taxAmount = subtotal * 0.16;
+    const totalAmount = subtotal + taxAmount;
+
+    // Obtener teléfono del cliente si existe
+    const customerPhone = (this.selectedCustomer as any)?.phone || 
+                          (this.selectedCustomer as any)?.mobile || 
+                          '';
+    
+    const customerEmail = (this.selectedCustomer as any)?.email || '';
+
+    return {
+      saleNumber: response.saleNumber || 'SIN-NUMERO',
+      saleDate: new Date(),
+      customerName: this.selectedCustomer?.fullName || 'PÚBLICO GENERAL',
+      customerNIT: (this.selectedCustomer as any)?.nit || 
+                  (this.selectedCustomer as any)?.document || 
+                  undefined,
+      customerPhone: customerPhone,  // ← NUEVO
+      customerEmail: customerEmail,  // ← NUEVO
+      items: items,
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      discountAmount: 0,
+      totalAmount: totalAmount,
+      paymentMethod: payload.paymentMethod,
+      paymentReference: payload.paymentReference || undefined,
+      cashierName: this.currentUserName,
+      notes: payload.notes
+    };
+  }
+
+  // NUEVO MÉTODO: Reimprimir último ticket
+  reprintLastTicket(): void {
+    if (this.lastSaleForTicket) {
+      this.showTicketPreview = true;
+    } else {
+      this.toastrAlertService.warning('No hay venta reciente para reimprimir');
+    }
+  }
+
+  // NUEVO MÉTODO: Cerrar preview de ticket
+  onTicketPreviewClose(): void {
+    this.showTicketPreview = false;
   }
 
   openSession() {
@@ -230,11 +311,10 @@ export class PosComponent implements OnInit {
         cardTotal: 0,
         transferTotal: 0,
       })
-      // .subscribe(() => (this.session = null));
       .subscribe({
         next: () => {
           this.toastrAlertService.success('Se cerro la caja correctamente');
-          this.session = null
+          this.session = null;
         },
         error: (err) => {
           this.toastrAlertService.error(err.error?.message || 'Error al cerrar la caja');
