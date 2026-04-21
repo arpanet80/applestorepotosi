@@ -17,32 +17,29 @@ export interface SaleNotification {
   customerName: string;
   cashierName: string;
   subtotal: number;
-  qrUrl: string;  // Enlace con QR para ver detalles
+  qrUrl: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class TelegramService {
   private readonly botToken = environment.telegramBotToken;
   private readonly chatId = environment.telegramChatId;
-  
+
   private readonly apiUrl = `https://api.telegram.org/bot${this.botToken}`;
 
   constructor(private http: HttpClient) {}
 
   /**
-   * Envía mensaje de texto simple
+   * Envía mensaje de texto simple (sin formato)
    */
   async sendMessage(text: string): Promise<boolean> {
     try {
-      const url = `${this.apiUrl}/sendMessage`;
       const body = {
         chat_id: this.chatId,
-        text: text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: false  // Permitir preview del link
+        text,
+        link_preview_options: { is_disabled: true }
       };
-      
-      await lastValueFrom(this.http.post(url, body));
+      await lastValueFrom(this.http.post(`${this.apiUrl}/sendMessage`, body));
       console.log('✅ Mensaje enviado a Telegram');
       return true;
     } catch (error) {
@@ -52,7 +49,9 @@ export class TelegramService {
   }
 
   /**
-   * Envía notificación de venta al grupo
+   * Envía notificación de venta con link clickeable.
+   * Usa parse_mode HTML — más simple y robusto que MarkdownV2.
+   * Solo requiere escapar & < > " en el texto; la URL va sin modificar.
    */
   async sendSaleNotification(sale: SaleNotification): Promise<boolean> {
     const fecha = new Date(sale.saleDate);
@@ -66,17 +65,49 @@ export class TelegramService {
       minute: '2-digit'
     });
 
-    const message = 
-      `🍎 <b>APPLE STORE POTOSÍ - TICKET DE VENTA</b>\n\n` +
-      `<b>N°:</b> <code>${sale.saleNumber}</code>\n` +
-      `<b>Fecha:</b> ${fechaStr}\n` +
-      `<b>Hora:</b> ${horaStr}\n` +
-      `<b>Cliente:</b> ${sale.customerName}\n` +
-      `<b>Cajero:</b> ${sale.cashierName}\n\n` +
+    // En HTML mode solo hay que escapar estos 4 caracteres en texto plano.
+    // La URL dentro de href NO se escapa (ya viene bien formada).
+    const e = (t: string): string =>
+      t.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;');
+
+    const message =
+      `🍎 <b>APPLE STORE POTOSÍ — TICKET DE VENTA</b>\n\n` +
+      `<b>N°:</b> ${e(sale.saleNumber)}\n` +
+      `<b>Fecha:</b> ${e(fechaStr)}\n` +
+      `<b>Hora:</b> ${e(horaStr)}\n` +
+      `<b>Cliente:</b> ${e(sale.customerName)}\n` +
+      `<b>Cajero:</b> ${e(sale.cashierName)}\n\n` +
       `💵 <b>SUBTOTAL:</b> $${sale.subtotal.toFixed(2)}\n\n` +
       `🔗 <b>COMPROBANTE:</b> <a href="${sale.qrUrl}">Ver detalles con QR</a>\n\n` +
       `#venta #applestore`;
 
-    return await this.sendMessage(message);
+    return await this.sendHtmlMessage(message);
+  }
+
+  /**
+   * Envía mensaje con parse_mode HTML.
+   * Soporta: <b>, <i>, <code>, <a href="...">, entre otros.
+   */
+  async sendHtmlMessage(text: string): Promise<boolean> {
+    try {
+      const body = {
+        chat_id: this.chatId,
+        text,
+        parse_mode: 'HTML',
+        link_preview_options: { is_disabled: true }
+      };
+      await lastValueFrom(this.http.post(`${this.apiUrl}/sendMessage`, body));
+      console.log('✅ Mensaje HTML enviado a Telegram');
+      return true;
+    } catch (error: any) {
+      console.error('❌ Error enviando HTML a Telegram:', error);
+      if (error.error?.description) {
+        console.error('Error Telegram:', error.error.description);
+      }
+      return false;
+    }
   }
 }

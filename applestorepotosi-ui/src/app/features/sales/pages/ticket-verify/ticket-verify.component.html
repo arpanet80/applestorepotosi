@@ -39,20 +39,24 @@
 
     <div class="verify-totals" *ngIf="sale?.totals">
         <div class="detail-row">
-        <span class="label">Subtotal:</span>
-        <span class="value">${{ sale?.totals?.subtotal | number:'1.2-2' }}</span>
+            <span class="label">Subtotal:</span>
+            <span class="value">${{ sale?.totals?.subtotal | number:'1.2-2' }}</span>
         </div>
+        
+        <!-- IMPUESTO: Solo se muestra si taxAmount > 0 -->
+        <div class="detail-row" *ngIf="(sale?.totals?.taxAmount ?? 0) > 0">
+            <span class="label">{{ taxLabel }}</span>
+            <span class="value">${{ sale?.totals?.taxAmount | number:'1.2-2' }}</span>
+        </div>
+        
         <div class="detail-row" *ngIf="sale?.totals?.discountAmount">
-        <span class="label">Descuento:</span>
-        <span class="value">-${{ sale?.totals?.discountAmount | number:'1.2-2' }}</span>
+            <span class="label">Descuento:</span>
+            <span class="value">-${{ sale?.totals?.discountAmount | number:'1.2-2' }}</span>
         </div>
-        <div class="detail-row">
-        <span class="label">Impuesto (16%):</span>
-        <span class="value">${{ sale?.totals?.taxAmount | number:'1.2-2' }}</span>
-        </div>
+        
         <div class="detail-row total">
-        <span class="label">TOTAL:</span>
-        <span class="value">${{ sale?.totals?.totalAmount | number:'1.2-2' }}</span>
+            <span class="label">TOTAL:</span>
+            <span class="value">${{ sale?.totals?.totalAmount | number:'1.2-2' }}</span>
         </div>
     </div>
 

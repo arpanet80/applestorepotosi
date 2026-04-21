@@ -238,9 +238,18 @@ export const routes: Routes = [
   },
 
   /* ====================================================================
+   *  VERIFICACIÓN DE TICKETS (página pública sin layout)
+   * ==================================================================== */
+  {
+    path: 'verify',
+    loadComponent: () => import('./features/sales/pages/ticket-verify/ticket-verify.component').then(c => c.TicketVerifyComponent),
+    title: 'Verificar Ticket - Apple Store Potosí'
+  },
+
+  /* ====================================================================
    *  PÁGINAS FUERA DEL LAYOUT
    * ==================================================================== */
   { path: 'maintenance', loadComponent: () => import('./shared/components/maintenance/maintenance.component').then(c => c.MaintenanceComponent) },
   { path: 'not-found', loadComponent: () => import('./shared/components/not-found/not-found.component').then(c => c.NotFoundComponent) },
-  { path: '**', redirectTo: '/not-found' }
+  { path: '**', redirectTo: '/not-found' },
 ];

@@ -2,16 +2,16 @@ import { inject, Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import * as QRCode from 'qrcode';
-import { TelegramService } from './telegram.service'; 
+import { TelegramService } from './telegram.service';
 import { environment } from '../../../environments/environment';
 
 export interface TicketConfig {
   businessName: string;
   businessAddress?: string;
   businessPhone?: string;
-  businessRUC?: string;  // NIT/RUC para facturación
-  ticketWidth: 58 | 80;  // mm - ancho de impresora térmica
-  logoBase64?: string;   // Logo en base64 (opcional)
+  businessRUC?: string;
+  ticketWidth: 58 | 80;
+  logoBase64?: string;
   includeQR?: boolean;
   qrUrl?: string;
 }
@@ -42,9 +42,8 @@ export interface PrintableSale {
 
 @Injectable({ providedIn: 'root' })
 export class TicketPrintService {
-  
   private telegramService = inject(TelegramService);
-  
+
   private defaultConfig: TicketConfig = {
     businessName: 'APPLE STORE POTOSÍ',
     businessAddress: 'Calle Litoral #123, Potosí - Bolivia',
@@ -52,49 +51,35 @@ export class TicketPrintService {
     businessRUC: '123456789',
     ticketWidth: 80,
     includeQR: true,
-    qrUrl: environment.telegramBotToken ? 
-      `https://api.telegram.org/bot${environment.telegramBotToken}` : 
-      'https://applestorepotosi.com/verify'
+    qrUrl: environment.telegramBotToken
+      ? `https://api.telegram.org/bot${environment.telegramBotToken}`
+      : 'https://applestorepotosi.com/verify'
   };
 
   constructor() {}
 
-  /* Genera URL de verificación con QR
-  * Usa la URL actual del frontend + /verify
-  */
+  /**
+   * Genera URL pública de verificación
+   */
   generateVerificationUrl(sale: PrintableSale): string {
-    // Obtener URL base actual (dominio donde está corriendo la app)
     const baseUrl = environment.publicUrl || window.location.origin;
-    // const baseUrl = window.location.origin; // Ej: http://localhost:4200 o https://tudominio.com
-
-    const params = new URLSearchParams({
-      sale: sale.saleNumber,
-      date: sale.saleDate.getTime().toString(),
-      total: sale.totalAmount.toString(),
-      customer: sale.customerName
-    });
-    
-    // const params = new URLSearchParams({
-    //   sale: sale.saleNumber
-    // });
-    
-    return `${baseUrl}/verify?${params.toString()}`;
+    return `${baseUrl}/verify?sale=${encodeURIComponent(sale.saleNumber)}`;
   }
 
   /**
-   * Flujo completo: Imprimir + Notificar Telegram (solo mensaje, no PDF)
+   * 🚀 VERSIÓN ULTRARRÁPIDA: Todo en paralelo, sin bloqueos
+   * Tiempo objetivo: < 500ms para liberar la UI
    */
   async processSaleComplete(
-    sale: PrintableSale, 
+    sale: PrintableSale,
     config?: Partial<TicketConfig>
   ): Promise<void> {
     const finalConfig = { ...this.defaultConfig, ...config };
-    
-    // 1. Generar URL de verificación para el QR
     const verificationUrl = this.generateVerificationUrl(sale);
-    
-    // 2. ENVIAR NOTIFICACIÓN A TELEGRAM (solo mensaje, no PDF)
-    // No esperamos la respuesta para no bloquear la impresión
+
+    // === ESTRATEGIA: Todo se dispara INMEDIATAMENTE, sin await entre sí ===
+
+    // 1. TELEGRAM: Fire-and-forget real (no esperamos respuesta)
     this.telegramService.sendSaleNotification({
       saleNumber: sale.saleNumber,
       saleDate: sale.saleDate,
@@ -103,58 +88,54 @@ export class TicketPrintService {
       subtotal: sale.subtotal,
       qrUrl: verificationUrl
     }).then(sent => {
-      if (sent) {
-        console.log('✅ Notificación enviada al grupo de Telegram');
-      }
+      if (sent) console.log('✅ Telegram enviado');
+    }).catch(() => {
+      // Silencioso — no afecta al usuario
     });
 
-    // 3. Generar PDF con QR para impresión local
-    const doc = await this.createTicketPDF(sale, {
+    // 2. PDF + IMPRESIÓN: En paralelo a Telegram, sin esperar
+    this.generateAndPrint(sale, {
       ...finalConfig,
-      qrUrl: verificationUrl  // El QR del ticket apunta a la verificación
+      qrUrl: verificationUrl
+    }).catch(err => {
+      console.error('Error generando ticket:', err);
     });
-    
-    // 4. Abrir para impresión local
-    const pdfUrl = doc.output('bloburl');
-    const printWindow = window.open(pdfUrl, '_blank');
-    
-    if (printWindow) {
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    }
+
+    // 3. Retornar INMEDIATAMENTE — la UI ya está liberada
+    return;
   }
 
-
   /**
-   * Genera QR como data URL
+   * Genera QR como data URL — OPTIMIZADO para velocidad
    */
   async generateQRDataURL(text: string): Promise<string> {
-    try {
-      return await QRCode.toDataURL(text, {
-        width: 150,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
+    return new Promise((resolve) => {
+      QRCode.toDataURL(text, {
+        width: 80,
+        margin: 0,
+        errorCorrectionLevel: 'L',
+        rendererOpts: { quality: 0.3 }
+      }, (err, url) => {
+        if (err) {
+          console.error('QR generation failed:', err);
+          resolve('');
+        } else {
+          resolve(url);
         }
       });
-    } catch (err) {
-      console.error('QR generation failed:', err);
-      return '';
-    }
+    });
   }
 
   /**
-   * Genera y abre el ticket para impresión (async por el QR)
+   * Genera y abre el ticket para impresión
    */
   async generateAndPrint(sale: PrintableSale, config?: Partial<TicketConfig>): Promise<void> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const doc = await this.createTicketPDF(sale, finalConfig);
-    
+
     const pdfUrl = doc.output('bloburl');
     const printWindow = window.open(pdfUrl, '_blank');
-    
+
     if (printWindow) {
       printWindow.onload = () => {
         printWindow.print();
@@ -163,7 +144,7 @@ export class TicketPrintService {
   }
 
   /**
-   * Genera el PDF y retorna el Blob (async)
+   * Genera el PDF y retorna el Blob
    */
   async generateBlob(sale: PrintableSale, config?: Partial<TicketConfig>): Promise<Blob> {
     const finalConfig = { ...this.defaultConfig, ...config };
@@ -172,7 +153,7 @@ export class TicketPrintService {
   }
 
   /**
-   * Descarga el ticket como archivo PDF (async)
+   * Descarga el ticket como archivo PDF
    */
   async downloadTicket(sale: PrintableSale, config?: Partial<TicketConfig>): Promise<void> {
     const finalConfig = { ...this.defaultConfig, ...config };
@@ -182,19 +163,19 @@ export class TicketPrintService {
   }
 
   /**
-   * Imprime directamente (async)
+   * Imprime directamente
    */
   async printSilently(sale: PrintableSale, config?: Partial<TicketConfig>): Promise<void> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const doc = await this.createTicketPDF(sale, finalConfig);
-    
+
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
-    
+
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
-    
+
     iframe.src = pdfUrl;
     iframe.onload = () => {
       iframe.contentWindow?.print();
@@ -207,91 +188,45 @@ export class TicketPrintService {
 
   /**
    * Crea PDF con altura dinámica y QR opcional
+   * OPTIMIZADO: QR se genera en paralelo al cálculo de altura
    */
   private async createTicketPDF(sale: PrintableSale, config: TicketConfig): Promise<jsPDF> {
     const pageWidth = config.ticketWidth === 58 ? 58 : 80;
-    
-    // Generar QR si está habilitado
-    let qrDataUrl = '';
+
+    // === OPTIMIZACIÓN: Generar QR EN PARALELO con el cálculo de altura ===
+    let qrPromise: Promise<string> | null = null;
     if (config.includeQR && config.qrUrl) {
-      const verificationUrl = `${config.qrUrl}?sale=${sale.saleNumber}&total=${sale.totalAmount}&date=${sale.saleDate.getTime()}`;
-      qrDataUrl = await this.generateQRDataURL(verificationUrl);
+      qrPromise = this.generateQRDataURL(config.qrUrl);
     }
 
-    // Calcular altura necesaria
-    const tempDoc = new jsPDF({
-      unit: 'mm',
-      format: [pageWidth, 1000],
-      orientation: 'portrait'
-    });
+    // Calcular altura (síncrono, rápido)
+    let h = this.calculateHeight(sale, config);
 
-    let yPosition = 5;
-    const margin = 3;
-
-    tempDoc.setFont('courier', 'normal');
-
-    // Encabezado
-    tempDoc.setFontSize(10);
-    tempDoc.setFont('courier', 'bold');
-    const businessNameLines = this.wrapText(config.businessName, 16);
-    yPosition += businessNameLines.length * 4;
-
-    tempDoc.setFontSize(8);
-    tempDoc.setFont('courier', 'normal');
-    if (config.businessRUC) yPosition += 3;
-    if (config.businessAddress) {
-      const addressLines = this.wrapText(config.businessAddress, 25);
-      yPosition += addressLines.length * 3;
+    let qrDataUrl = '';
+    if (qrPromise) {
+      qrDataUrl = await qrPromise; // Esperar solo el QR, ya se generó en paralelo
+      if (qrDataUrl) {
+        h += 5 + 25 + 2 + 4; // QR + espacio
+      }
     }
-    if (config.businessPhone) yPosition += 3;
-    yPosition += 6;
+    h += 5 + 5;
 
-    // Info de venta
-    yPosition += 5 + 4 * 4 + 4 + 4 + 5;
-
-    // Items
-    yPosition += 5 + 4;
-    sale.items.forEach(() => {
-      yPosition += 3.5 + 4 + 3;
-    });
-
-    // Totales
-    yPosition += 5 + 4 + 4 + 5 + 4 + 4 + 5;
-
-    // Pie de página
-    yPosition += 5 + 4 + 4;
-    if (sale.notes) {
-      yPosition += 2;
-      const noteLines = this.wrapText(sale.notes, 30);
-      yPosition += noteLines.length * 3;
-    }
-
-    // ESPACIO PARA QR
-    if (qrDataUrl) {
-      yPosition += 5;
-      yPosition += 30;
-      yPosition += 4;
-    }
-
-    yPosition += 5;
-
-    const finalHeight = yPosition + 5;
-
-    // Crear documento final
+    // Crear PDF
     const doc = new jsPDF({
       unit: 'mm',
-      format: [pageWidth, finalHeight],
+      format: [pageWidth, h],
       orientation: 'portrait',
       putOnlyUsedFonts: true,
       floatPrecision: 16
     });
 
-    // Dibujar contenido
-    yPosition = 5;
-    
+    let yPosition = 5;
+    const margin = 3;
+
     // ENCABEZADO
     doc.setFontSize(10);
     doc.setFont('courier', 'bold');
+    const businessNameLines = this.wrapText(config.businessName, 16);
     businessNameLines.forEach(line => {
       this.centerText(doc, line, yPosition, pageWidth);
       yPosition += 4;
@@ -304,8 +239,7 @@ export class TicketPrintService {
       yPosition += 3;
     }
     if (config.businessAddress) {
-      const addressLines = this.wrapText(config.businessAddress, 25);
-      addressLines.forEach(line => {
+      this.wrapText(config.businessAddress, 25).forEach(line => {
         this.centerText(doc, line, yPosition, pageWidth);
         yPosition += 3;
       });
@@ -328,14 +262,10 @@ export class TicketPrintService {
 
     doc.setFontSize(8);
     doc.setFont('courier', 'normal');
-    doc.text(`N°: ${sale.saleNumber}`, margin, yPosition);
-    yPosition += 4;
-    doc.text(`Fecha: ${this.formatDate(sale.saleDate)}`, margin, yPosition);
-    yPosition += 4;
-    doc.text(`Hora: ${this.formatTime(sale.saleDate)}`, margin, yPosition);
-    yPosition += 4;
-    doc.text(`Cliente: ${this.truncate(sale.customerName, 20)}`, margin, yPosition);
-    yPosition += 4;
+    doc.text(`N°: ${sale.saleNumber}`, margin, yPosition); yPosition += 4;
+    doc.text(`Fecha: ${this.formatDate(sale.saleDate)}`, margin, yPosition); yPosition += 4;
+    doc.text(`Hora: ${this.formatTime(sale.saleDate)}`, margin, yPosition); yPosition += 4;
+    doc.text(`Cliente: ${this.truncate(sale.customerName, 20)}`, margin, yPosition); yPosition += 4;
     if (sale.customerNIT) {
       doc.text(`NIT/CI: ${sale.customerNIT}`, margin, yPosition);
       yPosition += 4;
@@ -357,14 +287,8 @@ export class TicketPrintService {
       const qty = item.quantity.toString().padStart(3);
       const price = this.formatCurrency(item.unitPrice).padStart(6);
       const total = this.formatCurrency(item.subtotal).padStart(7);
-      
-      doc.text(`${qty}  ${name}`, margin, yPosition);
-      yPosition += 3.5;
-      
-      const priceLine = `      ${price}  ${total}`;
-      doc.text(priceLine, margin, yPosition);
-      yPosition += 4;
-
+      doc.text(`${qty}  ${name}`, margin, yPosition); yPosition += 3.5;
+      doc.text(`      ${price}  ${total}`, margin, yPosition); yPosition += 4;
       if (item.discount > 0) {
         doc.text(`      (-${this.formatCurrency(item.discount)})`, margin, yPosition);
         yPosition += 3;
@@ -377,7 +301,7 @@ export class TicketPrintService {
     yPosition += 4;
 
     const colValue = pageWidth - margin - 15;
-    
+
     doc.setFont('courier', 'normal');
     doc.text('SUBTOTAL:', margin, yPosition);
     doc.text(this.formatCurrency(sale.subtotal), colValue, yPosition, { align: 'right' });
@@ -389,9 +313,12 @@ export class TicketPrintService {
       yPosition += 4;
     }
 
-    doc.text('IMPUESTO (16%):', margin, yPosition);
-    doc.text(this.formatCurrency(sale.taxAmount), colValue, yPosition, { align: 'right' });
-    yPosition += 5;
+    // IMPUESTO: Solo si hay monto
+    if (sale.taxAmount > 0) {
+      doc.text('IMPUESTO:', margin, yPosition);
+      doc.text(this.formatCurrency(sale.taxAmount), colValue, yPosition, { align: 'right' });
+      yPosition += 4;
+    }
 
     doc.setFont('courier', 'bold');
     doc.text('TOTAL A PAGAR:', margin, yPosition);
@@ -412,43 +339,54 @@ export class TicketPrintService {
     yPosition += 5;
 
     doc.setFontSize(7);
-    this.centerText(doc, 'GRACIAS POR SU COMPRA', yPosition, pageWidth);
-    yPosition += 4;
-    this.centerText(doc, 'Apple Store Potosí - Calidad Garantizada', yPosition, pageWidth);
-    yPosition += 4;
+    this.centerText(doc, 'GRACIAS POR SU COMPRA', yPosition, pageWidth); yPosition += 4;
+    this.centerText(doc, 'Apple Store Potosí - Calidad Garantizada', yPosition, pageWidth); yPosition += 4;
 
     if (sale.notes) {
       yPosition += 2;
-      const noteLines = this.wrapText(sale.notes, 30);
-      noteLines.forEach(line => {
+      this.wrapText(sale.notes, 30).forEach(line => {
         this.centerText(doc, line, yPosition, pageWidth);
         yPosition += 3;
       });
     }
 
-    // CÓDIGO QR
+    // QR
     if (qrDataUrl) {
       yPosition += 5;
       const qrSize = 25;
-      const xPos = (pageWidth - qrSize) / 2;
-      
-      doc.addImage(qrDataUrl, 'PNG', xPos, yPosition, qrSize, qrSize);
+      doc.addImage(qrDataUrl, 'PNG', (pageWidth - qrSize) / 2, yPosition, qrSize, qrSize);
       yPosition += qrSize + 2;
-      
       doc.setFontSize(6);
       this.centerText(doc, 'Escanea para verificar tu compra', yPosition, pageWidth);
       yPosition += 4;
     }
 
-    // Código de barras simple
     doc.setFontSize(8);
     this.centerText(doc, `| ${sale.saleNumber} |`, yPosition, pageWidth);
 
     return doc;
   }
 
-  // === UTILIDADES ===
+  // === CÁLCULO DE ALTURA SEPARADO (síncrono, rápido) ===
+  private calculateHeight(sale: PrintableSale, config: TicketConfig): number {
+    const businessNameLines = this.wrapText(config.businessName, 16);
+    let h = 5;
+    h += businessNameLines.length * 4;
+    if (config.businessRUC) h += 3;
+    if (config.businessAddress) h += this.wrapText(config.businessAddress, 25).length * 3;
+    if (config.businessPhone) h += 3;
+    h += 6 + 5 + 4 * 4 + 4 + 4 + 5;
+    h += 5 + 4;
+    sale.items.forEach(i => { h += 7.5 + (i.discount > 0 ? 3 : 0); });
+    h += 5 + 4 + 4 + 5 + 4 + 4 + 5;
+    if (sale.taxAmount > 0) h += 4; // Solo si hay impuesto
+    h += 5 + 4 + 4;
+    if (sale.notes) h += 2 + this.wrapText(sale.notes, 30).length * 3;
+    // QR se añade después si existe
+    return h;
+  }
 
+  // === UTILIDADES ===
   private centerText(doc: jsPDF, text: string, y: number, pageWidth: number): void {
     const textWidth = doc.getTextWidth(text);
     const x = (pageWidth - textWidth) / 2;
@@ -506,15 +444,15 @@ export class TicketPrintService {
     return methods[method] || method.toUpperCase();
   }
 
-    /**
+  /**
    * Genera ticket con corte de papel automático (ESC/POS)
    */
   async generateRawPrint(sale: PrintableSale, config?: Partial<TicketConfig>): Promise<void> {
     const finalConfig = { ...this.defaultConfig, ...config };
     const doc = await this.createTicketPDF(sale, finalConfig);
-    
+
     const pdfBlob = doc.output('blob');
-    
+
     if ('usb' in navigator) {
       await this.printViaUSB(pdfBlob);
     } else {
@@ -527,12 +465,9 @@ export class TicketPrintService {
       const device = await (navigator as any).usb.requestDevice({
         filters: [{ vendorId: 0x1234 }]
       });
-      // Lógica de impresión USB aquí
       console.log('USB device connected:', device);
     } catch (e) {
       console.error('USB printing failed:', e);
     }
   }
-
-
 }

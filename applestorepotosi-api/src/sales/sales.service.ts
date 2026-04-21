@@ -27,9 +27,11 @@ export class SalesService {
     private readonly stockMovementsService: StockMovementsService,
     private readonly configService: ConfigService,
   ) {
-    this.TAX_RATE = parseFloat(
-      this.configService.get<string>('TAX_RATE') ?? '0.16',
-    );
+    const taxRate = this.configService.get<string>('TAX_RATE');
+    if (taxRate === undefined || taxRate === null) {
+      throw new Error('TAX_RATE no está definido en las variables de entorno');
+    }
+    this.TAX_RATE = parseFloat(taxRate);
   }
 
   /* ----------  private helpers  ---------- */

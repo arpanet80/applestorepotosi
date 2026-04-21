@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SaleService } from '../../services/sale.service';
 import { Sale } from '../../models/sale.model';
+import { TaxConfigService } from '../../../../shared/services/tax-config.service';
+
 
 @Component({
   selector: 'app-ticket-verify',
@@ -14,17 +16,23 @@ import { Sale } from '../../models/sale.model';
 export class TicketVerifyComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private saleService = inject(SaleService);
+  private taxConfig = inject(TaxConfigService);
+  
+  taxLabel = this.taxConfig.label;  
+  
 
   sale: Sale | null = null;
   loading = true;
   error = '';
   currentDate = new Date();
 
-  ngOnInit() {
+  ngOnInit(): void {
+    // El parámetro 'sale' contiene el saleNumber tal como lo devuelve el backend.
+    // No se asume ningún formato de guiones — se busca directamente.
     const saleNumber = this.route.snapshot.queryParamMap.get('sale');
-    
+
     if (!saleNumber) {
-      this.error = 'No se proporcionó número de venta';
+      this.error = 'No se proporcionó número de venta.';
       this.loading = false;
       return;
     }
@@ -32,20 +40,17 @@ export class TicketVerifyComponent implements OnInit {
     this.verifySale(saleNumber);
   }
 
-  private verifySale(saleNumber: string) {
-    // Buscar por número de venta usando el endpoint existente
+  private verifySale(saleNumber: string): void {
     this.saleService.findAll({ search: saleNumber, limit: 1 }).subscribe({
       next: (res) => {
-        if (res.sales && res.sales.length > 0) {
-          // Obtener venta completa con items
-          const saleId = res.sales[0]._id;
-          this.saleService.findOne(saleId).subscribe({
+        if (res.sales?.length) {
+          this.saleService.findOne(res.sales[0]._id).subscribe({
             next: (fullSale) => {
               this.sale = fullSale;
               this.loading = false;
             },
             error: () => {
-              this.error = 'No se pudo cargar los detalles de la venta';
+              this.error = 'No se pudieron cargar los detalles de la venta.';
               this.loading = false;
             }
           });
@@ -55,7 +60,7 @@ export class TicketVerifyComponent implements OnInit {
         }
       },
       error: () => {
-        this.error = 'Error al buscar la venta';
+        this.error = 'Error al buscar la venta. Intenta de nuevo.';
         this.loading = false;
       }
     });

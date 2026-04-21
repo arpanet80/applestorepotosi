@@ -6,6 +6,7 @@ import { MySalesService } from '../../services/my-sales.service';
 import { Sale } from '../../models/sale.model';
 import { TicketPrintService } from '../../../../shared/services/ticket-print.service';
 import { ToastrAlertService } from '../../../../shared/services/toastr-alert.service';
+import { TaxConfigService } from '../../../../shared/services/tax-config.service';
 
 @Component({
   selector: 'app-my-sales-detail',
@@ -46,27 +47,27 @@ export class MySalesDetailComponent implements OnInit {
 
   // NUEVO: Construir objeto imprimible
   private buildPrintableSale(sale: Sale): any {
-    const items = sale.items?.map(item => ({
-      name: item.productId?.name || 'Producto',
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      discount: item.discount || 0,
-      subtotal: item.subtotal
-    })) || [];
+  const items = sale.items?.map(item => ({
+    name: item.productId?.name || 'Producto',
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    discount: item.discount || 0,
+    subtotal: item.subtotal
+  })) || [];
 
-    return {
-      saleNumber: sale.saleNumber,
-      saleDate: new Date(sale.saleDate),
-      customerName: sale.customerId?.fullName || 'PÚBLICO GENERAL',
-      items: items,
-      subtotal: sale.totals.subtotal,
-      taxAmount: sale.totals.taxAmount,
-      discountAmount: sale.totals.discountAmount || 0,
-      totalAmount: sale.totals.totalAmount,
-      paymentMethod: sale.payment?.method || 'cash',
-      paymentReference: sale.payment?.reference,
-      cashierName: 'Vendedor',
-      notes: sale.notes
-    };
-  }
+  return {
+    saleNumber: sale.saleNumber,
+    saleDate: new Date(sale.saleDate),
+    customerName: sale.customerId?.fullName || 'PÚBLICO GENERAL',
+    items: items,
+    subtotal: sale.totals.subtotal,        // ← del backend
+    taxAmount: sale.totals.taxAmount,      // ← del backend
+    discountAmount: sale.totals.discountAmount || 0,
+    totalAmount: sale.totals.totalAmount,  // ← del backend
+    paymentMethod: sale.payment?.method || 'cash',
+    paymentReference: sale.payment?.reference,
+    cashierName: 'Vendedor',
+    notes: sale.notes
+  };
+}
 }

@@ -7,6 +7,7 @@ import { Sale, SaleStatus, PaymentMethod, PaymentStatus } from '../../models/sal
 import { CustomerService } from '../../../customers/services/customer.service';
 import { ProductService } from '../../../products/services/product.service';
 import { GenericModalComponent } from '../../../../shared/components/generic-modal/generic-modal';
+import { TaxConfigService } from '../../../../shared/services/tax-config.service';
 
 interface ItemPopulated {
   productId: { _id: string; name: string };
@@ -29,6 +30,7 @@ export class SaleFormComponent implements OnInit {
   private saleService = inject(SaleService);
   private customerService = inject(CustomerService);
   private productService = inject(ProductService);
+  private taxConfig = inject(TaxConfigService);
 
   @ViewChild('productSelectorTpl') productSelectorTpl!: TemplateRef<any>;
   @ViewChild(GenericModalComponent) modal!: GenericModalComponent;
@@ -166,7 +168,10 @@ export class SaleFormComponent implements OnInit {
       sub += q * p;
       disc += d;
     });
-    const tax = sub * 0.16;
+    // const tax = sub * 0.16;
+    const tax = this.taxConfig.calculateTax(sub);
+    // totalAmount: sub + tax - disc  → ya funciona porque tax=0
+
     this.saleForm.patchValue({
       totals: {
         subtotal: sub,

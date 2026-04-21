@@ -11,5 +11,6 @@ export const environment = {
   apiUrl: 'http://localhost:3010',
   telegramBotToken: '8263595117:AAHIy0aro2uwCe9iD-bm4V3aTF6BdFrbcwE',
   telegramChatId: '-4973074977',
-  publicUrl: 'http://localhost:4200'
+  publicUrl: 'https://applestorepotosi-ui.vercel.app',
+  taxRate: 0,
 };

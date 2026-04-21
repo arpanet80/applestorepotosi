@@ -216,9 +216,10 @@
             type="button"
             class="btn btn-primary fw-bold w-100"
             (click)="sell()"
-            [disabled]="cart.length === 0"
+            [disabled]="cart.length === 0 || isSelling"
           >
-            Finalizar Venta
+            <span *ngIf="isSelling" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            {{ isSelling ? 'Procesando...' : 'Finalizar Venta' }}
           </button>
           
         </div>
@@ -238,16 +239,9 @@
 </ng-template>
 
 
-<!-- Ticket Preview Modal -->
-<app-ticket-preview
-  [sale]="lastSaleForTicket"
-  [isOpen]="showTicketPreview"
-  (close)="onTicketPreviewClose()"
-></app-ticket-preview>
-
-<!-- Botón flotante para reimprimir (opcional) -->
-<button 
-  *ngIf="lastSaleForTicket && !showTicketPreview"
+<!-- Botón flotante para reimprimir último ticket como PDF -->
+<button
+  *ngIf="lastSaleForTicket"
   class="btn-float-reprint"
   (click)="reprintLastTicket()"
   title="Reimprimir último ticket"
