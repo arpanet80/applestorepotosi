@@ -8,7 +8,6 @@ import { ProductImage, ProductImageSchema } from './schemas/product-image.schema
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { ImagesController } from './images.controller';
 import { ImageKitService } from './imagekit.service';
-import { StockMovementsService } from '../stock_movements/stock-movements.service';
 import { StockMovementsModule } from '../stock_movements/stock-movements.module';
 
 @Module({
@@ -16,12 +15,15 @@ import { StockMovementsModule } from '../stock_movements/stock-movements.module'
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
       { name: ProductImage.name, schema: ProductImageSchema },
-      { name: User.name, schema: UserSchema }
+      { name: User.name, schema: UserSchema },
     ]),
+    // ✅ FIX #5: StockMovementsModule ya exporta StockMovementsService.
+    // Registrarlo además en providers[] causaba una instancia duplicada con
+    // su propio árbol de dependencias sin resolver → errores en runtime.
     forwardRef(() => StockMovementsModule),
   ],
   controllers: [ProductsController, ImagesController],
-  providers: [ProductsService, ImageKitService, StockMovementsService],
+  providers: [ProductsService, ImageKitService],  // ← StockMovementsService removido
   exports: [ProductsService, MongooseModule],
 })
 export class ProductsModule {}

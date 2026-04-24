@@ -1,12 +1,13 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { Observable, map, startWith, combineLatest, shareReplay } from 'rxjs';
+import { Observable, map, startWith, combineLatest, shareReplay, Subject, takeUntil, BehaviorSubject, switchMap } from 'rxjs';
 import { CommonModule } from '@angular/common';
 
 import { ProductService } from '../../products/services/product.service';
 import { CustomerService } from '../../customers/services/customer.service';
 import { PosService } from '../services/pos.service';
 import { TicketPrintService, PrintableSale } from '../../../shared/services/ticket-print.service';
+import { SpinnerComponent } from '../../../shared/components/spinner/spinner.component'; // Ajusta la ruta según tu estructura
 
 import { Product } from '../../products/models/product.model';
 import { Customer } from '../../customers/models/customer.model';
@@ -15,13 +16,16 @@ import { PosCartItemForm } from '../models/pos-cart-item.form';
 import { ToastrAlertService } from '../../../shared/services/toastr-alert.service';
 import { TaxConfigService } from '../../../shared/services/tax-config.service';
 
+// 🆕 TIPO DE ESTADO DE SESIÓN
+type SessionState = 'loading' | 'active' | 'closed';
+
 @Component({
   selector: 'app-pos',
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SpinnerComponent], // 🆕 Importar SpinnerComponent
   templateUrl: './pos.component.html',
   styleUrls: ['./pos.component.css'],
 })
-export class PosComponent implements OnInit {
+export class PosComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private posService = inject(PosService);
   private productService = inject(ProductService);
@@ -30,7 +34,10 @@ export class PosComponent implements OnInit {
   private ticketService = inject(TicketPrintService);
   private taxConfig = inject(TaxConfigService);
 
+  // 🆕 ESTADO DE SESIÓN CON VALOR INICIAL 'loading'
+  sessionState: SessionState = 'loading';
   session: any = null;
+  
   products: Product[] = [];
   customers: Customer[] = [];
   PaymentMethod = PaymentMethod;
@@ -51,37 +58,55 @@ export class PosComponent implements OnInit {
   filteredProducts$: Observable<Product[]> | null = null;
   filteredCustomers$: Observable<Customer[]> | null = null;
 
-  // NUEVAS PROPIEDADES PARA TICKET
   isSelling = false;
   lastSaleForTicket: PrintableSale | null = null;
   currentUserName = 'Vendedor';
 
-  // CACHE DE SESIÓN
   private sessionCache: any = null;
   private sessionCacheTime = 0;
-  private readonly CACHE_TTL = 5000; // 5 segundos
+  private readonly CACHE_TTL = 5000;
 
-  // CACHE DE PRODUCTOS (evita recrear el observable)
-  private productsCache$: Observable<Product[]> | null = null;
+  private refreshProducts$ = new BehaviorSubject<void>(undefined);
+  private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.loadSession();
+    this.loadSession(); // Ahora maneja el estado 'loading' internamente
     this.setupFilters();
     this.loadCustomers();
   }
 
-  // ========== SESIÓN CON CACHE ==========
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ========== SESIÓN CON ESTADO DE CARGA ==========
   loadSession() {
     const now = Date.now();
+    
+    // Si hay caché válido, usarlo inmediatamente sin mostrar spinner
     if (this.sessionCache && (now - this.sessionCacheTime) < this.CACHE_TTL) {
       this.session = this.sessionCache;
+      this.sessionState = this.session ? 'active' : 'closed';
       return;
     }
 
-    this.posService.getCurrentSession().subscribe(s => {
-      this.session = s;
-      this.sessionCache = s;
-      this.sessionCacheTime = now;
+    // 🆕 SIEMPRE empezar en loading cuando se consulta al servidor
+    this.sessionState = 'loading';
+
+    this.posService.getCurrentSession().subscribe({
+      next: (s) => {
+        this.session = s;
+        this.sessionCache = s;
+        this.sessionCacheTime = Date.now();
+        // 🆕 Transicionar a 'active' o 'closed' según respuesta real
+        this.sessionState = s ? 'active' : 'closed';
+      },
+      error: () => {
+        // 🆕 En error, asumir cerrado pero tras mostrar el estado de carga
+        this.sessionState = 'closed';
+        this.toastrAlertService.error('Error al verificar el estado de la caja');
+      }
     });
   }
 
@@ -92,22 +117,21 @@ export class PosComponent implements OnInit {
     });
   }
 
-  // ========== FILTROS OPTIMIZADOS (sin recrear observables) ==========
+  // ========== FILTROS ==========
   setupFilters() {
-    // Cachear el observable de productos para no recrearlo en cada venta
-    if (!this.productsCache$) {
-      this.productsCache$ = this.productService.getProductsPaginated(this.page, this.limit).pipe(
-        map(res => {
-          this.totalPages = res.totalPages;
-          this.products = res.products; // Guardar referencia local
-          return res.products;
-        }),
-        shareReplay(1) // Compartir resultado entre suscriptores
-      );
-    }
+    const productsSource$ = this.refreshProducts$.pipe(
+      switchMap(() => this.productService.getProductsPaginated(this.page, this.limit)),
+      map(res => {
+        this.totalPages = res.totalPages;
+        this.products = res.products;
+        return res.products;
+      }),
+      shareReplay(1),
+      takeUntil(this.destroy$)
+    );
 
     this.filteredProducts$ = combineLatest([
-      this.productsCache$,
+      productsSource$,
       this.productSearchControl.valueChanges.pipe(startWith(''))
     ]).pipe(
       map(([products, val]) =>
@@ -116,7 +140,8 @@ export class PosComponent implements OnInit {
             p.name.toLowerCase().includes((val ?? '').toLowerCase()) ||
             p.sku.toLowerCase().includes((val ?? '').toLowerCase())
         )
-      )
+      ),
+      takeUntil(this.destroy$)
     );
 
     this.filteredCustomers$ = this.customerSearchControl.valueChanges.pipe(
@@ -127,11 +152,12 @@ export class PosComponent implements OnInit {
             c.fullName.toLowerCase().includes((val ?? '').toLowerCase()) ||
             c.email.toLowerCase().includes((val ?? '').toLowerCase())
         )
-      )
+      ),
+      takeUntil(this.destroy$)
     );
   }
 
-  // ========== CARRITO ==========
+  // ========== CARRITO (sin cambios) ==========
   addProduct(product: Product) {
     const available = product.availableQuantity ?? 0;
     if (available <= 0) {
@@ -218,17 +244,19 @@ export class PosComponent implements OnInit {
     this.customerSearchControl.setValue(customer.fullName);
   }
 
-  // ========== VENTA OPTIMIZADA ==========
+  // ========== VENTA ==========
   sell() {
     if (!this.session || this.cart.length === 0 || this.isSelling) return;
 
     this.isSelling = true;
+    const cartSnapshot = this.cart.value.map(i => ({ ...i }));
+    const selectedCustomerSnapshot = this.selectedCustomer;
 
     const payload = {
       customerId: this.selectedCustomer?._id || null,
       paymentMethod: this.paymentMethod,
       paymentReference: this.paymentReference,
-      items: this.cart.value.map(i => ({
+      items: cartSnapshot.map(i => ({
         productId: i.productId,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
@@ -239,24 +267,19 @@ export class PosComponent implements OnInit {
 
     this.posService.sell(payload).subscribe({
       next: (response: any) => {
-        const printableSale = this.buildPrintableSale(response, payload);
+        const printableSale = this.buildPrintableSale(response, payload, cartSnapshot, selectedCustomerSnapshot);
 
-        // 1. LIMPIAR UI INMEDIATAMENTE (< 50ms)
         this.lastSaleForTicket = printableSale;
         this.resetCart();
         this.isSelling = false;
         this.toastrAlertService.success('Venta realizada correctamente.');
 
-        // 2. Actualizar caja (rápido, cacheado)
+        this.refreshProducts$.next();
         this.loadSession();
-
-        // 3. PDF + Telegram: Fire-and-forget REAL
-        // El método ahora es paralelo internamente, retorna inmediatamente
         this.ticketService.processSaleComplete(printableSale, {
           ticketWidth: 80,
           includeQR: true
         });
-        // ↑ No .then(), no .catch(), no await — totalmente desacoplado
       },
       error: (err) => {
         this.isSelling = false;
@@ -265,9 +288,14 @@ export class PosComponent implements OnInit {
     });
   }
 
-  // ========== CONSTRUIR OBJETO IMPRIMIBLE (con TaxConfigService) ==========
-  private buildPrintableSale(response: any, payload: any): PrintableSale {
-    const items = this.cart.value.map(item => {
+  private buildPrintableSale(
+    response: any, 
+    payload: any, 
+    cartItems: any[],
+    customer: Customer | null
+  ): PrintableSale {
+    
+    const items = cartItems.map(item => {
       const quantity = item.quantity ?? 0;
       const unitPrice = item.unitPrice ?? 0;
       const discount = item.discount ?? 0;
@@ -283,21 +311,17 @@ export class PosComponent implements OnInit {
     });
 
     const subtotal = items.reduce((sum, i) => sum + i.subtotal, 0);
-    const taxAmount = this.taxConfig.calculateTax(subtotal); // ← Usa configuración
-    const totalAmount = this.taxConfig.calculateTotal(subtotal); // ← Sin impuesto = subtotal
+    const taxAmount = this.taxConfig.calculateTax(subtotal);
+    const totalAmount = this.taxConfig.calculateTotal(subtotal);
 
-    const customerPhone = (this.selectedCustomer as any)?.phone ||
-                          (this.selectedCustomer as any)?.mobile ||
-                          '';
-    const customerEmail = (this.selectedCustomer as any)?.email || '';
+    const customerPhone = (customer as any)?.phone || (customer as any)?.mobile || '';
+    const customerEmail = (customer as any)?.email || '';
 
     return {
       saleNumber: response.saleNumber || 'SIN-NUMERO',
       saleDate: new Date(),
-      customerName: this.selectedCustomer?.fullName || 'PÚBLICO GENERAL',
-      customerNIT: (this.selectedCustomer as any)?.nit ||
-                  (this.selectedCustomer as any)?.document ||
-                  undefined,
+      customerName: customer?.fullName || 'PÚBLICO GENERAL',
+      customerNIT: (customer as any)?.nit || (customer as any)?.document || undefined,
       customerPhone: customerPhone,
       customerEmail: customerEmail,
       items: items,
@@ -312,7 +336,6 @@ export class PosComponent implements OnInit {
     };
   }
 
-  // ========== REIMPRIMIR ÚLTIMO TICKET ==========
   reprintLastTicket(): void {
     if (this.lastSaleForTicket) {
       this.ticketService.generateAndPrint(this.lastSaleForTicket, { ticketWidth: 80, includeQR: true });
@@ -325,9 +348,19 @@ export class PosComponent implements OnInit {
   openSession() {
     const opening = prompt('Monto de apertura:');
     if (opening === null) return;
-    this.posService.openSession(parseFloat(opening)).subscribe(() => {
-      this.sessionCache = null; // Invalidar cache
-      this.loadSession();
+    
+    // 🆕 Mostrar spinner mientras se abre
+    this.sessionState = 'loading';
+    
+    this.posService.openSession(parseFloat(opening)).subscribe({
+      next: () => {
+        this.sessionCache = null;
+        this.loadSession(); // Esto pondrá 'active' al recibir la sesión
+      },
+      error: (err) => {
+        this.sessionState = 'closed';
+        this.toastrAlertService.error(err.error?.message || 'Error al abrir caja');
+      }
     });
   }
 
@@ -347,6 +380,7 @@ export class PosComponent implements OnInit {
           this.toastrAlertService.success('Se cerro la caja correctamente');
           this.session = null;
           this.sessionCache = null;
+          this.sessionState = 'closed'; // 🆕 Estado explícito
         },
         error: (err) => {
           this.toastrAlertService.error(err.error?.message || 'Error al cerrar la caja');
@@ -354,20 +388,18 @@ export class PosComponent implements OnInit {
       });
   }
 
-  // ========== PAGINACIÓN (sin recargar todo) ==========
+  // ========== PAGINACIÓN ==========
   prevPage() {
     if (this.page > 1) {
       this.page--;
-      this.productsCache$ = null; // Invalidar cache de productos
-      this.setupFilters();
+      this.refreshProducts$.next();
     }
   }
 
   nextPage() {
     if (this.page < this.totalPages) {
       this.page++;
-      this.productsCache$ = null; // Invalidar cache de productos
-      this.setupFilters();
+      this.refreshProducts$.next();
     }
   }
 }

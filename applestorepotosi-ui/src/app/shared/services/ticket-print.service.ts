@@ -45,10 +45,10 @@ export class TicketPrintService {
   private telegramService = inject(TelegramService);
 
   private defaultConfig: TicketConfig = {
-    businessName: 'APPLE STORE POTOSÍ',
-    businessAddress: 'Calle Litoral #123, Potosí - Bolivia',
+    businessName: 'APPLE SHOP POTOSÍ',
+    businessAddress: 'Calle Litoral #374, Potosí - Bolivia',
     businessPhone: '+591 78712089',
-    businessRUC: '123456789',
+    businessRUC: '8636177014',
     ticketWidth: 80,
     includeQR: true,
     qrUrl: environment.telegramBotToken

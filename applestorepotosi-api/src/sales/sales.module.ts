@@ -5,6 +5,7 @@ import { SalesService } from './sales.service';
 import { SalesController } from './sales.controller';
 import { Sale, SaleSchema } from './schemas/sale.schema';
 import { SaleItem, SaleItemSchema } from './schemas/sale-item.schema';
+import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { ProductsModule } from '../products/products.module';
 import { StockMovementsModule } from '../stock_movements/stock-movements.module';
 
@@ -12,7 +13,8 @@ import { StockMovementsModule } from '../stock_movements/stock-movements.module'
   imports: [
     MongooseModule.forFeature([
       { name: Sale.name, schema: SaleSchema },
-      { name: SaleItem.name, schema: SaleItemSchema }
+      { name: SaleItem.name, schema: SaleItemSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
     ProductsModule,
     StockMovementsModule,

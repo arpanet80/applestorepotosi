@@ -17,6 +17,12 @@ export class ClosePosSessionDto {
   @Min(0)
   transferTotal: number;
 
+  // ✅ FIX #5: depositTotal ya no es siempre 0; el frontend puede enviarlo
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  depositTotal?: number;
+
   @IsString()
   @IsOptional()
   notes?: string;

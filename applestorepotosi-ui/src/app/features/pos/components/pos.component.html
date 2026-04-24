@@ -1,4 +1,10 @@
-<div class="d-flex flex-column h-100" *ngIf="session; else noSession">
+<!-- 🆕 ESTADO 1: CARGANDO (Spinner genérico) -->
+<div *ngIf="sessionState === 'loading'" class="d-flex flex-column align-items-center justify-content-center h-100">
+  <app-spinner message="Verificando estado de caja..." size="lg"></app-spinner>
+</div>
+
+<!-- ESTADO 2: CAJA ABIERTA (Vista normal POS) -->
+<div class="d-flex flex-column h-100" *ngIf="sessionState === 'active'">
   <!-- Toolbar -->
   <div class="d-flex align-items-center justify-content-between bg-primary text-white px-6 py-4">
     <span class="fw-bold fs-3">Punto de Venta – Apple Store Potosí</span>
@@ -64,7 +70,7 @@
         </div>
       </div>
 
-      <!-- PAGINACIÓN -->
+      <!-- Paginación -->
       <div class="d-flex justify-content-between align-items-center mt-6" *ngIf="totalPages > 1">
         <button class="btn btn-sm btn-light-primary" (click)="prevPage()" [disabled]="page === 1">
           <i class="ki-duotone ki-arrow-left fs-3 me-2"></i>Anterior
@@ -228,18 +234,21 @@
   </div>
 </div>
 
-<!-- No session -->
-<ng-template #noSession>
-  <div class="d-flex flex-column align-items-center justify-content-center h-100">
+<!-- 🆕 ESTADO 3: CAJA CERRADA (Solo botón abrir) -->
+<div *ngIf="sessionState === 'closed'" class="d-flex flex-column align-items-center justify-content-center h-100">
+  <div class="text-center">
+    <div class="mb-6">
+      <i class="ki-duotone ki-shop fs-5x text-gray-300"></i>
+    </div>
     <h2 class="text-gray-600 mb-6">No hay caja abierta</h2>
+    <p class="text-gray-500 mb-6">Abra una nueva sesión de caja para comenzar a vender</p>
     <button type="button" class="btn btn-lg btn-primary" (click)="openSession()">
-      Abrir Caja
+      <i class="ki-duotone ki-plus fs-2 me-2"></i>Abrir Caja
     </button>
   </div>
-</ng-template>
+</div>
 
-
-<!-- Botón flotante para reimprimir último ticket como PDF -->
+<!-- Botón flotante reimpresión -->
 <button
   *ngIf="lastSaleForTicket"
   class="btn-float-reprint"

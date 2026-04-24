@@ -5,17 +5,22 @@ import { PurchaseOrdersService } from './purchase-orders.service';
 import { PurchaseOrdersController } from './purchase-orders.controller';
 import { PurchaseOrder, PurchaseOrderSchema } from './schemas/purchase-order.schema';
 import { SuppliersModule } from '../suppliers/suppliers.module';
-import { SuppliersService } from '../suppliers/suppliers.service';
 import { UsersModule } from '../users/users.module';
-import { UsersService } from '../users/users.service';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: PurchaseOrder.name, schema: PurchaseOrderSchema }]),
-    SuppliersModule,UsersModule
+    MongooseModule.forFeature([
+      { name: PurchaseOrder.name, schema: PurchaseOrderSchema },
+    ]),
+    SuppliersModule,  // exporta SuppliersService + MongooseModule (Supplier schema)
+    UsersModule,      // exporta UsersService
+    ProductsModule,   // ✅ FIX #2: necesitamos Product model para actualizar stock
   ],
   controllers: [PurchaseOrdersController],
-  providers: [PurchaseOrdersService, SuppliersService, UsersService],
+  // ✅ FIX #7: SuppliersService y UsersService removidos de providers[]
+  // ya los provee sus respectivos módulos — registrarlos aquí crea instancias duplicadas
+  providers: [PurchaseOrdersService],
   exports: [PurchaseOrdersService, MongooseModule],
 })
 export class PurchaseOrdersModule {}

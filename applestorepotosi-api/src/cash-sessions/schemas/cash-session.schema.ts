@@ -7,13 +7,15 @@ export type CashSessionDocument = CashSession & Document;
 @Schema({ timestamps: true })
 export class CashSession {
   @Prop({ required: true, unique: true })
-  sessionId: string; // YYYYMMDD-CAJA1
+  sessionId: string;
 
-  @Prop({ type: String, required: true }) // ✅ cambia de ObjectId a String
-openedBy: string;
+  // Firebase UID — Mongoose no puede popular strings, los datos del usuario
+  // se resuelven manualmente en el service con _buildUserMap()
+  @Prop({ type: String, required: true })
+  openedBy: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
-  closedBy?: Types.ObjectId;
+  @Prop({ type: String })
+  closedBy?: string;
 
   @Prop({ default: Date.now })
   openedAt: Date;
@@ -38,7 +40,7 @@ openedBy: string;
   cashRefunds: number;
 
   @Prop({ default: 0 })
-  cashInOut: number; // manual adjustment (+/-)
+  cashInOut: number;
 
   @Prop({ default: 0 })
   expectedCash: number;
@@ -69,10 +71,8 @@ openedBy: string;
 }
 
 export const CashSessionSchema = SchemaFactory.createForClass(CashSession);
-// auto-calc expectedCash before save
+
 CashSessionSchema.pre<CashSessionDocument>('save', function () {
   this.expectedCash =
     this.openingBalance + this.cashSales - this.cashRefunds + this.cashInOut;
 });
-
-// CashSessionSchema.index({ sessionId: 1 }, { unique: true });

@@ -1,5 +1,10 @@
 // src/purchase-orders/purchase-orders.controller.ts
-import { Controller,Get,Post,Put,Delete,Param,Body,Query,UseGuards,  HttpCode,  HttpStatus,Req,} from '@nestjs/common';
+import {
+  Controller, Get, Post, Put, Delete,
+  Param, Body, Query, UseGuards,
+  HttpCode, HttpStatus, Req,
+  DefaultValuePipe, ParseIntPipe,
+} from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
@@ -18,7 +23,7 @@ export class PurchaseOrdersController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
   create(@Body() dto: CreatePurchaseOrderDto, @Req() req: any) {
-    this.purchaseOrdersService.validateItems(dto.items);
+    // ✅ FIX #8: validateItems eliminado del controller — el service lo hace internamente
     return this.purchaseOrdersService.create(dto, req.user);
   }
 
@@ -36,26 +41,40 @@ export class PurchaseOrdersController {
 
   @Get('supplier/:supplierId')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  findBySupplier(@Param('supplierId') supplierId: string) {
-    return this.purchaseOrdersService.findBySupplier(supplierId);
+  findBySupplier(
+    @Param('supplierId') supplierId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.purchaseOrdersService.findBySupplier(supplierId, page, limit);
   }
 
   @Get('status/:status')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  findByStatus(@Param('status') status: string) {
-    return this.purchaseOrdersService.findByStatus(status);
+  findByStatus(
+    @Param('status') status: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.purchaseOrdersService.findByStatus(status, page, limit);
   }
 
   @Get('pending')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  findPendingOrders() {
-    return this.purchaseOrdersService.findByStatus('pending');
+  findPendingOrders(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.purchaseOrdersService.findByStatus('pending', page, limit);
   }
 
   @Get('completed')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  findCompletedOrders() {
-    return this.purchaseOrdersService.findByStatus('completed');
+  findCompletedOrders(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.purchaseOrdersService.findByStatus('completed', page, limit);
   }
 
   @Get(':id')
@@ -71,7 +90,8 @@ export class PurchaseOrdersController {
     @Body() dto: UpdatePurchaseOrderDto,
     @Req() req: any,
   ) {
-    if (dto.items) this.purchaseOrdersService.validateItems(dto.items);
+    // ✅ FIX #8: validateItems eliminado — service lo hace
+    // ✅ FIX #9: pasamos req.user.uid (string) en vez del objeto completo
     return this.purchaseOrdersService.update(id, dto, req.user.uid);
   }
 
@@ -92,9 +112,9 @@ export class PurchaseOrdersController {
     @Req() req: any,
     @Body('reason') reason?: string,
   ) {
+    // ✅ FIX #4: pasamos req.user (objeto con _id) — service extrae el _id
     return this.purchaseOrdersService.approveOrder(id, reason, req.user);
   }
-
 
   @Put(':id/reject')
   @Roles(UserRole.ADMIN)
@@ -105,7 +125,6 @@ export class PurchaseOrdersController {
   ) {
     return this.purchaseOrdersService.rejectOrder(id, reason, req.user);
   }
-
 
   @Put(':id/complete')
   @Roles(UserRole.ADMIN, UserRole.SALES)
@@ -137,16 +156,5 @@ export class PurchaseOrdersController {
     return { total };
   }
 
-  @Put(':uid/deactivate')
-    @Roles(UserRole.ADMIN)
-    deactivateUser(@Param('uid') uid: string) {
-      return this.purchaseOrdersService.deactivateProduct(uid);
-    }
-  
-    @Put(':uid/activate')
-    @Roles(UserRole.ADMIN)
-    activateUser(@Param('uid') uid: string) {
-      return this.purchaseOrdersService.activateProduct(uid);
-    }
-  
+  // ✅ FIX #6: eliminados deactivateUser/activateUser — no tienen sentido en purchase-orders
 }

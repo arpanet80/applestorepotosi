@@ -80,9 +80,15 @@ private async _populateMany(docs: StockMovementDocument[]): Promise<StockMovemen
   ): Promise<StockMovementDocument> {
     this.validateStockMovement(createStockMovementDto);
 
-    const product = await this.productsService.findOne(createStockMovementDto.productId);
-    const reservedAtMovement = product.reservedQuantity ?? 0;
-    const unitCostAtMovement = product.costPrice ?? 0;
+    // Si el caller ya resolvió los valores los usamos directamente.
+    // Si alguno falta hacemos UNA sola findOne para obtener ambos a la vez.
+    let reservedAtMovement = createStockMovementDto.reservedAtMovement;
+    let unitCostAtMovement = createStockMovementDto.unitCostAtMovement;
+    if (reservedAtMovement === undefined || unitCostAtMovement === undefined) {
+      const product = await this.productsService.findOne(createStockMovementDto.productId);
+      reservedAtMovement ??= product.reservedQuantity ?? 0;
+      unitCostAtMovement ??= product.costPrice ?? 0;
+    }
 
     // --- limpieza de reference y referenceModel ---
     let ref: Types.ObjectId | undefined;
@@ -107,6 +113,7 @@ private async _populateMany(docs: StockMovementDocument[]): Promise<StockMovemen
 
     // guardar y actualizar stock dentro de la sesión
     await created.save({ session });
+    // ✅ updateStock recibe la session para mantenerse en la misma transacción
     await this.productsService.updateStock(
       createStockMovementDto.productId,
       { quantity: createStockMovementDto.newStock },

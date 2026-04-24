@@ -1,5 +1,10 @@
 // src/products/products.service.ts
-import { Injectable, NotFoundException, ConflictException, BadRequestException,InternalServerErrorException} from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Product, ProductDocument } from './schemas/product.schema';
@@ -19,9 +24,7 @@ export class ProductsService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  /**
-   * Crear nuevo producto
-   */
+  /* ========== CREATE ========== */
   async create(createProductDto: CreateProductDto, userId: string): Promise<ProductDocument> {
     // 1. Duplicados
     const existSku = await this.productModel.exists({ sku: createProductDto.sku });
@@ -37,119 +40,100 @@ export class ProductsService {
       throw new BadRequestException('El precio de venta debe ser mayor o igual al precio de costo');
     }
 
-    // 3. Usuario que crea
+    // 3. Resolver usuario creador (Firebase UID → ObjectId)
     const user = await this.userModel.findOne({ uid: userId }).exec();
     if (!user) throw new BadRequestException(`Usuario con uid ${userId} no encontrado`);
 
-    // 4. Crear objeto
+    // 4. Crear producto
     const productData = {
       ...createProductDto,
-      categoryId: new Types.ObjectId(createProductDto.categoryId),
-      brandId: new Types.ObjectId(createProductDto.brandId),
-      supplierId: new Types.ObjectId(createProductDto.supplierId),
-      createdBy: user._id,
+      categoryId:  new Types.ObjectId(createProductDto.categoryId),
+      brandId:     new Types.ObjectId(createProductDto.brandId),
+      supplierId:  new Types.ObjectId(createProductDto.supplierId),
+      createdBy:   user._id,
     };
 
     const product = new this.productModel(productData);
     const saved = await product.save();
 
-    // 5. Imágenes (si vinieron en el DTO)
+    // 5. Imágenes opcionales
     if (createProductDto.images?.length) {
       await this.createProductImages(saved._id.toString(), createProductDto.images);
     }
 
-    // 6. Retornar populado
     return this.findOne(saved._id.toString());
   }
 
-  /**
- * Obtener todos los productos con filtros
- */
-async findAll(query: ProductQueryDto): Promise<{
-    products: any[]; // ✅ ahora devuelve objetos planos con imageUrl
+  /* ========== FIND ALL ========== */
+  async findAll(query: ProductQueryDto): Promise<{
+    products: any[];
     total: number;
     page: number;
     totalPages: number;
   }> {
     const {
-      isActive,
-      isFeatured,
-      categoryId,
-      brandId,
-      supplierId,
-      search,
-      minPrice,
-      maxPrice,
-      stockStatus,
-      ids,
-      page = 1,
-      limit = 10,
-      sortBy = 'name',
-      sortOrder = 'asc'
+      isActive, isFeatured, categoryId, brandId, supplierId,
+      search, minPrice, maxPrice, stockStatus, ids,
+      page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc',
     } = query;
 
     const skip = (page - 1) * limit;
-    const filter: any = {};
+    const filter: Record<string, any> = {};
 
-    // Filtrar por estado activo
-    if (isActive !== undefined) {
-      filter.isActive = isActive;
-    }
+    if (isActive !== undefined)  filter.isActive  = isActive;
+    if (isFeatured !== undefined) filter.isFeatured = isFeatured;
 
-    // Filtrar por featured
-    if (isFeatured !== undefined) {
-      filter.isFeatured = isFeatured;
-    }
-
-    // Filtrar por categoría
     if (categoryId) {
-      if (!Types.ObjectId.isValid(categoryId)) {
-        throw new BadRequestException('ID de categoría inválido');
-      }
+      if (!Types.ObjectId.isValid(categoryId)) throw new BadRequestException('ID de categoría inválido');
       filter.categoryId = new Types.ObjectId(categoryId);
     }
-
-    // Filtrar por marca
     if (brandId) {
-      if (!Types.ObjectId.isValid(brandId)) {
-        throw new BadRequestException('ID de marca inválido');
-      }
+      if (!Types.ObjectId.isValid(brandId)) throw new BadRequestException('ID de marca inválido');
       filter.brandId = new Types.ObjectId(brandId);
     }
-
-    // Filtrar por proveedor
     if (supplierId) {
-      if (!Types.ObjectId.isValid(supplierId)) {
-        throw new BadRequestException('ID de proveedor inválido');
-      }
+      if (!Types.ObjectId.isValid(supplierId)) throw new BadRequestException('ID de proveedor inválido');
       filter.supplierId = new Types.ObjectId(supplierId);
     }
-
-    // Filtrar por IDs específicos
-    if (ids && ids.length > 0) {
-      filter._id = { $in: ids.map(id => new Types.ObjectId(id)) };
+    if (ids?.length) {
+      filter._id = { $in: ids.map((id) => new Types.ObjectId(id)) };
     }
-
-    // Filtrar por precio
     if (minPrice !== undefined || maxPrice !== undefined) {
       filter.salePrice = {};
       if (minPrice !== undefined) filter.salePrice.$gte = minPrice;
       if (maxPrice !== undefined) filter.salePrice.$lte = maxPrice;
     }
-
-    // Búsqueda por nombre, descripción o SKU
     if (search) {
       filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { name:        { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } }
+        { sku:         { $regex: search, $options: 'i' } },
       ];
     }
 
-    // Ordenamiento
-    const sort: any = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    // ✅ FIX #1: stockStatus aplicado al filtro ANTES de la consulta, no después.
+    // El patrón original construía filter.$expr después de la query → nunca se aplicaba.
+    if (stockStatus) {
+      const available = { $subtract: ['$stockQuantity', '$reservedQuantity'] };
+      if (stockStatus === 'out-of-stock') {
+        filter.$expr = { $lte: [available, 0] };
+      } else if (stockStatus === 'low-stock') {
+        filter.$expr = {
+          $and: [
+            { $gt: [available, 0] },
+            { $lte: [available, '$minStock'] },
+          ],
+        };
+      } else if (stockStatus === 'in-stock') {
+        filter.$expr = { $gt: [available, '$minStock'] };
+      }
+    }
 
+    const ALLOWED_SORT_FIELDS = new Set(['name','sku','salePrice','costPrice','stockQuantity','createdAt']);
+    const safeSortBy = ALLOWED_SORT_FIELDS.has(sortBy) ? sortBy : 'name';
+    const sort: Record<string, 1 | -1> = { [safeSortBy]: sortOrder === 'desc' ? -1 : 1 };
+
+    // ✅ FIX #1: total se calcula con el filtro corregido (incluyendo stockStatus)
     const [products, total] = await Promise.all([
       this.productModel
         .find(filter)
@@ -161,78 +145,50 @@ async findAll(query: ProductQueryDto): Promise<{
         .skip(skip)
         .limit(limit)
         .exec(),
-      this.productModel.countDocuments(filter).exec()
+      this.productModel.countDocuments(filter).exec(),
     ]);
 
-    // Aplicar filtro de estado de stock si se solicita
-    let filteredProducts = products;
-    if (stockStatus) {
-      filter.$expr = {
-        $switch: {
-          branches: [
-            {
-              case: { $eq: ['$stockStatus', 'out-of-stock'] },
-              then: { $lte: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] }
-            },
-            {
-              case: { $eq: ['$stockStatus', 'low-stock'] },
-              then: {
-                $and: [
-                  { $gt: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] },
-                  { $lte: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, '$minStock'] }
-                ]
-              }
-            },
-            {
-              case: { $eq: ['$stockStatus', 'in-stock'] },
-              then: { $gt: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, '$minStock'] }
-            }
-          ],
-          default: true
-        }
-      };
-    }
-
-    // 🔍 Cargar solo la primera imagen de cada producto
-    const productIds = filteredProducts.map(p => p._id);
+    // Cargar primera imagen de cada producto en un solo query
+    const productIds = products.map((p) => p._id);
     const images = await this.productImageModel
       .find({ productId: { $in: productIds } })
-      .sort({ sortOrder: 1 }) // primera por orden
+      .sort({ isPrimary: -1, sortOrder: 1 })
       .select('productId url')
       .lean();
 
-    // Agregar imageUrl sin convertir a objeto plano
-    filteredProducts.forEach(product => {
-      const img = images.find(i => i.productId.toString() === (product._id as Types.ObjectId).toString());
-      (product as any).imageUrl = img?.url || '/assets/imgs/product-no-image.png';
+    // Mapa productId → primera imagen para O(1) lookup
+    const imageMap = new Map<string, string>();
+    for (const img of images) {
+      const key = img.productId.toString();
+      if (!imageMap.has(key)) imageMap.set(key, img.url); // primera imagen gana
+    }
+
+    const plainProducts = products.map((p) => {
+      const obj = p.toObject({ virtuals: true }) as Record<string, any>;
+      obj.imageUrl = imageMap.get((p._id as Types.ObjectId).toString())
+        ?? '/assets/imgs/product-no-image.png';
+      return obj;
     });
 
-    const totalPages = Math.ceil(total / limit);
-
-    // ✅ Convertir a objeto plano para que aparezca imageUrl en JSON
-    const plainProducts = filteredProducts.map(p => {
-      const obj = p.toObject({ virtuals: true }); // ✅ incluye virtuals
-      (obj as any).imageUrl = (p as any).imageUrl;
-      return obj;
-    })
-
-    return {
-      products: plainProducts, // ✅ incluye imageUrl
-      total,
-      page,
-      totalPages
-    };
+    return { products: plainProducts, total, page, totalPages: Math.ceil(total / limit) };
   }
 
+  /* ========== FIND ONE ========== */
   /**
-   * Obtener producto por ID
+   * ✅ FIX #2 (inconsistencia con módulos anteriores): acepta ClientSession opcional
+   * para que StockMovementsService y SalesService puedan leerlo dentro de una transacción.
    */
-  async findOne(id: string): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id))          // ← Types ya importado
+  /**
+   * @param skipImage true cuando se llama desde contexto transaccional (POS, stock)
+   *   para evitar la query extra a product_images que no se necesita en ese flujo.
+   */
+  async findOne(id: string, session?: ClientSession, skipImage = false): Promise<ProductDocument> {
+    if (!Types.ObjectId.isValid(id))
       throw new BadRequestException('ID de producto inválido');
 
     const product = await this.productModel
       .findById(id)
+      .session(session ?? null)
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl website')
       .populate('supplierId', 'name contactEmail contactPhone')
@@ -241,19 +197,18 @@ async findAll(query: ProductQueryDto): Promise<{
 
     if (!product) throw new NotFoundException('Producto no encontrado');
 
-    // imagen principal para imageUrl
-    const image = await this.productImageModel
-      .findOne({ productId: product._id })
-      .sort({ isPrimary: -1, sortOrder: 1 })
-      .lean();
+    if (!skipImage) {
+      const image = await this.productImageModel
+        .findOne({ productId: product._id })
+        .sort({ isPrimary: -1, sortOrder: 1 })
+        .lean();
+      (product as any).imageUrl = image?.url ?? '/assets/imgs/product-no-image.png';
+    }
 
-    (product as any).imageUrl = image?.url || '/assets/imgs/product-no-image.png';
     return product;
   }
 
-  /**
-   * Obtener producto por SKU
-   */
+  /* ========== FIND BY SKU ========== */
   async findBySku(sku: string): Promise<ProductDocument> {
     const product = await this.productModel
       .findOne({ sku })
@@ -262,17 +217,11 @@ async findAll(query: ProductQueryDto): Promise<{
       .populate('supplierId', 'name contactEmail')
       .populate('createdBy', 'displayName email')
       .exec();
-
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
+    if (!product) throw new NotFoundException('Producto no encontrado');
     return product;
   }
 
-  /**
-   * Obtener producto por código de barras
-   */
+  /* ========== FIND BY BARCODE ========== */
   async findByBarcode(barcode: string): Promise<ProductDocument> {
     const product = await this.productModel
       .findOne({ barcode })
@@ -281,49 +230,31 @@ async findAll(query: ProductQueryDto): Promise<{
       .populate('supplierId', 'name contactEmail')
       .populate('createdBy', 'displayName email')
       .exec();
-
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
+    if (!product) throw new NotFoundException('Producto no encontrado');
     return product;
   }
 
-  /**
-   * Actualizar producto
-   */
+  /* ========== UPDATE ========== */
   async update(id: string, updateProductDto: UpdateProductDto): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
 
-    // Verificar si ya existe otro producto con el mismo SKU
     if (updateProductDto.sku) {
-      const existingProduct = await this.productModel.findOne({ 
-        sku: updateProductDto.sku,
-        _id: { $ne: id }
-      }).exec();
-
-      if (existingProduct) {
-        throw new ConflictException('Ya existe otro producto con este SKU');
-      }
+      const dup = await this.productModel.findOne({ sku: updateProductDto.sku, _id: { $ne: id } }).exec();
+      if (dup) throw new ConflictException('Ya existe otro producto con este SKU');
     }
-
-    // Verificar si ya existe otro producto con el mismo código de barras
     if (updateProductDto.barcode) {
-      const existingBarcode = await this.productModel.findOne({ 
-        barcode: updateProductDto.barcode,
-        _id: { $ne: id }
-      }).exec();
-
-      if (existingBarcode) {
-        throw new ConflictException('Ya existe otro producto con este código de barras');
-      }
+      const dup = await this.productModel.findOne({ barcode: updateProductDto.barcode, _id: { $ne: id } }).exec();
+      if (dup) throw new ConflictException('Ya existe otro producto con este código de barras');
     }
 
-    // Validar precios si se actualizan
-    if (updateProductDto.salePrice !== undefined && updateProductDto.costPrice !== undefined) {
-      if (updateProductDto.salePrice < updateProductDto.costPrice) {
+    // ✅ FIX #3: validar precio también cuando solo se actualiza uno de los dos campos.
+    // Se lee el valor actual del campo que no viene en el DTO.
+    if (updateProductDto.salePrice !== undefined || updateProductDto.costPrice !== undefined) {
+      const current = await this.productModel.findById(id).select('costPrice salePrice').lean();
+      if (!current) throw new NotFoundException('Producto no encontrado');
+      const newSale = updateProductDto.salePrice ?? current.salePrice;
+      const newCost = updateProductDto.costPrice ?? current.costPrice;
+      if (newSale < newCost) {
         throw new BadRequestException('El precio de venta debe ser mayor o igual al precio de costo');
       }
     }
@@ -336,98 +267,62 @@ async findAll(query: ProductQueryDto): Promise<{
       .populate('createdBy', 'displayName email')
       .exec();
 
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
+    if (!product) throw new NotFoundException('Producto no encontrado');
     return product;
   }
 
-  /**
-   * Eliminar producto
-   */
+  /* ========== REMOVE ========== */
   async remove(id: string): Promise<void> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
-
-    // Eliminar imágenes asociadas primero
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
     await this.productImageModel.deleteMany({ productId: id }).exec();
-
     const result = await this.productModel.deleteOne({ _id: id }).exec();
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('Producto no encontrado');
-    }
+    if (result.deletedCount === 0) throw new NotFoundException('Producto no encontrado');
   }
 
-  /**
-   * Activar/desactivar producto
-   */
+  /* ========== TOGGLE ACTIVE / FEATURED ========== */
   async toggleActive(id: string): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
-
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
     const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
+    if (!product) throw new NotFoundException('Producto no encontrado');
     product.isActive = !product.isActive;
     return product.save();
   }
 
-  /**
-   * Marcar/desmarcar producto como destacado
-   */
   async toggleFeatured(id: string): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
-
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
     const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
+    if (!product) throw new NotFoundException('Producto no encontrado');
     product.isFeatured = !product.isFeatured;
     return product.save();
   }
 
+  /* ========== STOCK OPS ========== */
+
   /**
-   * Actualizar stock del producto
+   * Reemplaza el stock con el valor absoluto del DTO.
+   * Usado por StockMovementsService después de un movimiento.
    */
   async updateStock(
     id: string,
     stockUpdate: StockUpdateDto,
     session?: ClientSession,
   ): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
 
     const product = await this.productModel
       .findById(id)
-      .session(session || null) // ← usa sesión si existe
+      .session(session ?? null)
       .exec();
-
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
+    if (!product) throw new NotFoundException('Producto no encontrado');
 
     product.stockQuantity = stockUpdate.quantity;
-    const updatedProduct = await product.save({ session }); // ← guarda dentro de la sesión
-
-    return updatedProduct;
+    return product.save({ session });
   }
 
-  /**
-   * Incrementar stock
-   */
   async incrementStock(productId: string, quantity: number, session?: ClientSession): Promise<void> {
     await this.productModel
       .updateOne(
-        { _id: productId },
+        { _id: new Types.ObjectId(productId) },
         { $inc: { stockQuantity: quantity } },
         { session },
       )
@@ -435,88 +330,114 @@ async findAll(query: ProductQueryDto): Promise<{
   }
 
   /**
-   * Decrementar stock
+   * ✅ FIX #4: decrementStock usa operación atómica ($inc) con validación de stock
+   * disponible para evitar race conditions. Antes: findById + save (dos operaciones).
    */
-  async decrementStock(id: string, quantity: number): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
+  async decrementStock(id: string, quantity: number, session?: ClientSession): Promise<ProductDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
 
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
+    const result = await this.productModel
+      .updateOne(
+        { _id: new Types.ObjectId(id), stockQuantity: { $gte: quantity } },
+        { $inc: { stockQuantity: -quantity } },
+        { session },
+      )
+      .exec();
 
-    if (product.stockQuantity < quantity) {
-      throw new BadRequestException('Stock insuficiente');
+    if (result.matchedCount === 0) {
+      const exists = await this.productModel.exists({ _id: id });
+      throw exists
+        ? new BadRequestException('Stock insuficiente')
+        : new NotFoundException('Producto no encontrado');
     }
-
-    product.stockQuantity -= quantity;
-    const updatedProduct = await product.save();
 
     return this.findOne(id);
   }
 
   /**
-   * Reservar stock
+   * ✅ FIX #4: reserveStock y releaseStock también usan operaciones atómicas.
    */
-  async reserveStock(id: string, quantity: number): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
+  async reserveStock(id: string, quantity: number, session?: ClientSession): Promise<ProductDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
+
+    const result = await this.productModel
+      .updateOne(
+        {
+          _id: new Types.ObjectId(id),
+          $expr: {
+            $gte: [
+              { $subtract: ['$stockQuantity', '$reservedQuantity'] },
+              quantity,
+            ],
+          },
+        },
+        { $inc: { reservedQuantity: quantity } },
+        { session },
+      )
+      .exec();
+
+    if (result.matchedCount === 0) {
+      const exists = await this.productModel.exists({ _id: id });
+      throw exists
+        ? new BadRequestException('Stock disponible insuficiente para reservar')
+        : new NotFoundException('Producto no encontrado');
     }
 
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
+    return this.findOne(id);
+  }
 
-    const available = product.stockQuantity - product.reservedQuantity;
-    if (available < quantity) {
-      throw new BadRequestException('Stock disponible insuficiente para reservar');
-    }
+  async releaseStock(id: string, quantity: number, session?: ClientSession): Promise<ProductDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de producto inválido');
 
-    product.reservedQuantity += quantity;
-    const updatedProduct = await product.save();
+    const result = await this.productModel
+      .updateOne(
+        { _id: new Types.ObjectId(id), reservedQuantity: { $gte: quantity } },
+        { $inc: { reservedQuantity: -quantity } },
+        { session },
+      )
+      .exec();
+
+    if (result.matchedCount === 0) {
+      const exists = await this.productModel.exists({ _id: id });
+      throw exists
+        ? new BadRequestException('Cantidad a liberar mayor al stock reservado')
+        : new NotFoundException('Producto no encontrado');
+    }
 
     return this.findOne(id);
   }
 
   /**
-   * Liberar stock reservado
+   * Decrementa stock solo si hay cantidad disponible.
+   * Operación atómica — usada por PosService y SalesService en transacciones.
    */
-  async releaseStock(id: string, quantity: number): Promise<ProductDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
+  async decrementStockIfAvailable(
+    productId: string,
+    quantity: number,
+    session?: ClientSession,
+  ): Promise<boolean> {
+    if (!Types.ObjectId.isValid(productId)) return false;
 
-    const product = await this.productModel.findById(id).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
+    const result = await this.productModel
+      .updateOne(
+        {
+          _id: new Types.ObjectId(productId),
+          stockQuantity: { $gte: quantity },
+        },
+        { $inc: { stockQuantity: -quantity } },
+        { session },
+      )
+      .exec();
 
-    if (product.reservedQuantity < quantity) {
-      throw new BadRequestException('Cantidad a liberar mayor al stock reservado');
-    }
-
-    product.reservedQuantity -= quantity;
-    const updatedProduct = await product.save();
-
-    return this.findOne(id);
+    return result.modifiedCount === 1;
   }
 
-  /**
-   * Obtener productos por categoría
-   */
+  /* ========== QUERIES ========== */
+
   async findByCategory(categoryId: string): Promise<ProductDocument[]> {
-    if (!Types.ObjectId.isValid(categoryId)) {
-      throw new BadRequestException('ID de categoría inválido');
-    }
-
+    if (!Types.ObjectId.isValid(categoryId)) throw new BadRequestException('ID de categoría inválido');
     return this.productModel
-      .find({ 
-        categoryId: new Types.ObjectId(categoryId),
-        isActive: true 
-      })
+      .find({ categoryId: new Types.ObjectId(categoryId), isActive: true })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
       .populate('supplierId', 'name contactEmail')
@@ -524,19 +445,10 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Obtener productos por marca
-   */
   async findByBrand(brandId: string): Promise<ProductDocument[]> {
-    if (!Types.ObjectId.isValid(brandId)) {
-      throw new BadRequestException('ID de marca inválido');
-    }
-
+    if (!Types.ObjectId.isValid(brandId)) throw new BadRequestException('ID de marca inválido');
     return this.productModel
-      .find({ 
-        brandId: new Types.ObjectId(brandId),
-        isActive: true 
-      })
+      .find({ brandId: new Types.ObjectId(brandId), isActive: true })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
       .populate('supplierId', 'name contactEmail')
@@ -544,15 +456,9 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Obtener productos destacados
-   */
-  async findFeaturedProducts(limit: number = 10): Promise<ProductDocument[]> {
+  async findFeaturedProducts(limit = 10): Promise<ProductDocument[]> {
     return this.productModel
-      .find({ 
-        isFeatured: true,
-        isActive: true 
-      })
+      .find({ isFeatured: true, isActive: true })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
       .populate('supplierId', 'name contactEmail')
@@ -561,19 +467,16 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Obtener productos con stock bajo
-   */
   async findLowStockProducts(): Promise<ProductDocument[]> {
     return this.productModel
       .find({
         isActive: true,
         $expr: {
-          $lte: [
-            { $subtract: ['$stockQuantity', '$reservedQuantity'] },
-            '$minStock'
-          ]
-        }
+          $and: [
+            { $gt:  [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] },
+            { $lte: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, '$minStock'] },
+          ],
+        },
       })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
@@ -582,19 +485,11 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Obtener productos sin stock
-   */
   async findOutOfStockProducts(): Promise<ProductDocument[]> {
     return this.productModel
       .find({
         isActive: true,
-        $expr: {
-          $lte: [
-            { $subtract: ['$stockQuantity', '$reservedQuantity'] },
-            0
-          ]
-        }
+        $expr: { $lte: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] },
       })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
@@ -603,102 +498,15 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Obtener estadísticas de productos
-   */
-  async getStats(): Promise<{
-    total: number;
-    active: number;
-    featured: number;
-    outOfStock: number;
-    lowStock: number;
-    totalStockValue: number;
-    averageProfitMargin: number;
-  }> {
-    const [
-      total,
-      active,
-      featured,
-      outOfStock,
-      lowStock,
-      stockValueResult,
-      marginResult
-    ] = await Promise.all([
-      this.productModel.countDocuments(),
-      this.productModel.countDocuments({ isActive: true }),
-      this.productModel.countDocuments({ isFeatured: true, isActive: true }),
-      this.productModel.countDocuments({
-        isActive: true,
-        $expr: { $lte: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] }
-      }),
-      this.productModel.countDocuments({
-        isActive: true,
-        $expr: {
-          $and: [
-            { $gt: [{ $subtract: ['$stockQuantity', '$reservedQuantity'] }, 0] },
-            { $lte: [
-              { $subtract: ['$stockQuantity', '$reservedQuantity'] },
-              '$minStock'
-            ]}
-          ]
-        }
-      }),
-      this.productModel.aggregate([
-        { $match: { isActive: true } },
-        {
-          $group: {
-            _id: null,
-            totalValue: { $sum: { $multiply: ['$stockQuantity', '$costPrice'] } }
-          }
-        }
-      ]),
-      this.productModel.aggregate([
-        { $match: { isActive: true, costPrice: { $gt: 0 } } },
-        {
-          $group: {
-            _id: null,
-            avgMargin: {
-              $avg: {
-                $multiply: [
-                  { $divide: [
-                    { $subtract: ['$salePrice', '$costPrice'] },
-                    '$costPrice'
-                  ]},
-                  100
-                ]
-              }
-            }
-          }
-        }
-      ])
-    ]);
-
-    const totalStockValue = stockValueResult[0]?.totalValue || 0;
-    const averageProfitMargin = marginResult[0]?.avgMargin || 0;
-
-    return {
-      total,
-      active,
-      featured,
-      outOfStock,
-      lowStock,
-      totalStockValue,
-      averageProfitMargin
-    };
-  }
-
-  /**
-   * Buscar productos
-   */
-  async searchProducts(search: string, limit: number = 10): Promise<ProductDocument[]> {
+  async searchProducts(search: string, limit = 10): Promise<ProductDocument[]> {
     return this.productModel
       .find({
         $or: [
-          { name: { $regex: search, $options: 'i' } },
+          { name:        { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
-          { sku: { $regex: search, $options: 'i' } }
+          { sku:         { $regex: search, $options: 'i' } },
         ],
-        isActive: true
+        isActive: true,
       })
       .populate('categoryId', 'name slug')
       .populate('brandId', 'name logoUrl')
@@ -707,43 +515,6 @@ async findAll(query: ProductQueryDto): Promise<{
       .exec();
   }
 
-  /**
-   * Verificar si existe producto por SKU
-   */
-  async skuExists(sku: string, excludeId?: string): Promise<boolean> {
-    const query: any = { 
-      sku 
-    };
-    
-    if (excludeId) {
-      query._id = { $ne: excludeId };
-    }
-    
-    const count = await this.productModel.countDocuments(query).exec();
-    return count > 0;
-  }
-
-  /**
-   * Verificar si existe producto por código de barras
-   */
-  async barcodeExists(barcode: string, excludeId?: string): Promise<boolean> {
-    if (!barcode) return false;
-    
-    const query: any = { 
-      barcode 
-    };
-    
-    if (excludeId) {
-      query._id = { $ne: excludeId };
-    }
-    
-    const count = await this.productModel.countDocuments(query).exec();
-    return count > 0;
-  }
-
-  /**
-   * Obtener productos con información básica para selects
-   */
   async getProductsForSelect(): Promise<Array<{ _id: string; name: string; sku: string; salePrice: number }>> {
     const products = await this.productModel
       .find({ isActive: true })
@@ -751,155 +522,77 @@ async findAll(query: ProductQueryDto): Promise<{
       .sort({ name: 1 })
       .exec();
 
-    return products.map(product => ({
-      _id: (product._id as Types.ObjectId).toString(),
-      name: product.name,
-      sku: product.sku,
-      salePrice: product.salePrice
+    return products.map((p) => ({
+      _id: (p._id as Types.ObjectId).toString(),
+      name: p.name,
+      sku: p.sku,
+      salePrice: p.salePrice,
     }));
   }
 
-  // ========== MÉTODOS PARA IMÁGENES DE PRODUCTOS ==========
+  /* ========== STATS ========== */
+  async getStats() {
+    const available = { $subtract: ['$stockQuantity', '$reservedQuantity'] };
 
-  /**
-   * Crear imágenes de producto
-   */
-  private async createProductImages(productId: string, images: any[]): Promise<void> {
-    const imageDocs = images.map(image => ({
-      ...image,
-      productId: new Types.ObjectId(productId)
-    }));
-
-    await this.productImageModel.insertMany(imageDocs);
-  }
-
-  /**
-   * Obtener imágenes de un producto
-   */
-  async getProductImages(productId: string): Promise<ProductImageDocument[]> {
-    if (!Types.ObjectId.isValid(productId)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
-
-    return this.productImageModel
-      .find({ productId: new Types.ObjectId(productId) })
-      .sort({ isPrimary: -1, sortOrder: 1 })
-      .exec();
-  }
-
-  /**
-   * Agregar imagen a producto
-   */
-  async addProductImage(createImageDto: CreateProductImageDto): Promise<ProductImageDocument> {
-    if (!Types.ObjectId.isValid(createImageDto.productId)) {
-      throw new BadRequestException('ID de producto inválido');
-    }
-
-    // Verificar que el producto existe
-    const product = await this.productModel.findById(createImageDto.productId).exec();
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
-    }
-
-    // Si esta imagen es primaria, quitar primaria de otras imágenes
-    if (createImageDto.isPrimary) {
-      await this.productImageModel.updateMany(
-        { productId: createImageDto.productId },
-        { isPrimary: false }
-      ).exec();
-    }
-
-    const image = new this.productImageModel({
-      ...createImageDto,
-      productId: new Types.ObjectId(createImageDto.productId)
-    });
-
-    return image.save();
-  }
-
-  /**
-   * Actualizar imagen de producto
-   */
-  async updateProductImage(id: string, updateImageDto: UpdateProductImageDto): Promise<ProductImageDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de imagen inválido');
-    }
-
-    // Si esta imagen se marca como primaria, quitar primaria de otras imágenes
-    if (updateImageDto.isPrimary) {
-      const image = await this.productImageModel.findById(id).exec();
-      if (image) {
-        await this.productImageModel.updateMany(
-          { 
-            productId: image.productId,
-            _id: { $ne: id }
+    const [total, active, featured, outOfStock, lowStock, stockValueResult, marginResult] =
+      await Promise.all([
+        this.productModel.countDocuments(),
+        this.productModel.countDocuments({ isActive: true }),
+        this.productModel.countDocuments({ isFeatured: true, isActive: true }),
+        this.productModel.countDocuments({
+          isActive: true,
+          $expr: { $lte: [available, 0] },
+        }),
+        this.productModel.countDocuments({
+          isActive: true,
+          $expr: {
+            $and: [
+              { $gt: [available, 0] },
+              { $lte: [available, '$minStock'] },
+            ],
           },
-          { isPrimary: false }
-        ).exec();
-      }
-    }
+        }),
+        this.productModel.aggregate([
+          { $match: { isActive: true } },
+          { $group: { _id: null, totalValue: { $sum: { $multiply: ['$stockQuantity', '$costPrice'] } } } },
+        ]),
+        this.productModel.aggregate([
+          { $match: { isActive: true, costPrice: { $gt: 0 } } },
+          {
+            $group: {
+              _id: null,
+              avgMargin: {
+                $avg: {
+                  $multiply: [
+                    { $divide: [{ $subtract: ['$salePrice', '$costPrice'] }, '$costPrice'] },
+                    100,
+                  ],
+                },
+              },
+            },
+          },
+        ]),
+      ]);
 
-    const image = await this.productImageModel
-      .findByIdAndUpdate(id, updateImageDto, { new: true, runValidators: true })
-      .exec();
-
-    if (!image) {
-      throw new NotFoundException('Imagen no encontrada');
-    }
-
-    return image;
+    return {
+      total, active, featured, outOfStock, lowStock,
+      totalStockValue: stockValueResult[0]?.totalValue || 0,
+      averageProfitMargin: marginResult[0]?.avgMargin || 0,
+    };
   }
 
-  /**
-   * Eliminar imagen de producto
-   */
-  async removeProductImage(id: string): Promise<void> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de imagen inválido');
-    }
-
-    const result = await this.productImageModel.deleteOne({ _id: id }).exec();
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('Imagen no encontrada');
-    }
+  /* ========== UTILS ========== */
+  async skuExists(sku: string, excludeId?: string): Promise<boolean> {
+    const query: Record<string, any> = { sku };
+    if (excludeId) query._id = { $ne: excludeId };
+    return (await this.productModel.countDocuments(query).exec()) > 0;
   }
 
-  /**
-   * Establecer imagen como primaria
-   */
-  async setPrimaryImage(id: string): Promise<ProductImageDocument> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('ID de imagen inválido');
-    }
-
-    const image = await this.productImageModel.findById(id).exec();
-    if (!image) {
-      throw new NotFoundException('Imagen no encontrada');
-    }
-
-    // Quitar primaria de todas las imágenes del producto
-    await this.productImageModel.updateMany(
-      { productId: image.productId },
-      { isPrimary: false }
-    ).exec();
-
-    // Establecer esta imagen como primaria
-    image.isPrimary = true;
-    return image.save();
-  }
-
-  /**
-   * Reordenar imágenes de producto
-   */
-  async reorderProductImages(updates: Array<{ id: string; sortOrder: number }>): Promise<void> {
-    const bulkOps = updates.map(update => ({
-      updateOne: {
-        filter: { _id: new Types.ObjectId(update.id) },
-        update: { sortOrder: update.sortOrder }
-      }
-    }));
-
-    await this.productImageModel.bulkWrite(bulkOps);
+  async barcodeExists(barcode: string, excludeId?: string): Promise<boolean> {
+    if (!barcode) return false;
+    const query: Record<string, any> = { barcode };
+    if (excludeId) query._id = { $ne: excludeId };
+    return (await this.productModel.countDocuments(query).exec()) > 0;
   }
 
   async countByBrand(brandId: string): Promise<number> {
@@ -907,47 +600,105 @@ async findAll(query: ProductQueryDto): Promise<{
     return this.productModel.countDocuments({ brandId: new Types.ObjectId(brandId) }).exec();
   }
 
-  async decrementStockIfAvailable(
-    productId: string,
-    quantity: number,
-    session?: ClientSession,
-  ): Promise<boolean> {
-    if (!Types.ObjectId.isValid(productId)) {
-      return false;
-    }
-
-    const result = await this.productModel
-      .updateOne(
-        {
-          _id: new Types.ObjectId(productId),
-          stockQuantity: { $gte: quantity }
-        },
-        { 
-          $inc: { stockQuantity: -quantity },
-          $set: { updatedAt: new Date() }
-        },
-        { session }
-      )
-      .exec();
-    
-    return result.modifiedCount === 1;
-  }
-
+  /* ========== ACTIVATE / DEACTIVATE ========== */
   async deactivateProduct(id: string): Promise<ProductDocument> {
     if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
     const product = await this.productModel
-      .findByIdAndUpdate(id, { isActive: false, updatedAt: new Date() }, { new: true })
+      .findByIdAndUpdate(id, { isActive: false }, { new: true })
       .exec();
-    if (!product) throw new NotFoundException(`Producto no encontrado`);
+    if (!product) throw new NotFoundException('Producto no encontrado');
     return product;
   }
 
   async activateProduct(id: string): Promise<ProductDocument> {
     if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
     const product = await this.productModel
-      .findByIdAndUpdate(id, { isActive: true, updatedAt: new Date() }, { new: true })
+      .findByIdAndUpdate(id, { isActive: true }, { new: true })
       .exec();
-    if (!product) throw new NotFoundException(`Producto no encontrado`);
+    if (!product) throw new NotFoundException('Producto no encontrado');
     return product;
+  }
+
+  /* ========== IMAGES ========== */
+  private async createProductImages(productId: string, images: any[]): Promise<void> {
+    const docs = images.map((img) => ({ ...img, productId: new Types.ObjectId(productId) }));
+    await this.productImageModel.insertMany(docs);
+  }
+
+  async getProductImages(productId: string): Promise<ProductImageDocument[]> {
+    if (!Types.ObjectId.isValid(productId)) throw new BadRequestException('ID de producto inválido');
+    return this.productImageModel
+      .find({ productId: new Types.ObjectId(productId) })
+      .sort({ isPrimary: -1, sortOrder: 1 })
+      .exec();
+  }
+
+  async addProductImage(createImageDto: CreateProductImageDto): Promise<ProductImageDocument> {
+    if (!Types.ObjectId.isValid(createImageDto.productId))
+      throw new BadRequestException('ID de producto inválido');
+
+    const product = await this.productModel.findById(createImageDto.productId).exec();
+    if (!product) throw new NotFoundException('Producto no encontrado');
+
+    if (createImageDto.isPrimary) {
+      await this.productImageModel
+        .updateMany({ productId: createImageDto.productId }, { isPrimary: false })
+        .exec();
+    }
+
+    const image = new this.productImageModel({
+      ...createImageDto,
+      productId: new Types.ObjectId(createImageDto.productId),
+    });
+    return image.save();
+  }
+
+  async updateProductImage(id: string, updateImageDto: UpdateProductImageDto): Promise<ProductImageDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de imagen inválido');
+
+    if (updateImageDto.isPrimary) {
+      const image = await this.productImageModel.findById(id).exec();
+      if (image) {
+        await this.productImageModel
+          .updateMany({ productId: image.productId, _id: { $ne: id } }, { isPrimary: false })
+          .exec();
+      }
+    }
+
+    const image = await this.productImageModel
+      .findByIdAndUpdate(id, updateImageDto, { new: true, runValidators: true })
+      .exec();
+    if (!image) throw new NotFoundException('Imagen no encontrada');
+    return image;
+  }
+
+  async removeProductImage(id: string): Promise<void> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de imagen inválido');
+    const result = await this.productImageModel.deleteOne({ _id: id }).exec();
+    if (result.deletedCount === 0) throw new NotFoundException('Imagen no encontrada');
+  }
+
+  async setPrimaryImage(id: string): Promise<ProductImageDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de imagen inválido');
+
+    const image = await this.productImageModel.findById(id).exec();
+    if (!image) throw new NotFoundException('Imagen no encontrada');
+
+    await this.productImageModel
+      .updateMany({ productId: image.productId }, { isPrimary: false })
+      .exec();
+
+    image.isPrimary = true;
+    return image.save();
+  }
+
+  async reorderProductImages(updates: Array<{ id: string; sortOrder: number }>): Promise<void> {
+    const bulkOps = updates.map((u) => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(u.id) },
+        update: { sortOrder: u.sortOrder },
+      },
+    }));
+    await this.productImageModel.bulkWrite(bulkOps);
   }
 }
