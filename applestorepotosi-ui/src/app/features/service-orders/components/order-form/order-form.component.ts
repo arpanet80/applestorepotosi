@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+// service-orders/components/order-form/order-form.component.ts
+import { Component, OnInit, ViewChild, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { ServiceOrdersService } from '../../services/service-orders.service';
 import { CustomerService } from '../../../customers/services/customer.service';
 import { Customer } from '../../../customers/models/customer.model';
@@ -19,9 +21,9 @@ interface ItemRow {
   selector: 'app-order-form',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, GenericModalComponent, RouterLink],
-  templateUrl: './order-form.component.html'
+  templateUrl: './order-form.component.html',
 })
-export class OrderFormComponent implements OnInit {
+export class OrderFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private svc = inject(ServiceOrdersService);
   private router = inject(Router);
@@ -30,40 +32,50 @@ export class OrderFormComponent implements OnInit {
 
   form!: FormGroup;
   customers: Customer[] = [];
-  rows: ItemRow[] = [];          // <-- array plano
+  rows: ItemRow[] = [];
   submitted = false;
+  saving = false;
+  errorMsg = '';
+
+  private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.buildForm();
     this.loadCustomers();
-    this.addRow();               // primera línea por defecto
+    this.addRow();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private buildForm(): void {
     this.form = this.fb.group({
       customerId: ['', Validators.required],
       device: this.fb.group({
-        type: ['iPhone', Validators.required],
-        model: ['17 Pro MAx', Validators.required],
-        imei: ['135131351351'],
-        serial: ['5a1351a351aaa'],
-        aestheticCondition: ['Seminuevo'],
+        type: ['', Validators.required],
+        model: ['', Validators.required],
+        imei: [''],
+        serial: [''],
+        aestheticCondition: [''],
         accessoriesLeft: [[]],
       }),
-      symptom: ['Síntoma por defecto', Validators.required],
-      description: ['Descripción por defecto'],
-      laborCost: [1500],
-      warrantyMonths: [3],
+      symptom: ['', Validators.required],
+      description: [''],
+      laborCost: [0, [Validators.required, Validators.min(0)]],
+      warrantyMonths: [3, [Validators.required, Validators.min(0)]],
+      photos: [[]],
     });
   }
 
   private loadCustomers(): void {
-    this.customerService.getCustomersForSelect().subscribe({
-      next: (customers) => {
-        this.customers = customers;
-        console.log("🚀 ~ OrderFormComponent ~ loadCustomers ~ customers:", this.customers)
-      }
-    });
+    this.customerService.getCustomersForSelect()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (customers) => this.customers = customers,
+        error: (err) => console.error('Error cargando clientes:', err),
+      });
   }
 
   /* ---------- helpers de filas ---------- */
@@ -75,9 +87,26 @@ export class OrderFormComponent implements OnInit {
     this.rows.splice(index, 1);
   }
 
+  get validItemsCount(): number {
+    return this.rows.filter(r => r.partName.trim().length > 0).length;
+  }
+
+  /* ---------- cálculos ---------- */
+  getItemsTotal(): number {
+    return this.rows
+      .filter(r => r.partName.trim().length > 0)
+      .reduce((sum, r) => sum + r.quantity * r.unitPrice, 0);
+  }
+
+  getGrandTotal(): number {
+    return this.getItemsTotal() + (this.form.value.laborCost || 0);
+  }
+
   /* ---------- envío ---------- */
   save(): void {
     this.submitted = true;
+    this.errorMsg = '';
+
     if (this.form.invalid) return;
 
     const items = this.rows
@@ -85,24 +114,45 @@ export class OrderFormComponent implements OnInit {
       .map(r => ({ ...r }));
 
     if (items.length === 0) {
-      alert('Debe completar al menos un repuesto');
+      this.errorMsg = 'Debe agregar al menos un repuesto válido';
       return;
     }
 
-    /* ---- 1. clona el valor del form ---- */
-    const payload: any = { ...this.form.value };
+    /* validar items antes de enviar */
+    for (const item of items) {
+      if (item.unitPrice < 0) {
+        this.errorMsg = `El precio de "${item.partName}" no puede ser negativo`;
+        return;
+      }
+      if (item.unitCost < 0) {
+        this.errorMsg = `El costo de "${item.partName}" no puede ser negativo`;
+        return;
+      }
+      if (item.quantity < 1) {
+        this.errorMsg = `La cantidad de "${item.partName}" debe ser al menos 1`;
+        return;
+      }
+    }
 
-    /* ---- 2. añade la propiedad que falta ---- */
-    payload.items = items;
+    const payload: any = { ...this.form.value, items };
 
-    // console.log(payload);   // <-- ya verás items aquí
-    this.svc.create(payload).subscribe(() => this.router.navigate(['/dashboard/service-orders']));
+    this.saving = true;
+    this.svc.create(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.saving = false;
+          this.router.navigate(['/dashboard/service-orders']);
+        },
+        error: (err) => {
+          this.saving = false;
+          this.errorMsg = err.error?.message || 'Error al crear la orden de servicio';
+          console.error('Error creando orden:', err);
+        },
+      });
   }
 
-  get validItemsCount(): number {
-    return this.rows.filter(r => r.partName.trim().length > 0).length;
-  }
-
+  /* ---------- modal cliente ---------- */
   openNewCustomerModal() {
     this.customerModal.open();
   }
@@ -123,13 +173,19 @@ export class OrderFormComponent implements OnInit {
       phone: raw.phone!,
     };
 
-    this.customerService.create(newCustomer).subscribe(c => {
-      this.customers = [c, ...this.customers];
-      this.form.get('customerId')?.setValue(c._id);
-      this.newCustomerForm.reset();
-      this.customerModal.close();
-    });
+    this.customerService.create(newCustomer)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (c) => {
+          this.customers = [c, ...this.customers];
+          this.form.get('customerId')?.setValue(c._id);
+          this.newCustomerForm.reset();
+          this.customerModal.close();
+        },
+        error: (err) => {
+          console.error('Error creando cliente:', err);
+          alert('Error al crear cliente');
+        },
+      });
   }
-
-
 }

@@ -4,18 +4,18 @@ import { Document, Schema as MongooseSchema } from 'mongoose';
 
 export type ProductDocument = Product & Document;
 
-@Schema({ 
+@Schema({
   collection: 'products',
   timestamps: true,
 })
 export class Product {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, trim: true })
   sku: string;
 
-  @Prop()
+  @Prop({ trim: true })
   barcode: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, trim: true })
   name: string;
 
   @Prop()
@@ -66,49 +66,53 @@ export class Product {
   @Prop({ default: false })
   isFeatured: boolean;
 
-  // Campos calculados virtuales
+  // Campos virtuales (no persisten en BD)
   availableQuantity?: number;
   profitMargin?: number;
   stockStatus?: string;
 
-  // Campos automáticos de timestamps
+  // Timestamps automáticos
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
-// Índices únicos
-// ProductSchema.index({ sku: 1 }, { unique: true });
+// ─── Índices ────────────────────────────────────────────────────
 ProductSchema.index({ barcode: 1 }, { sparse: true, unique: true });
-
-// Índices de rendimiento
 ProductSchema.index({ categoryId: 1, isActive: 1 });
 ProductSchema.index({ brandId: 1, isActive: 1 });
 ProductSchema.index({ stockQuantity: 1, minStock: 1 });
 
-// Virtual para cantidad disponible
-ProductSchema.virtual('availableQuantity').get(function() {
+// Índice de texto para búsquedas full-text (usar con $text en lugar de $regex)
+// Ejemplo: db.products.find({ $text: { $search: "laptop" } })
+ProductSchema.index(
+  { name: 'text', sku: 'text', description: 'text' },
+  { name: 'product_text_search' },
+);
+
+// CORRECCIÓN: índices compuestos para optimizar agregaciones frecuentes
+// getStats() filtra por isActive y hace operaciones sobre costPrice/stockQuantity
+ProductSchema.index({ isActive: 1, costPrice: 1, stockQuantity: 1 });
+
+// ─── Virtuals ───────────────────────────────────────────────────
+
+ProductSchema.virtual('availableQuantity').get(function () {
   return Math.max(0, this.stockQuantity - this.reservedQuantity);
 });
 
-// Virtual para margen de ganancia
-ProductSchema.virtual('profitMargin').get(function() {
+ProductSchema.virtual('profitMargin').get(function () {
   if (this.costPrice === 0) return 0;
   return ((this.salePrice - this.costPrice) / this.costPrice) * 100;
 });
 
-// Virtual para estado del stock
-ProductSchema.virtual('stockStatus').get(function() {
+ProductSchema.virtual('stockStatus').get(function () {
   const available = this.stockQuantity - this.reservedQuantity;
   if (available <= 0) return 'out-of-stock';
   if (available <= this.minStock) return 'low-stock';
-  if (available >= this.maxStock && this.maxStock > 0) return 'over-stock';
+  if (this.maxStock > 0 && available >= this.maxStock) return 'over-stock';
   return 'in-stock';
 });
 
-// Asegurar que los virtuals se incluyan en JSON
 ProductSchema.set('toJSON', { virtuals: true });
 ProductSchema.set('toObject', { virtuals: true });
-
-

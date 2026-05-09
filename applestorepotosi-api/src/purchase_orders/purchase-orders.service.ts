@@ -5,9 +5,10 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { PurchaseOrder, PurchaseOrderDocument } from './schemas/purchase-order.schema';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { Supplier, SupplierDocument } from '../suppliers/schemas/supplier.schema';
@@ -15,37 +16,72 @@ import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 
+// ---------- Tipos auxiliares ----------
+
+/**
+ * Perfil mínimo del usuario autenticado que el guard inyecta en req.user.
+ * Centralizar aquí evita el patrón reqUser?._id?.toString() ?? reqUser?.uid ?? reqUser
+ * disperso en todo el service.
+ */
+export interface AuthUser {
+  /** ObjectId de MongoDB del usuario (string hex de 24 chars). */
+  _id: string;
+  uid?: string;
+  email?: string;
+}
+
+/** Extrae el ID del usuario de forma segura sin importar cómo llegue el objeto. */
+function resolveUserId(reqUser: AuthUser | any): string {
+  return reqUser?._id?.toString() ?? reqUser?.uid ?? String(reqUser);
+}
+
+// ---------- Nombre del contador de secuencia ----------
+const ORDER_COUNTER_KEY = 'purchase_order_seq';
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectModel(PurchaseOrder.name)
-    private purchaseOrderModel: Model<PurchaseOrderDocument>,
+    private readonly purchaseOrderModel: Model<PurchaseOrderDocument>,
 
     @InjectModel(Supplier.name)
-    private supplierModel: Model<SupplierDocument>,
+    private readonly supplierModel: Model<SupplierDocument>,
 
-    // ✅ FIX #2: necesitamos el modelo de Product para actualizar stock al completar
     @InjectModel(Product.name)
-    private productModel: Model<ProductDocument>,
+    private readonly productModel: Model<ProductDocument>,
+
+    /** Conexión de Mongoose para acceder a la colección de contadores y abrir sessions. */
+    @InjectConnection()
+    private readonly connection: Connection,
   ) {}
 
-  /* ========== VALIDACIONES ========== */
+  // =========================================================
+  //  VALIDACIONES PRIVADAS
+  // =========================================================
 
   private validateObjectId(id: string, field: string): void {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`${field} debe ser un ID válido de 24 caracteres hexadecimales`);
+      throw new BadRequestException(
+        `${field} debe ser un ObjectId válido de 24 caracteres hexadecimales`,
+      );
     }
   }
 
-  // ✅ FIX #8: validateItems solo vive en el service, el controller ya no la llama
-  validateItems(items: any[]): void {
+  /**
+   * Validación interna de items.
+   * Es PRIVADA: el controller nunca la invoca directamente.
+   */
+  private validateItems(items: CreatePurchaseOrderDto['items']): void {
     if (!items || items.length === 0) {
       throw new BadRequestException('La orden debe contener al menos un item');
     }
     items.forEach((item, index) => {
-      if (!item.productId) throw new BadRequestException(`Item ${index + 1} sin productId`);
-      if (item.quantity <= 0) throw new BadRequestException(`Item ${index + 1} cantidad <= 0`);
-      if (item.unitCost < 0) throw new BadRequestException(`Item ${index + 1} costo < 0`);
+      if (!item.productId)
+        throw new BadRequestException(`Item ${index + 1}: falta productId`);
+      if (item.quantity <= 0)
+        throw new BadRequestException(`Item ${index + 1}: quantity debe ser > 0`);
+      if (item.unitCost < 0)
+        throw new BadRequestException(`Item ${index + 1}: unitCost no puede ser negativo`);
     });
   }
 
@@ -58,86 +94,117 @@ export class PurchaseOrdersService {
       cancelled: ['pending'],
     };
     if (!allowed[current]?.includes(next)) {
-      throw new BadRequestException(`Transición no permitida: ${current} → ${next}`);
+      throw new BadRequestException(
+        `Transición de estado no permitida: ${current} → ${next}`,
+      );
     }
   }
 
-  calculateOrderTotal(items: any[]): number {
+  calculateOrderTotal(items: Array<{ quantity: number; unitCost: number }>): number {
     return items.reduce((total, item) => total + item.quantity * item.unitCost, 0);
   }
 
-  /* ========== GENERATE ORDER NUMBER ========== */
+  // =========================================================
+  //  GENERACIÓN DE NÚMERO DE ORDEN — contador atómico
+  // =========================================================
 
-  // ✅ FIX #1: mismo patrón robusto que generateSaleNumber — retry con exists()
+  /**
+   * Genera un número de orden único usando un contador atómico con $inc.
+   * Una sola query, sin condición de carrera, sin reintentos.
+   *
+   * La colección `counters` almacena documentos { _id: string, seq: number }.
+   */
   private async generateOrderNumber(): Promise<string> {
-    const MAX_RETRIES = 10;
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const last = await this.purchaseOrderModel
-        .findOne({ orderNumber: { $regex: /^OC-/ } })
-        .sort({ orderNumber: -1 })
-        .select('orderNumber')
-        .lean()
-        .exec();
+    // La colección `counters` usa _id de tipo string, no ObjectId.
+    // Se castea el filtro a `any` para evitar el error de TypeScript que espera ObjectId.
+    const countersCollection = this.connection.collection<{ _id: string; seq: number }>('counters');
 
-      let seq = 1;
-      if (last) {
-        const match = (last.orderNumber as string).match(/^OC-(\d+)$/);
-        if (match) seq = parseInt(match[1], 10) + 1;
-      }
-      const candidate = `OC-${String(seq).padStart(6, '0')}`;
+    const result = await countersCollection.findOneAndUpdate(
+      { _id: ORDER_COUNTER_KEY } as any,
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' },
+    );
 
-      const exists = await this.purchaseOrderModel.exists({ orderNumber: candidate });
-      if (!exists) return candidate;
+    if (!result) {
+      throw new InternalServerErrorException(
+        'No se pudo generar el número de orden (contador atómico falló)',
+      );
     }
-    throw new Error('No se pudo generar un número de orden único tras varios intentos');
+
+    const seq: number = (result as any).seq ?? (result as any).value?.seq;
+    return `OC-${String(seq).padStart(6, '0')}`;
   }
 
-  /* ========== CREATE ========== */
+  // =========================================================
+  //  CREATE
+  // =========================================================
 
   async create(
     dto: CreatePurchaseOrderDto,
-    reqUser: any,
+    reqUser: AuthUser,
   ): Promise<PurchaseOrderDocument> {
     this.validateObjectId(dto.supplierId, 'supplierId');
-    dto.items.forEach((item, i) => this.validateObjectId(item.productId, `items[${i}].productId`));
+    dto.items.forEach((item, i) =>
+      this.validateObjectId(item.productId, `items[${i}].productId`),
+    );
 
     const supplierExists = await this.supplierModel.exists({ _id: dto.supplierId });
     if (!supplierExists) throw new NotFoundException('Proveedor no encontrado');
 
-    // ✅ FIX #8: validación centralizada en service
     this.validateItems(dto.items);
 
     const calculatedTotal = this.calculateOrderTotal(dto.items);
-    const orderNumber = await this.generateOrderNumber();
-    const creatorObjectId = reqUser._id;
+    const orderNumber     = await this.generateOrderNumber();
+    const creatorId       = new Types.ObjectId(resolveUserId(reqUser));
 
     const order = new this.purchaseOrderModel({
       ...dto,
       orderNumber,
-      supplierId:  new Types.ObjectId(dto.supplierId),
-      userId:      creatorObjectId,
-      orderDate:   dto.orderDate || new Date(),
-      status:      'pending',
-      createdBy:   creatorObjectId,
-      totalAmount: calculatedTotal,
+      supplierId:    new Types.ObjectId(dto.supplierId),
+      orderDate:     dto.orderDate ?? new Date(),
+      status:        'pending',
+      createdBy:     creatorId,
+      updatedBy:     creatorId,
+      totalAmount:   calculatedTotal,
+      statusHistory: [
+        { status: 'pending', changedBy: creatorId, changedAt: new Date(), reason: '' },
+      ],
       items: dto.items.map((item) => ({
-        ...item,
         productId: new Types.ObjectId(item.productId),
+        quantity:  item.quantity,
+        unitCost:  item.unitCost,
         subtotal:  item.quantity * item.unitCost,
       })),
     });
 
-    return order.save();
+    try {
+      return await order.save();
+    } catch (err: any) {
+      // E11000: race condition extremadamente improbable con $inc, pero la manejamos igual
+      if (err?.code === 11000) {
+        throw new ConflictException(
+          'Conflicto al generar el número de orden. Intente nuevamente.',
+        );
+      }
+      throw err;
+    }
   }
 
-  /* ========== FIND ALL ========== */
+  // =========================================================
+  //  FIND ALL
+  // =========================================================
 
   async findAll(query: PurchaseOrderQueryDto) {
-    const { status, supplierId, search, startDate, endDate, page = 1, limit = 10 } = query;
+    const {
+      status, supplierId, search,
+      startDate, endDate,
+      page = 1, limit = 10,
+    } = query;
+
     const skip = (page - 1) * limit;
     const filter: Record<string, any> = { isDeleted: false };
 
-    if (status) filter.status = status;
+    if (status)    filter.status = status;
     if (supplierId && Types.ObjectId.isValid(supplierId)) {
       filter.supplierId = new Types.ObjectId(supplierId);
     }
@@ -146,10 +213,11 @@ export class PurchaseOrdersService {
       if (startDate) filter.orderDate.$gte = new Date(startDate);
       if (endDate)   filter.orderDate.$lte = new Date(endDate);
     }
-
-    // ✅ FIX #5: search filter corregido — condiciones separadas limpias
     if (search) {
-      const conditions: any[] = [{ notes: { $regex: search, $options: 'i' } }];
+      const conditions: any[] = [
+        { notes: { $regex: search, $options: 'i' } },
+        { orderNumber: { $regex: search, $options: 'i' } },
+      ];
       if (Types.ObjectId.isValid(search)) {
         conditions.push({ _id: new Types.ObjectId(search) });
       }
@@ -160,27 +228,35 @@ export class PurchaseOrdersService {
       this.purchaseOrderModel
         .find(filter)
         .populate('supplierId', 'name contactEmail contactPhone')
-        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('createdBy', 'profile.firstName profile.lastName email')
         .populate('items.productId', 'name sku barcode costPrice salePrice')
         .sort({ orderDate: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .lean()
         .exec(),
       this.purchaseOrderModel.countDocuments(filter).exec(),
     ]);
 
-    return { purchaseOrders: orders, total, page, totalPages: Math.ceil(total / limit) };
+    return {
+      purchaseOrders: orders,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  /* ========== FIND ONE ========== */
+  // =========================================================
+  //  FIND ONE
+  // =========================================================
 
   async findOne(id: string): Promise<PurchaseOrderDocument> {
-    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
+    this.validateObjectId(id, 'id');
 
     const order = await this.purchaseOrderModel
       .findOne({ _id: id, isDeleted: false })
       .populate('supplierId', 'name contactEmail contactPhone')
-      .populate('userId', 'profile.firstName profile.lastName email')
+      .populate('createdBy', 'profile.firstName profile.lastName email')
       .populate('items.productId', 'name sku barcode costPrice salePrice stockQuantity')
       .exec();
 
@@ -188,18 +264,21 @@ export class PurchaseOrdersService {
     return order;
   }
 
-  /* ========== UPDATE ========== */
+  // =========================================================
+  //  UPDATE
+  // =========================================================
 
   async update(
     id: string,
     dto: UpdatePurchaseOrderDto,
-    reqUserId: string, // ✅ FIX #9: recibe solo el UID string, no el objeto completo
+    reqUserId: string,
   ): Promise<PurchaseOrderDocument> {
-    // ✅ FIX #9: eliminados console.log de debug
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(reqUserId, 'reqUserId');
 
-    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID de orden inválido');
-
-    const existing = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
+    const existing = await this.purchaseOrderModel
+      .findOne({ _id: id, isDeleted: false })
+      .exec();
     if (!existing) throw new NotFoundException('Orden no encontrada');
 
     if (['completed', 'approved'].includes(existing.status)) {
@@ -213,35 +292,34 @@ export class PurchaseOrdersService {
     }
 
     if (dto.items) {
-      dto.items.forEach((item, i) => this.validateObjectId(item.productId, `items[${i}].productId`));
+      dto.items.forEach((item, i) =>
+        this.validateObjectId(item.productId, `items[${i}].productId`),
+      );
       this.validateItems(dto.items);
     }
 
-    // ✅ FIX #3: construir el updateData sin spreads problemáticos
-    // Evita doble escritura (findByIdAndUpdate + markModified + save)
     const updateData: Record<string, any> = {
       updatedBy: new Types.ObjectId(reqUserId),
     };
 
-    if (dto.notes !== undefined)   updateData.notes = dto.notes;
+    if (dto.notes !== undefined)     updateData.notes     = dto.notes;
     if (dto.orderDate !== undefined) updateData.orderDate = dto.orderDate;
-    if (dto.supplierId)            updateData.supplierId = new Types.ObjectId(dto.supplierId);
+    if (dto.supplierId)              updateData.supplierId = new Types.ObjectId(dto.supplierId);
 
     if (dto.items) {
-      // Construir items con subtotales calculados para que el pre-save no recalcule mal
       updateData.items = dto.items.map((item) => ({
         productId: new Types.ObjectId(item.productId),
         quantity:  item.quantity,
         unitCost:  item.unitCost,
         subtotal:  item.quantity * item.unitCost,
       }));
-      updateData.totalAmount = dto.items.reduce((sum, i) => sum + i.quantity * i.unitCost, 0);
+      updateData.totalAmount = this.calculateOrderTotal(dto.items);
     }
 
     const updated = await this.purchaseOrderModel
       .findByIdAndUpdate(id, { $set: updateData }, { new: true, runValidators: true })
       .populate('supplierId', 'name contactEmail contactPhone')
-      .populate('userId', 'profile.firstName profile.lastName email')
+      .populate('createdBy', 'profile.firstName profile.lastName email')
       .populate('items.productId', 'name sku barcode costPrice salePrice')
       .exec();
 
@@ -249,126 +327,226 @@ export class PurchaseOrdersService {
     return updated;
   }
 
-  /* ========== REMOVE ========== */
+  // =========================================================
+  //  REMOVE (soft-delete)
+  // =========================================================
 
   async remove(id: string, userId: string): Promise<void> {
-    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
+    this.validateObjectId(id, 'id');
+    this.validateObjectId(userId, 'userId');
 
-    const order = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
-    if (!order) throw new NotFoundException('Orden no encontrada');
-
-    if (['completed', 'approved'].includes(order.status)) {
-      throw new ConflictException('No se puede eliminar una orden completada o aprobada');
-    }
-
+    // Una sola query: filtra status protegido + isDeleted en el mismo updateOne.
     const result = await this.purchaseOrderModel
-      .updateOne({ _id: id }, { isDeleted: true, updatedBy: new Types.ObjectId(userId) })
+      .updateOne(
+        {
+          _id:       new Types.ObjectId(id),
+          isDeleted: false,
+          status:    { $nin: ['completed', 'approved'] },
+        },
+        {
+          $set: {
+            isDeleted: true,
+            updatedBy: new Types.ObjectId(userId),
+          },
+        },
+      )
       .exec();
 
-    if (result.modifiedCount === 0) throw new NotFoundException('Orden no encontrada');
+    if (result.matchedCount === 0) {
+      // Determinar si no existía o si tenía un estado protegido para dar mensaje preciso.
+      const order = await this.purchaseOrderModel
+        .findOne({ _id: id, isDeleted: false })
+        .select('status')
+        .lean()
+        .exec();
+
+      if (!order) throw new NotFoundException('Orden no encontrada');
+      throw new ConflictException(
+        `No se puede eliminar una orden en estado "${order.status}"`,
+      );
+    }
   }
 
-  /* ========== UPDATE STATUS ========== */
+  // =========================================================
+  //  UPDATE STATUS (interno — con session opcional)
+  // =========================================================
 
+  /**
+   * Actualiza el estado de una orden y registra la transición en statusHistory.
+   * Acepta una session de Mongoose para participar en transacciones.
+   */
   async updateStatus(
     id: string,
     dto: UpdateStatusDto,
-    userId?: string, // ✅ FIX #4: siempre string UID, no objeto
+    userId?: string,
+    session?: any,
   ): Promise<PurchaseOrderDocument> {
-    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID inválido');
-    if (userId && !Types.ObjectId.isValid(userId)) throw new BadRequestException('userId inválido');
+    this.validateObjectId(id, 'id');
+    if (userId) this.validateObjectId(userId, 'userId');
 
-    const order = await this.purchaseOrderModel.findOne({ _id: id, isDeleted: false }).exec();
+    const order = await this.purchaseOrderModel
+      .findOne({ _id: id, isDeleted: false })
+      .session(session ?? null)
+      .exec();
     if (!order) throw new NotFoundException('Orden no encontrada');
 
     this.validateStatusTransition(order.status, dto.status);
 
-    const updateData: Record<string, any> = {
+    const changedBy = userId ? new Types.ObjectId(userId) : undefined;
+
+    const historyEntry = {
       status:    dto.status,
-      updatedBy: userId ? new Types.ObjectId(userId) : undefined,
+      changedBy,
+      changedAt: new Date(),
+      reason:    dto.reason ?? '',
     };
 
-    if (dto.reason) {
-      const currentNotes = order.notes || '';
-      updateData.notes = `${currentNotes}\n[${new Date().toISOString()}] ${userId}: ${order.status} → ${dto.status} | ${dto.reason}`.trim();
-    }
+    const updatePayload: Record<string, any> = {
+      $set: {
+        status:    dto.status,
+        updatedBy: changedBy,
+      },
+      $push: {
+        statusHistory: historyEntry,
+      },
+    };
 
     const updated = await this.purchaseOrderModel
-      .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+      .findByIdAndUpdate(id, updatePayload, {
+        new:            true,
+        runValidators:  true,
+        session:        session ?? null,
+      })
       .populate('supplierId', 'name contactEmail contactPhone')
-      .populate('userId', 'profile.firstName profile.lastName email')
+      .populate('createdBy', 'profile.firstName profile.lastName email')
       .populate('items.productId', 'name sku barcode costPrice salePrice')
       .exec();
 
-    if (!updated) throw new NotFoundException('Orden no encontrada después de actualizar estado');
+    if (!updated)
+      throw new NotFoundException('Orden no encontrada después de actualizar estado');
     return updated;
   }
 
-  /* ========== COMPLETE ORDER — actualiza stock ========== */
+  // =========================================================
+  //  COMPLETE ORDER — transacción atómica stock + estado
+  // =========================================================
 
-  // ✅ FIX #2: al completar la orden se incrementa el stock de cada producto recibido
-  async completeOrder(id: string, reqUser?: any): Promise<PurchaseOrderDocument> {
-    const userId: string = reqUser?._id?.toString() ?? reqUser?.uid ?? reqUser;
+  /**
+   * Completa la orden e incrementa el stock de cada producto.
+   * Usa una sesión de MongoDB para garantizar atomicidad: si falla
+   * la actualización de stock, el cambio de estado no se aplica (y viceversa).
+   */
+  async completeOrder(
+    id: string,
+    reqUser?: AuthUser,
+  ): Promise<PurchaseOrderDocument> {
+    const userId = resolveUserId(reqUser);
+    this.validateObjectId(id, 'id');
 
+    // Leer la orden ANTES de abrir la transacción para validar rápido.
     const order = await this.purchaseOrderModel
       .findOne({ _id: id, isDeleted: false })
       .lean()
       .exec();
     if (!order) throw new NotFoundException('Orden no encontrada');
 
-    // Validar transición antes de actualizar stock
     this.validateStatusTransition(order.status, 'completed');
 
-    // Incrementar stock de cada producto en paralelo con $inc atómico
-    await Promise.all(
-      order.items.map((item) =>
-        this.productModel.updateOne(
-          { _id: item.productId },
-          { $inc: { stockQuantity: item.quantity } },
-        ),
-      ),
-    );
+    // Verificar que todos los productos existen antes de tocar nada.
+    const productIds = order.items.map((item) => item.productId);
+    const foundCount = await this.productModel.countDocuments({
+      _id: { $in: productIds },
+    });
+    if (foundCount !== productIds.length) {
+      throw new NotFoundException(
+        `${productIds.length - foundCount} producto(s) de la orden no fueron encontrados`,
+      );
+    }
 
-    return this.updateStatus(id, { status: 'completed' }, userId);
+    // Transacción: primero cambia el estado, luego actualiza stock.
+    // Si cualquiera falla, MongoDB revierte todo.
+    const session = await this.connection.startSession();
+    let result: PurchaseOrderDocument;
+
+    try {
+      await session.withTransaction(async () => {
+        result = await this.updateStatus(
+          id,
+          { status: 'completed' },
+          userId,
+          session,
+        );
+
+        await Promise.all(
+          order.items.map((item) =>
+            this.productModel.updateOne(
+              { _id: item.productId },
+              { $inc: { stockQuantity: item.quantity } },
+              { session },
+            ),
+          ),
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return result!;
   }
 
-  /* ========== APPROVE / REJECT / CANCEL ========== */
+  // =========================================================
+  //  APPROVE / REJECT / CANCEL
+  // =========================================================
 
-  // ✅ FIX #4: extraer el _id string del reqUser antes de pasar a updateStatus
-  async approveOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
-    const userId: string = reqUser?._id?.toString() ?? reqUser?.uid ?? reqUser;
+  async approveOrder(
+    id: string,
+    reason?: string,
+    reqUser?: AuthUser,
+  ): Promise<PurchaseOrderDocument> {
+    const userId = resolveUserId(reqUser);
     return this.updateStatus(id, { status: 'approved', reason }, userId);
   }
 
-  async rejectOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
-    const userId: string = reqUser?._id?.toString() ?? reqUser?.uid ?? reqUser;
+  async rejectOrder(
+    id: string,
+    reason?: string,
+    reqUser?: AuthUser,
+  ): Promise<PurchaseOrderDocument> {
+    const userId = resolveUserId(reqUser);
     return this.updateStatus(id, { status: 'rejected', reason }, userId);
   }
 
-  async cancelOrder(id: string, reason?: string, reqUser?: any): Promise<PurchaseOrderDocument> {
-    const userId: string = reqUser?._id?.toString() ?? reqUser?.uid ?? reqUser;
+  async cancelOrder(
+    id: string,
+    reason?: string,
+    reqUser?: AuthUser,
+  ): Promise<PurchaseOrderDocument> {
+    const userId = resolveUserId(reqUser);
     return this.updateStatus(id, { status: 'cancelled', reason }, userId);
   }
 
-  /* ========== FIND BY SUPPLIER / STATUS ========== */
+  // =========================================================
+  //  FIND BY SUPPLIER / STATUS
+  // =========================================================
 
-  // ✅ FIX #15: paginación agregada
   async findBySupplier(supplierId: string, page = 1, limit = 20) {
-    if (!Types.ObjectId.isValid(supplierId)) throw new BadRequestException('ID de proveedor inválido');
-    const skip = (page - 1) * limit;
+    this.validateObjectId(supplierId, 'supplierId');
+
+    const skip   = (page - 1) * limit;
     const filter = { supplierId: new Types.ObjectId(supplierId), isDeleted: false };
 
     const [orders, total] = await Promise.all([
       this.purchaseOrderModel
         .find(filter)
         .populate('supplierId', 'name contactEmail contactPhone')
-        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('createdBy', 'profile.firstName profile.lastName email')
         .populate('items.productId', 'name sku barcode costPrice salePrice')
         .sort({ orderDate: -1 })
         .skip(skip)
         .limit(limit)
+        .lean()
         .exec(),
-      this.purchaseOrderModel.countDocuments(filter),
+      this.purchaseOrderModel.countDocuments(filter).exec(),
     ]);
 
     return { orders, total, page, totalPages: Math.ceil(total / limit) };
@@ -377,28 +555,31 @@ export class PurchaseOrdersService {
   async findByStatus(status: string, page = 1, limit = 20) {
     const valid = ['pending', 'approved', 'rejected', 'completed', 'cancelled'];
     if (!valid.includes(status)) throw new BadRequestException('Estado inválido');
-    const skip = (page - 1) * limit;
+
+    const skip   = (page - 1) * limit;
     const filter = { status, isDeleted: false };
 
     const [orders, total] = await Promise.all([
       this.purchaseOrderModel
         .find(filter)
         .populate('supplierId', 'name contactEmail contactPhone')
-        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('createdBy', 'profile.firstName profile.lastName email')
         .populate('items.productId', 'name sku barcode costPrice salePrice')
         .sort({ orderDate: -1 })
         .skip(skip)
         .limit(limit)
+        .lean()
         .exec(),
-      this.purchaseOrderModel.countDocuments(filter),
+      this.purchaseOrderModel.countDocuments(filter).exec(),
     ]);
 
     return { orders, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  /* ========== STATS ========== */
+  // =========================================================
+  //  STATS
+  // =========================================================
 
-  // ✅ FIX #14: consolidado en 1 aggregation con $facet en vez de 5 queries
   async getStats() {
     const [agg] = await this.purchaseOrderModel.aggregate([
       { $match: { isDeleted: false } },
@@ -406,9 +587,23 @@ export class PurchaseOrdersService {
         $facet: {
           total:     [{ $count: 'n' }],
           byStatus:  [{ $group: { _id: '$status', count: { $sum: 1 } } }],
-          financial: [{ $group: { _id: null, totalAmount: { $sum: '$totalAmount' }, avg: { $avg: '$totalAmount' } } }],
-          pending:   [{ $match: { status: 'pending' } },   { $group: { _id: null, amount: { $sum: '$totalAmount' } } }],
-          completed: [{ $match: { status: 'completed' } }, { $group: { _id: null, amount: { $sum: '$totalAmount' } } }],
+          financial: [
+            {
+              $group: {
+                _id: null,
+                totalAmount: { $sum: '$totalAmount' },
+                avg:         { $avg: '$totalAmount' },
+              },
+            },
+          ],
+          pending: [
+            { $match: { status: 'pending' } },
+            { $group: { _id: null, amount: { $sum: '$totalAmount' } } },
+          ],
+          completed: [
+            { $match: { status: 'completed' } },
+            { $group: { _id: null, amount: { $sum: '$totalAmount' } } },
+          ],
         },
       },
     ]);
@@ -417,12 +612,12 @@ export class PurchaseOrdersService {
     (agg.byStatus ?? []).forEach((s: any) => (statsByStatus[s._id] = s.count));
 
     return {
-      total:              agg.total[0]?.n ?? 0,
-      byStatus:           statsByStatus,
-      totalAmount:        agg.financial[0]?.totalAmount ?? 0,
-      averageOrderValue:  agg.financial[0]?.avg ?? 0,
-      pendingAmount:      agg.pending[0]?.amount ?? 0,
-      completedAmount:    agg.completed[0]?.amount ?? 0,
+      total:             agg.total[0]?.n             ?? 0,
+      byStatus:          statsByStatus,
+      totalAmount:       agg.financial[0]?.totalAmount ?? 0,
+      averageOrderValue: agg.financial[0]?.avg          ?? 0,
+      pendingAmount:     agg.pending[0]?.amount         ?? 0,
+      completedAmount:   agg.completed[0]?.amount       ?? 0,
     };
   }
 }

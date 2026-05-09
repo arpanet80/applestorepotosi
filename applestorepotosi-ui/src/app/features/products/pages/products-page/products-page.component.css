@@ -92,13 +92,35 @@
   color: var(--kt-text-muted);
 }
 
-/* ---------- Empty / Error / Loading ---------- */
+/* ---------- Selector de ítems por página ---------- */
+.items-per-page-selector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.items-per-page-selector .form-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--kt-text-muted);
+  white-space: nowrap;
+}
+
+.items-per-page-selector .form-select-sm {
+  min-width: 4.5rem;
+  padding: 0.35rem 2rem 0.35rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* ---------- Loading / Error / Empty ---------- */
 .loading-state,
 .error-state,
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: transparent;
+  background: transparent; /* ← TRANSPARENTE, sin fondo blanco */
   border: 1px solid var(--kt-border-color);
   border-radius: 0.65rem;
 }
@@ -118,89 +140,18 @@
   font-weight: 600;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header-actions {
-    justify-content: center;
-  }
-
-  .pagination {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .pagination-pages {
-    order: -1;
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-
-
-
-
-
-
-
-
-/* Header */
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-}
-
-.header-info p {
-  color: #7f8c8d;
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-
-/* Loading & Error States */
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-}
-
+/* ---------- Spinner ---------- */
 .spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  border: 4px solid var(--kt-border-color);
+  border-top: 4px solid var(--kt-primary);
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  animation: spin 2s linear infinite;
+  animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
 }
 
-.error-message h3 {
-  color: #e74c3c;
-  margin: 0 0 1rem 0;
-}
-
-
-/* Responsive */
+/* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
   .products-page {
     padding: 1rem;
@@ -221,6 +172,26 @@
 }
 
 @media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    justify-content: center;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-pages {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+  
   .filter-buttons {
     justify-content: center;
   }
@@ -244,6 +215,11 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+  }
+  
+  .items-per-page-selector {
+    width: 100%;
+    justify-content: center;
   }
 }
 

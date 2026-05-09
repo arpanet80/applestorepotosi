@@ -197,14 +197,14 @@ export const routes: Routes = [
         path: 'technician-products',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TECHNICIAN] },
-        loadComponent: () => import('./features/technician/components/products-home/technician-products-home.component').then(c => c.TechnicianProductsHomeComponent),
+        loadComponent: () => import('./features/technician/components/products-home/product-management.component').then(c => c.ProductManagementComponent),
         title: 'Productos - Técnico'
       },
       {
         path: 'technician-products-detail/:id',
         canActivate: [roleGuard],
         data: { roles: [UserRole.TECHNICIAN], titulo: 'Detalles del Producto', subtitulo: 'Muestra los detalles del producto seleccionado', rutaBreadcrumbs:'Detalle de producto' },
-        loadComponent: () => import('./features/technician/components/product-detail/technician-product-detail.component').then(c => c.TechnicianProductDetailComponent),
+        loadComponent: () => import('./features/technician/components/product-detail/product-detail.component').then(c => c.ProductDetailComponent),
         title: 'Detalle de Producto - Técnico'
       },
       {
@@ -233,9 +233,23 @@ export const routes: Routes = [
         path: 'overview',
         loadComponent: () => import('./dashboard/overview/overview.component').then(c => c.OverviewComponent),
         title: 'Resumen - Apple Store Potosí'
-      }
+      },
+
+      /* ------------------------------------------------------------------
+       *  REPORTES
+       * ------------------------------------------------------------------ */
+        {
+          path: 'reports',
+          canActivate: [roleGuard],
+          data: { roles: [UserRole.ADMIN, UserRole.SALES] },
+          loadChildren: () => import('./features/reports/reports.routes').then(m => m.REPORTS_ROUTES),
+          title: 'Reportes - Apple Store Potosí'
+        },
+
     ]
   },
+
+  
 
   /* ====================================================================
    *  VERIFICACIÓN DE TICKETS (página pública sin layout)

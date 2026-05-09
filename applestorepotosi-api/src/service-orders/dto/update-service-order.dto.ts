@@ -1,3 +1,4 @@
+// src/service-orders/dto/update-service-order.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateServiceOrderDto } from './create-service-order.dto';
 import { OmitType } from '@nestjs/mapped-types';

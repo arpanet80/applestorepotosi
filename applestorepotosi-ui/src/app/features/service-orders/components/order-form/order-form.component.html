@@ -3,14 +3,22 @@
     <h2 class="card-title fw-bold">Nueva orden de servicio</h2>
     <div class="card-toolbar">
       <button type="button" class="btn btn-light me-3" routerLink="/dashboard/service-orders">Cancelar</button>
-      <button type="button" class="btn btn-primary" (click)="save()">Guardar</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+        {{ saving ? 'Guardando...' : 'Guardar' }}
+      </button>
     </div>
+  </div>
+
+  <!-- mensaje de error -->
+  <div *ngIf="errorMsg" class="alert alert-danger mx-6 mt-4 mb-0">
+    {{ errorMsg }}
   </div>
 
   <div class="card-body fs-6">
     <form [formGroup]="form" class="gy-4" novalidate>
       <!-- cliente -->
-      <div class="row">
+      <div class="row align-items-end">
         <div class="col-md-6">
           <label class="form-label required">Cliente</label>
           <select formControlName="customerId" class="form-select form-select-solid"
@@ -22,15 +30,12 @@
             Cliente requerido
           </div>
         </div>
-        <button
-              type="button"
-              class="btn btn-icon btn-light-primary"
-              (click)="openNewCustomerModal()"
-              title="Nuevo cliente"
-            >
-              <i class="ki-duotone ki-plus fs-3"></i>
-        </button>
-        <div class="col-md-6">
+        <div class="col-md-1">
+          <button type="button" class="btn btn-icon btn-light-primary" (click)="openNewCustomerModal()" title="Nuevo cliente">
+            <i class="ki-duotone ki-plus fs-3"></i>
+          </button>
+        </div>
+        <div class="col-md-5">
           <label class="form-label">Meses de garantía</label>
           <input type="number" formControlName="warrantyMonths" class="form-control form-control-solid" min="0">
         </div>
@@ -42,7 +47,12 @@
           <label class="form-label required">Tipo</label>
           <select formControlName="type" class="form-select form-select-solid"
                   [class.is-invalid]="submitted && form.get('device.type')?.errors">
-            <option>iPhone</option><option>iPad</option><option>Mac</option><option>Watch</option>
+            <option value="" disabled selected>Seleccione tipo</option>
+            <option>iPhone</option>
+            <option>iPad</option>
+            <option>Mac</option>
+            <option>Watch</option>
+            <option>Otro</option>
           </select>
           <div *ngIf="submitted && form.get('device.type')?.errors" class="invalid-feedback">Tipo requerido</div>
         </div>
@@ -55,7 +65,7 @@
         <div class="col-md-4">
           <label class="form-label">Condición estética</label>
           <input type="text" formControlName="aestheticCondition" class="form-control form-control-solid"
-                 placeholder="Rayones leves">
+                 placeholder="Rayones leves, golpes...">
         </div>
         <div class="col-md-6">
           <label class="form-label">IMEI</label>
@@ -72,7 +82,7 @@
         <div class="col-12">
           <label class="form-label required">Síntoma</label>
           <textarea formControlName="symptom" rows="2" class="form-control form-control-solid"
-                    placeholder="Ej. No enciende"
+                    placeholder="Ej. No enciende, pantalla rota..."
                     [class.is-invalid]="submitted && form.get('symptom')?.errors"></textarea>
           <div *ngIf="submitted && form.get('symptom')?.errors" class="invalid-feedback">Síntoma requerido</div>
         </div>
@@ -80,7 +90,18 @@
       <div class="row">
         <div class="col-12">
           <label class="form-label">Descripción adicional</label>
-          <textarea formControlName="description" rows="2" class="form-control form-control-solid"></textarea>
+          <textarea formControlName="description" rows="2" class="form-control form-control-solid"
+                    placeholder="Detalles adicionales del problema..."></textarea>
+        </div>
+      </div>
+
+      <!-- fotos -->
+      <div class="row">
+        <div class="col-12">
+          <label class="form-label">Fotos (URLs)</label>
+          <input type="text" formControlName="photos" class="form-control form-control-solid"
+                 placeholder="https://ejemplo.com/foto1.jpg, https://ejemplo.com/foto2.jpg">
+          <div class="form-text">Separa las URLs con comas</div>
         </div>
       </div>
 
@@ -141,6 +162,24 @@
 
           <div *ngIf="submitted && validItemsCount === 0" class="text-danger mb-2">
             Debe agregar al menos un repuesto
+          </div>
+
+          <!-- resumen -->
+          <div class="d-flex justify-content-end mt-4" *ngIf="validItemsCount > 0">
+            <div class="w-250px">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Sub-total items:</span>
+                <span class="fw-bold">Bs {{ getItemsTotal() | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Mano de obra:</span>
+                <span class="fw-bold">Bs {{ form.value.laborCost | number:'1.2-2' }}</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="fs-6 fw-bold text-gray-800">Total estimado:</span>
+                <span class="fs-6 fw-bold text-gray-800">Bs {{ getGrandTotal() | number:'1.2-2' }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

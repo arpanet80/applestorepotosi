@@ -12,7 +12,7 @@ import { ToastrService } from 'ngx-toastr';
 export class ImageUploadComponent {
   private toastr = inject(ToastrService);
 
-  @Input() productId!: string;
+  @Input() productId = '';
   @Input() multiple = false;
   @Output() uploaded = new EventEmitter<File[]>();
 
@@ -21,7 +21,7 @@ export class ImageUploadComponent {
   files: File[] = [];
   previews: string[] = [];
   uploading = false;
-  isDragging = false; // ✅ Propiedad faltante agregada
+  isDragging = false;
 
   private readonly MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
   private readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -60,7 +60,6 @@ export class ImageUploadComponent {
     this.files = validFiles;
     this.previews = validFiles.map(f => URL.createObjectURL(f));
     this.uploaded.emit(validFiles);
-    this.reset();
   }
 
   cancel(): void {
@@ -71,7 +70,7 @@ export class ImageUploadComponent {
     this.previews.forEach(url => URL.revokeObjectURL(url));
     this.files = [];
     this.previews = [];
-    this.isDragging = false; // ✅ Resetear estado
+    this.isDragging = false;
     if (this.fileInput?.nativeElement) {
       this.fileInput.nativeElement.value = '';
     }
@@ -79,17 +78,17 @@ export class ImageUploadComponent {
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
-    this.isDragging = true; // ✅ Activar estado
+    this.isDragging = true;
   }
 
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
-    this.isDragging = false; // ✅ Desactivar estado
+    this.isDragging = false;
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
-    this.isDragging = false; // ✅ Desactivar estado
+    this.isDragging = false;
     const fileList = event.dataTransfer?.files;
     if (fileList?.length) this.handleFiles(Array.from(fileList));
   }

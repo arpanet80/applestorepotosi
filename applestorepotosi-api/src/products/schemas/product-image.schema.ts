@@ -15,6 +15,11 @@ export class ProductImage {
   @Prop({ required: true })
   url: string;
 
+  // CORRECCIÓN: fileId de ImageKit necesario para poder eliminar archivos
+  // del CDN cuando se borre la imagen o el producto.
+  @Prop({ required: true })
+  fileId: string;
+
   @Prop()
   altText: string;
 
@@ -26,3 +31,7 @@ export class ProductImage {
 }
 
 export const ProductImageSchema = SchemaFactory.createForClass(ProductImage);
+
+// CORRECCIÓN: índice compuesto para optimizar consultas frecuentes
+ProductImageSchema.index({ productId: 1, isPrimary: 1 });
+ProductImageSchema.index({ productId: 1, sortOrder: 1 });

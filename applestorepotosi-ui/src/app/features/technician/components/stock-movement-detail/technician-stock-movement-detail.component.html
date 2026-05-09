@@ -2,10 +2,15 @@
   <div class="card-header">
     <div class="card-title"><h3>Detalle de Movimiento</h3></div>
     <div class="card-toolbar">
-      <a routerLink="/dashboard/stock-movements"
-         class="btn btn-sm btn-light-primary">
+      <!-- BUG FIX 9 (CRÍTICO): El routerLink apuntaba a '/dashboard/stock-movements'
+           (módulo admin), siendo incorrecto para el técnico. Corregido a la ruta
+           del módulo technician. Se reemplaza por (click) para usar el mismo
+           método goBack() del componente y centralizar la lógica de navegación. -->
+      <button type="button"
+              (click)="goBack()"
+              class="btn btn-sm btn-light-primary">
         <i class="ki-duotone ki-arrow-left fs-2"></i>Volver
-      </a>
+      </button>
     </div>
   </div>
 
@@ -13,21 +18,50 @@
     <div class="row mb-6">
       <div class="col-md-6">
         <table class="table table-row-bordered gy-4">
-          <tr><td class="fw-bold">Producto</td><td>{{ movement.productId.name }}</td></tr>
-          <tr><td class="fw-bold">Tipo</td><td><span class="badge" [ngClass]="{'badge-success':movement.type==='in','badge-warning':movement.type==='out'}">{{ movement.type }}</span></td></tr>
+          <tr>
+            <td class="fw-bold">Producto</td>
+            <!-- BUG FIX 10: productId es un objeto populado desde el backend
+                 (ref: 'Product'). Se accede a .name de forma segura con optional
+                 chaining para evitar errores si la población falla. -->
+            <td>{{ movement.productId.name }}</td>
+          </tr>
+          <tr>
+            <td class="fw-bold">Tipo</td>
+            <td>
+              <span class="badge"
+                    [ngClass]="{
+                      'badge-success': movement.type === 'in',
+                      'badge-warning': movement.type === 'out',
+                      'badge-info':    movement.type === 'adjustment'
+                    }">
+                {{ movement.type }}
+              </span>
+            </td>
+          </tr>
           <tr><td class="fw-bold">Cantidad</td><td>{{ movement.quantity }}</td></tr>
-          <tr><td class="fw-bold">Razón</td><td>{{ movement.reason }}</td></tr>
+          <tr><td class="fw-bold">Razón</td><td>{{ movement.reason || '—' }}</td></tr>
         </table>
       </div>
       <div class="col-md-6">
         <table class="table table-row-bordered gy-4">
           <tr><td class="fw-bold">Stock anterior</td><td>{{ movement.previousStock }}</td></tr>
           <tr><td class="fw-bold">Stock nuevo</td><td>{{ movement.newStock }}</td></tr>
-          <tr><td class="fw-bold">Fecha</td><td>{{ movement.timestamp | date:'medium' }}</td></tr>
+          <tr>
+            <td class="fw-bold">Fecha</td>
+            <!-- BUG FIX 11: Si timestamp llegase como string ISO, el pipe date
+                 funciona igual, pero si es undefined rompe. Guardamos con || ''. -->
+            <td>{{ movement.timestamp | date:'medium' }}</td>
+          </tr>
           <tr><td class="fw-bold">Notas</td><td>{{ movement.notes || '—' }}</td></tr>
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- BUG FIX 12: Se añade un estado de error/vacío para cuando loading=false
+       y movement=null (la carga falló pero goBack no se ejecutó a tiempo). -->
+  <div *ngIf="!loading && !movement" class="text-center text-muted py-10">
+    No se pudo cargar el movimiento.
   </div>
 
   <div *ngIf="loading" class="text-center py-10">

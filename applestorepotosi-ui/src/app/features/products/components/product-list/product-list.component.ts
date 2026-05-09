@@ -1,84 +1,67 @@
 // src/app/products/components/product-list/product-list.component.ts
-import { Component, OnInit, inject, output, input } from '@angular/core';
-import { CommonModule, NgIf } from '@angular/common';
+// VERSIÓN CORREGIDA - Componente de presentación puro (Smart/Dumb pattern)
+import { Component, input, output } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ProductService } from '../../services/product.service';
-import { Product, ProductQuery } from '../../models/product.model';
+import { Product } from '../../models/product.model';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgIf],
+  imports: [CommonModule, RouterModule],
   templateUrl: './product-list.component.html',
   styleUrls: ['./product-list.component.css']
 })
-export class ProductListComponent implements OnInit {
-  private productService = inject(ProductService);
-  
-  // Inputs para filtros
-  filters = input<Partial<ProductQuery>>({});
-  showActions = input(true);
-  
-  // Outputs para eventos
+export class ProductListComponent {
+  // ========== INPUTS DE DATOS (desde el padre) ==========
+  /** Lista de productos a mostrar */
+  products = input<Product[]>([]);
+  /** Estado de carga */
+  loading = input<boolean>(false);
+  /** Mensaje de error */
+  error = input<string>('');
+  /** Mostrar acciones (editar/eliminar) */
+  showActions = input<boolean>(true);
+  /** Término de búsqueda activo (para empty state contextual) */
+  searchTerm = input<string>('');
+  /** Indica si hay filtros aplicados */
+  hasFilters = input<boolean>(false);
+
+  // ========== OUTPUTS DE EVENTOS (hacia el padre) ==========
+  /** Producto seleccionado para ver detalle */
   productSelected = output<Product>();
+  /** Producto seleccionado para editar */
   productEdit = output<Product>();
+  /** Producto seleccionado para eliminar */
   productDelete = output<Product>();
-  
-  products: Product[] = [];
-  loading = false;
-  error = '';
+  /** Producto para toggle de estado activo */
+  productToggleActive = output<Product>();
+  /** Solicitud de reintentar carga */
+  retryLoad = output<void>();
 
-  ngOnInit() {
-    this.loadProducts();
-  }
+  // ========== MÉTODOS DE PRESENTACIÓN (sin lógica de negocio) ==========
 
-  loadProducts() {
-    this.loading = true;
-    this.error = '';
-    
-    const query = this.filters() as ProductQuery;
-    
-    this.productService.findAll(query).subscribe({
-      next: (response) => {
-        this.products = response.products;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Error al cargar los productos';
-        this.loading = false;
-        console.error('Error loading products:', err);
-      }
-    });
-  }
-
-  onSelectProduct(product: Product) {
+  onSelectProduct(product: Product): void {
     this.productSelected.emit(product);
   }
 
-  onEditProduct(product: Product) {
+  onEditProduct(product: Product): void {
     this.productEdit.emit(product);
   }
 
-  onDeleteProduct(product: Product) {
-    if (confirm(`¿Estás seguro de eliminar el producto "${product.name}"?`)) {
-      this.productDelete.emit(product);
-    }
+  onDeleteProduct(product: Product): void {
+    this.productDelete.emit(product);
   }
 
-  toggleActive(product: Product) {
-    this.productService.toggleActive(product._id).subscribe({
-      next: (updatedProduct) => {
-        const index = this.products.findIndex(p => p._id === product._id);
-        if (index !== -1) {
-          this.products[index] = updatedProduct;
-        }
-      },
-      error: (err) => {
-        console.error('Error toggling product active status:', err);
-        alert('Error al cambiar el estado del producto');
-      }
-    });
+  onToggleActive(product: Product): void {
+    this.productToggleActive.emit(product);
   }
+
+  onRetry(): void {
+    this.retryLoad.emit();
+  }
+
+  // ========== HELPERS DE UI ==========
 
   getStockStatusClass(product: Product): string {
     switch (product.stockStatus) {

@@ -66,12 +66,20 @@ export class CategoryService {
   }
 
   getCategoryTree() {
-  console.log('>>> Llamando a /categories/tree');
-  return this.http.get<Category[]>(`${this.apiUrl}/tree`).pipe(
-    tap({
-      next: (r) => console.log('>>> Respuesta tree:', r),
-      error: (e) => console.error('>>> Error tree:', e),
-    })
-  );
-}
+    console.log('>>> Llamando a /categories/tree');
+    return this.http.get<Category[]>(`${this.apiUrl}/tree`).pipe(
+      tap({
+        next: (r) => console.log('>>> Respuesta tree:', r),
+        error: (e) => console.error('>>> Error tree:', e),
+      })
+    );
+  }
+
+  /** Retorna todas las categorías activas para usar en selectores */
+  getActiveOptions(): Observable<CategoryResponse> {
+    return this.findAll({ isActive: true, limit: 200, page: 1 });
+  }
+ 
+  
+
 }

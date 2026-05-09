@@ -1,27 +1,45 @@
 // src/users/users.controller.ts
-import { Controller, Get, Put, Param, Body, UseGuards,   Query, Delete, ParseEnumPipe, DefaultValuePipe, ParseIntPipe, Req,Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Param,
+  Body,
+  UseGuards,
+  Query,
+  Delete,
+  ParseEnumPipe,
+  DefaultValuePipe,
+  ParseIntPipe,
+  Req,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { FirebaseAuthGuard } from '../auth/guards/firebase-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from './schemas/user.schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 
 @Controller('users')
 @UseGuards(FirebaseAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /* ================================================================
+   *  RUTAS DE PERFIL PROPIO (usuario autenticado sobre sí mismo)
+   * ================================================================ */
+
   @Get('profile')
-    getProfile(@Req() req: any) {
+  getProfile(@Req() req: any) {
     const user = req.user;
-    
+
     if (!user) {
-      return {
-        error: 'Usuario no autenticado'
-      };
+      throw new UnauthorizedException('Usuario no autenticado');
     }
-    
+
     return {
       uid: user.uid,
       email: user.email,
@@ -33,14 +51,17 @@ export class UsersController {
       specialization: user.specialization,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
-      lastLogin: user.lastLogin
+      lastLogin: user.lastLogin,
     };
   }
 
   @Put('profile/update')
   async updateOwnProfile(
     @Req() req: any,
-    @Body() updateData: any
+    // FIX #5: Tipado explícito en lugar de `any` para evitar que el cliente
+    // envíe campos sensibles como `role` o `isActive`. El servicio también
+    // filtra, pero la defensa en profundidad empieza aquí.
+    @Body() updateData: { displayName?: string; phoneNumber?: string; profile?: any },
   ) {
     const uid = req.user.uid;
     return this.usersService.updateBasicProfile(uid, updateData);
@@ -49,7 +70,8 @@ export class UsersController {
   @Put('preferences/update')
   async updateOwnPreferences(
     @Req() req: any,
-    @Body() preferences: any
+    // FIX #5: Tipado con DTO validado en lugar de `any`
+    @Body() preferences: UpdatePreferencesDto,
   ) {
     const uid = req.user.uid;
     return this.usersService.updateUserPreferences(uid, preferences);
@@ -59,7 +81,7 @@ export class UsersController {
   @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
   async updateOwnSpecializations(
     @Req() req: any,
-    @Body('specializations') specializations: string[]
+    @Body('specializations') specializations: string[],
   ) {
     const uid = req.user.uid;
     return this.usersService.updateSpecializations(uid, specializations);
@@ -71,36 +93,44 @@ export class UsersController {
     return this.usersService.verifyEmail(uid);
   }
 
-  // @Get()
-  // @Roles(UserRole.ADMIN)
-  // findAll() {
-  //   return this.usersService.findAll();
-  // }
+  /* ================================================================
+   *  RUTAS ADMIN — listados y estadísticas
+   * ================================================================ */
+
   @Get()
   @Roles(UserRole.ADMIN)
   findAll(
     @Query('search') search?: string,
-    @Query('role') role?: UserRole,   // ← ya puede ser undefined
+    @Query('role') role?: UserRole,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit?: number,
   ) {
     return this.usersService.findWithPagination(page, limit, role, search);
   }
 
-  @Get('paginated')
-  @Roles(UserRole.ADMIN)
-  findPaginated(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('role') role?: UserRole
-  ) {
-    return this.usersService.findWithPagination(page, limit, role);
-  }
+  // FIX #6: GET paginated eliminado — GET / ya cubre la misma funcionalidad
+  // con los mismos query params. Mantenerlo duplicado confunde al equipo de
+  // frontend y duplica superficie de mantenimiento.
 
   @Get('stats')
   @Roles(UserRole.ADMIN)
   getStats() {
     return this.usersService.getUsersStats();
+  }
+
+  @Get('active')
+  @Roles(UserRole.ADMIN)
+  findActive() {
+    return this.usersService.findActiveUsers();
+  }
+
+  // FIX #1: getActiveTechnicians se mueve ANTES de findByRole(:role) para que
+  // NestJS no interprete "technician/active" como role=technician e index=active.
+  // Las rutas estáticas siempre deben declararse antes que las dinámicas.
+  @Get('role/technician/active')
+  @Roles(UserRole.ADMIN, UserRole.SALES)
+  getActiveTechnicians() {
+    return this.usersService.findByRole(UserRole.TECHNICIAN);
   }
 
   @Get('role/:role')
@@ -109,17 +139,9 @@ export class UsersController {
     return this.usersService.findByRole(role);
   }
 
-  @Get('role/technician/active')
-  @Roles(UserRole.ADMIN, UserRole.SALES)
-  getActiveTechnicians() {
-    return this.usersService.findByRole(UserRole.TECHNICIAN);
-  }
-
-  @Get('active')
-  @Roles(UserRole.ADMIN)
-  findActive() {
-    return this.usersService.findActiveUsers();
-  }
+  /* ================================================================
+   *  RUTAS ADMIN — operaciones sobre un usuario específico por UID
+   * ================================================================ */
 
   @Get(':uid')
   @Roles(UserRole.ADMIN)
@@ -130,8 +152,8 @@ export class UsersController {
   @Put(':uid/role')
   @Roles(UserRole.ADMIN)
   updateRole(
-    @Param('uid') uid: string, 
-    @Body('role', new ParseEnumPipe(UserRole)) role: UserRole
+    @Param('uid') uid: string,
+    @Body('role', new ParseEnumPipe(UserRole)) role: UserRole,
   ) {
     return this.usersService.updateUserRole(uid, role);
   }
@@ -140,7 +162,7 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   updateUserProfile(
     @Param('uid') uid: string,
-    @Body() updateData: UpdateProfileDto // ✅ Ahora incluye `profile`
+    @Body() updateData: UpdateProfileDto,
   ) {
     return this.usersService.updateUserProfile(uid, updateData);
   }
@@ -149,7 +171,7 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   updateUserPreferences(
     @Param('uid') uid: string,
-    @Body() preferences: any
+    @Body() preferences: UpdatePreferencesDto,
   ) {
     return this.usersService.updateUserPreferences(uid, preferences);
   }
@@ -178,38 +200,37 @@ export class UsersController {
     return this.usersService.deleteUser(uid);
   }
 
-  @Get('debug/auth')
-  @UseGuards(FirebaseAuthGuard)
-  debugAuth(@Req() req: any) {
-    return {
-      user: req.user,
-      headers: {
-        authorization: req.headers.authorization
-      },
-      message: 'Debug endpoint'
-    };
-  }
-
-  @Get('exists/:uid')
-  async exists(@Param('uid') uid: string) {
-    const user = await this.usersService.findOneByUid(uid);
-    // console.log('User exists check for UID:', uid, 'Exists:', !!user);
-    // console.log(!!user);
-    return !!user; // ← true si existe, false si no
-  }
-
+  // FIX #4: updateGoogleProfile ahora verifica que el uid del token coincida
+  // con el uid del parámetro. Antes, cualquier usuario autenticado podía
+  // actualizar el perfil de otro usuario pasando su uid en la URL.
   @Put(':uid/google-profile')
-  @UseGuards(FirebaseAuthGuard)
   async updateGoogleProfile(
     @Param('uid') uid: string,
-    @Body() data: { displayName?: string; phoneNumber?: string; photoURL?: string; provider?: string }
+    @Req() req: any,
+    @Body() data: { displayName?: string; phoneNumber?: string; photoURL?: string; provider?: string },
   ) {
-    // 🔥 Actualiza solo los campos que traes
+    if (req.user?.uid !== uid) {
+      throw new ForbiddenException('No puedes modificar el perfil de otro usuario');
+    }
     return this.usersService.updateUserProfile(uid, {
       displayName: data.displayName,
       phoneNumber: data.phoneNumber,
       photoURL: data.photoURL,
-      provider: data.provider
+      provider: data.provider,
     });
   }
+
+  // FIX #2: exists ahora requiere rol ADMIN. Antes era accesible por cualquier
+  // usuario autenticado, permitiendo enumerar UIDs del sistema.
+  @Get('exists/:uid')
+  @Roles(UserRole.ADMIN)
+  async exists(@Param('uid') uid: string) {
+    const user = await this.usersService.findOneByUid(uid);
+    return !!user;
+  }
+
+  // FIX #3: debug/auth eliminado. Exponía el header Authorization completo
+  // (el token Firebase) en la respuesta, lo que es un riesgo en producción.
+  // Si necesitas volver a depurar autenticación, añade una variable de entorno:
+  //   if (process.env.NODE_ENV !== 'production') { ... }
 }

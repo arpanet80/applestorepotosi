@@ -6,7 +6,7 @@ import {
   DefaultValuePipe, ParseIntPipe,
 } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
-import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { CreatePurchaseOrderDto, PurchaseOrderItemDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { PurchaseOrderQueryDto } from './dto/purchase-order-query.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -20,12 +20,15 @@ import { UserRole } from '../users/schemas/user.schema';
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
+  // ── Creación ──────────────────────────────────────────────
+
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
   create(@Body() dto: CreatePurchaseOrderDto, @Req() req: any) {
-    // ✅ FIX #8: validateItems eliminado del controller — el service lo hace internamente
     return this.purchaseOrdersService.create(dto, req.user);
   }
+
+  // ── Listados ──────────────────────────────────────────────
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SALES)
@@ -43,7 +46,7 @@ export class PurchaseOrdersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findBySupplier(
     @Param('supplierId') supplierId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.purchaseOrdersService.findBySupplier(supplierId, page, limit);
@@ -53,7 +56,7 @@ export class PurchaseOrdersController {
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findByStatus(
     @Param('status') status: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.purchaseOrdersService.findByStatus(status, page, limit);
@@ -62,7 +65,7 @@ export class PurchaseOrdersController {
   @Get('pending')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findPendingOrders(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.purchaseOrdersService.findByStatus('pending', page, limit);
@@ -71,7 +74,7 @@ export class PurchaseOrdersController {
   @Get('completed')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   findCompletedOrders(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('page',  new DefaultValuePipe(1),  ParseIntPipe) page:  number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.purchaseOrdersService.findByStatus('completed', page, limit);
@@ -83,6 +86,8 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.findOne(id);
   }
 
+  // ── Edición ───────────────────────────────────────────────
+
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES)
   update(
@@ -90,9 +95,7 @@ export class PurchaseOrdersController {
     @Body() dto: UpdatePurchaseOrderDto,
     @Req() req: any,
   ) {
-    // ✅ FIX #8: validateItems eliminado — service lo hace
-    // ✅ FIX #9: pasamos req.user.uid (string) en vez del objeto completo
-    return this.purchaseOrdersService.update(id, dto, req.user.uid);
+    return this.purchaseOrdersService.update(id, dto, req.user._id);
   }
 
   @Put(':id/status')
@@ -102,8 +105,10 @@ export class PurchaseOrdersController {
     @Body() dto: UpdateStatusDto,
     @Req() req: any,
   ) {
-    return this.purchaseOrdersService.updateStatus(id, dto, req.user.uid);
+    return this.purchaseOrdersService.updateStatus(id, dto, req.user._id);
   }
+
+  // ── Transiciones de estado ────────────────────────────────
 
   @Put(':id/approve')
   @Roles(UserRole.ADMIN)
@@ -112,7 +117,6 @@ export class PurchaseOrdersController {
     @Req() req: any,
     @Body('reason') reason?: string,
   ) {
-    // ✅ FIX #4: pasamos req.user (objeto con _id) — service extrae el _id
     return this.purchaseOrdersService.approveOrder(id, reason, req.user);
   }
 
@@ -142,19 +146,28 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.cancelOrder(id, reason, req.user);
   }
 
+  // ── Eliminación ───────────────────────────────────────────
+
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @Req() req: any) {
-    return this.purchaseOrdersService.remove(id, req.user.uid);
+    return this.purchaseOrdersService.remove(id, req.user._id);
   }
 
+  // ── Utilidades ────────────────────────────────────────────
+
+  /**
+   * Calcula el total de una lista de items sin persistir nada.
+   * Usa el DTO tipado para que class-validator rechace payloads malformados.
+   */
   @Post('calculate-total')
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  calculateTotal(@Body() items: any[]) {
+  calculateTotal(@Body() items: PurchaseOrderItemDto[]) {
+    if (!Array.isArray(items) || items.length === 0) {
+      return { total: 0 };
+    }
     const total = this.purchaseOrdersService.calculateOrderTotal(items);
     return { total };
   }
-
-  // ✅ FIX #6: eliminados deactivateUser/activateUser — no tienen sentido en purchase-orders
 }

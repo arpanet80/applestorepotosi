@@ -92,9 +92,20 @@ export const MENU_ADMIN = {
     },
 
     //////////////////////////////////////////////////////////////////
+    //////////  MENU REPORTS                //////////////////////////
+    //////////////////////////////////////////////////////////////////
+    etiquetaReports: { titulo: 'Reportes', roles: [UserRole.ADMIN] },
+
+    simpleDashoardReports: {
+            titulo: 'Reportes',
+            icono:  "bi bi-bar-chart-line-fill", 
+            url: "/dashboard/reports",
+            roles: [UserRole.ADMIN],
+    },
+
+    //////////////////////////////////////////////////////////////////
     //////////  MENU S A L E S              //////////////////////////
     //////////////////////////////////////////////////////////////////
-    // /
     etiquetaSales: { titulo: 'Ventas', roles: [UserRole.SALES] },
 
     simpleDashoardSales: {

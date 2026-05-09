@@ -1,5 +1,5 @@
 // src/users/users.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserRole } from './schemas/user.schema';
@@ -29,20 +29,20 @@ export class UsersService {
    */
   async createOrUpdateUser(userData: Partial<User>): Promise<UserDocument> {
     const { uid, ...updateData } = userData;
-    
+
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         ...updateData,
         lastLogin: new Date(),
-        'roleInfo.name': updateData.role || UserRole.CUSTOMER
+        'roleInfo.name': updateData.role || UserRole.CUSTOMER,
       },
-      { 
-        upsert: true, 
-        new: true, 
+      {
+        upsert: true,
+        new: true,
         runValidators: true,
-        setDefaultsOnInsert: true 
-      }
+        setDefaultsOnInsert: true,
+      },
     ).exec();
 
     if (!user) {
@@ -60,24 +60,38 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
-
     return user.toObject();
   }
 
   /**
-   * Actualizar perfil completo de usuario
+   * Actualizar perfil completo de usuario (solo ADMIN).
+   *
+   * FIX #7: Se separan los campos de rol para que solo se actualicen cuando
+   * vienen explícitamente en updateData. Antes, si `updateData.role` era
+   * undefined, se escribía undefined en `roleInfo.name`, corrompiendo el rol.
    */
   async updateUserProfile(uid: string, updateData: Partial<User>): Promise<UserDocument> {
+    const update: Record<string, any> = { ...updateData, updatedAt: new Date() };
+
+    // Solo sincronizar roleInfo si el rol viene explícitamente
+    if (updateData.role !== undefined) {
+      update['roleInfo.name'] = updateData.role;
+      update['role'] = updateData.role;
+    } else {
+      // Evitar que el spread de updateData sobreescriba el rol con undefined
+      delete update.role;
+      delete update.roleInfo;
+    }
+
+    // Sincronizar phoneNumber desde profile.phone si viene en el update
+    if (updateData.profile?.phone !== undefined) {
+      update['phoneNumber'] = updateData.profile.phone;
+    }
+
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
-        ...updateData,
-        'roleInfo.name': updateData.role,
-        'role': updateData.role,
-        'phoneNumber': updateData.profile?.phone,
-        updatedAt: new Date()
-      },
-      { new: true, runValidators: true }
+      update,
+      { new: true, runValidators: true },
     ).exec();
 
     if (!user) {
@@ -88,20 +102,27 @@ export class UsersService {
   }
 
   /**
-   * Actualizar solo el perfil básico
+   * Actualizar solo el perfil básico del usuario autenticado.
+   *
+   * FIX #10: Se usa $set con campos explícitos en lugar de pasar el objeto
+   * completo, para evitar que el frontend pueda colar campos sensibles
+   * como `role` o `isActive` en el body.
    */
-  async updateBasicProfile(uid: string, updateData: { 
-    displayName?: string; 
+  async updateBasicProfile(uid: string, updateData: {
+    displayName?: string;
     phoneNumber?: string;
     profile?: User['profile'];
   }): Promise<UserDocument> {
+    // Solo se permiten estos tres campos — cualquier otro se ignora
+    const safeUpdate: Record<string, any> = { updatedAt: new Date() };
+    if (updateData.displayName !== undefined) safeUpdate.displayName = updateData.displayName;
+    if (updateData.phoneNumber !== undefined) safeUpdate.phoneNumber = updateData.phoneNumber;
+    if (updateData.profile !== undefined) safeUpdate.profile = updateData.profile;
+
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
-        $set: updateData,
-        updatedAt: new Date()
-      },
-      { new: true, runValidators: true }
+      { $set: safeUpdate },
+      { new: true, runValidators: true },
     ).exec();
 
     if (!user) {
@@ -112,18 +133,25 @@ export class UsersService {
   }
 
   /**
-   * Actualizar preferencias de usuario
+   * Actualizar preferencias de usuario.
+   *
+   * FIX #8: Se reemplazaba todo el objeto `preferences` con lo que enviara
+   * el cliente. Si enviaba solo `{ language: 'en' }`, se perdían
+   * `notifications`, `newsletter` y `smsAlerts`.
+   * Ahora se usa dot-notation en $set para actualizar solo los campos enviados.
    */
   async updateUserPreferences(uid: string, preferences: Partial<User['preferences']>): Promise<UserDocument> {
+    // Construir update con dot-notation para no pisar campos no enviados
+    const prefUpdate: Record<string, any> = { updatedAt: new Date() };
+    if (preferences.notifications !== undefined) prefUpdate['preferences.notifications'] = preferences.notifications;
+    if (preferences.newsletter !== undefined) prefUpdate['preferences.newsletter'] = preferences.newsletter;
+    if (preferences.smsAlerts !== undefined) prefUpdate['preferences.smsAlerts'] = preferences.smsAlerts;
+    if (preferences.language !== undefined) prefUpdate['preferences.language'] = preferences.language;
+
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
-        $set: { 
-          preferences: { ...preferences },
-          updatedAt: new Date()
-        } 
-      },
-      { new: true }
+      { $set: prefUpdate },
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -139,11 +167,11 @@ export class UsersService {
   async updateSpecializations(uid: string, specializations: string[]): Promise<UserDocument> {
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         specialization: specializations,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -159,11 +187,11 @@ export class UsersService {
   async verifyEmail(uid: string): Promise<UserDocument> {
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         emailVerified: true,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -179,12 +207,12 @@ export class UsersService {
   async updateUserRole(uid: string, role: UserRole): Promise<UserDocument> {
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         role,
         'roleInfo.name': role,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -200,11 +228,11 @@ export class UsersService {
   async deactivateUser(uid: string): Promise<UserDocument> {
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         isActive: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -220,11 +248,11 @@ export class UsersService {
   async activateUser(uid: string): Promise<UserDocument> {
     const user = await this.userModel.findOneAndUpdate(
       { uid },
-      { 
+      {
         isActive: true,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (!user) {
@@ -268,21 +296,21 @@ export class UsersService {
   /**
    * Obtener estadísticas de usuarios
    */
-  async getUsersStats(): Promise<{ 
-    total: number; 
+  async getUsersStats(): Promise<{
+    total: number;
     active: number;
-    byRole: Record<UserRole, number> 
+    byRole: Record<UserRole, number>;
   }> {
     const total = await this.userModel.countDocuments();
     const active = await this.userModel.countDocuments({ isActive: true });
-    
+
     const byRole = await this.userModel.aggregate([
       {
         $group: {
           _id: '$role',
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const statsByRole: Record<UserRole, number> = {
@@ -293,14 +321,10 @@ export class UsersService {
     };
 
     byRole.forEach(roleGroup => {
-      statsByRole[roleGroup._id] = roleGroup.count;
+      statsByRole[roleGroup._id as UserRole] = roleGroup.count;
     });
 
-    return {
-      total,
-      active,
-      byRole: statsByRole
-    };
+    return { total, active, byRole: statsByRole };
   }
 
   /**
@@ -324,7 +348,7 @@ export class UsersService {
   async updateLastLogin(uid: string): Promise<void> {
     const result = await this.userModel.findOneAndUpdate(
       { uid },
-      { lastLogin: new Date() }
+      { lastLogin: new Date() },
     ).exec();
 
     if (!result) {
@@ -342,7 +366,7 @@ export class UsersService {
     search?: string,
   ) {
     const skip = (page - 1) * limit;
-    const filter: any = {};
+    const filter: Record<string, any> = {};
     if (role) filter.role = role;
     if (search?.trim()) {
       const rx = new RegExp(search.trim(), 'i');
@@ -363,27 +387,29 @@ export class UsersService {
   }
 
   /**
-   * Crear usuario
+   * Crear usuario.
+   *
+   * FIX #9: Se reemplaza `throw new Error(...)` (que NestJS convierte en HTTP 500)
+   * por `ConflictException` que devuelve correctamente HTTP 409.
    */
   async createUser(userData: Partial<User>): Promise<UserDocument> {
-    const existingUser = await this.userModel.findOne({ 
+    const existingUser = await this.userModel.findOne({
       $or: [
         { uid: userData.uid },
-        { email: userData.email }
-      ]
+        { email: userData.email },
+      ],
     }).exec();
 
     if (existingUser) {
-      throw new Error('El usuario ya existe');
+      throw new ConflictException('El usuario ya existe');
     }
 
-    // Asegurar que roleInfo esté sincronizado con role
     const userToCreate = {
       ...userData,
       roleInfo: {
         name: userData.role || UserRole.CUSTOMER,
-        permissions: []
-      }
+        permissions: [],
+      },
     };
 
     const user = new this.userModel(userToCreate);

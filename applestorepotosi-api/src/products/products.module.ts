@@ -17,13 +17,10 @@ import { StockMovementsModule } from '../stock_movements/stock-movements.module'
       { name: ProductImage.name, schema: ProductImageSchema },
       { name: User.name, schema: UserSchema },
     ]),
-    // ✅ FIX #5: StockMovementsModule ya exporta StockMovementsService.
-    // Registrarlo además en providers[] causaba una instancia duplicada con
-    // su propio árbol de dependencias sin resolver → errores en runtime.
     forwardRef(() => StockMovementsModule),
   ],
   controllers: [ProductsController, ImagesController],
-  providers: [ProductsService, ImageKitService],  // ← StockMovementsService removido
-  exports: [ProductsService, MongooseModule],
+  providers: [ProductsService, ImageKitService],
+  exports: [ProductsService, MongooseModule, ImageKitService],
 })
 export class ProductsModule {}

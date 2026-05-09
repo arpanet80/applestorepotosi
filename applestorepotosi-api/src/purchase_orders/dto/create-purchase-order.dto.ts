@@ -1,37 +1,44 @@
 // src/purchase-orders/dto/create-purchase-order.dto.ts
-import { IsString, IsOptional, IsArray, IsNumber, Min, IsMongoId, IsDate, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsNumber,
+  Min,
+  IsMongoId,
+  IsDate,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PurchaseOrderItemDto {
-  @IsMongoId()
+  @IsMongoId({ message: 'productId debe ser un ObjectId válido' })
   productId: string;
 
-  @IsNumber()
-  @Min(1)
+  @IsNumber({}, { message: 'quantity debe ser un número' })
+  @Min(1, { message: 'quantity debe ser al menos 1' })
   quantity: number;
 
-  @IsNumber()
-  @Min(0)
+  @IsNumber({}, { message: 'unitCost debe ser un número' })
+  @Min(0, { message: 'unitCost no puede ser negativo' })
   unitCost: number;
 }
 
 export class CreatePurchaseOrderDto {
-  @IsMongoId()
+  @IsMongoId({ message: 'supplierId debe ser un ObjectId válido' })
   supplierId: string;
 
-  @IsDate()
+  @IsDate({ message: 'orderDate debe ser una fecha válida' })
   @IsOptional()
   @Type(() => Date)
   orderDate?: Date;
 
-  @IsArray()
-  @ArrayMinSize(1)
+  @IsArray({ message: 'items debe ser un arreglo' })
+  @ArrayMinSize(1, { message: 'La orden debe contener al menos un item' })
   @ValidateNested({ each: true })
   @Type(() => PurchaseOrderItemDto)
   items: PurchaseOrderItemDto[];
-
-  // @IsMongoId()
-  // userId: string;
 
   @IsString()
   @IsOptional()

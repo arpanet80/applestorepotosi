@@ -1,52 +1,77 @@
-import { ValidateNested, IsString, IsNotEmpty, IsOptional, IsArray, IsNumber, Min, ArrayMinSize } from 'class-validator';
+// src/service-orders/dto/create-service-order.dto.ts
+import {
+  ValidateNested,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  IsNumber,
+  Min,
+  ArrayMinSize,
+  IsMongoId,
+  IsUrl,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CustomerDeviceDto } from './customer-device.dto';
 
 /* ---------- sub-DTO para cada repuesto ---------- */
 export class ServiceItemDto {
-  @IsString()  @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   partName: string;
 
-  @IsNumber()  @Min(1)
+  @IsNumber()
+  @Min(1)
   quantity: number;
 
-  @IsNumber()  @Min(0)
+  @IsNumber()
+  @Min(0)
   unitCost: number;
 
-  @IsNumber()  @Min(0)
+  @IsNumber()
+  @Min(0)
   unitPrice: number;
 
-  @IsOptional()  @IsString()
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 
 export class CreateServiceOrderDto {
-  @IsString()  @IsNotEmpty()
+  @IsMongoId()
+  @IsNotEmpty()
   customerId: string;
 
-  @ValidateNested()  @Type(() => CustomerDeviceDto)
+  @ValidateNested()
+  @Type(() => CustomerDeviceDto)
   device: CustomerDeviceDto;
 
-  @IsString()  @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   symptom: string;
 
-  @IsOptional()  @IsString()
+  @IsOptional()
+  @IsString()
   description?: string;
 
-  @IsOptional()  @IsArray()
-  @IsString({ each: true })
+  @IsOptional()
+  @IsArray()
+  @IsUrl({}, { each: true })
   photos?: string[];
 
-  @IsOptional()  @IsNumber({ maxDecimalPlaces: 2 })  @Min(0)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   laborCost?: number;
 
-  @IsOptional()  @IsNumber({ maxDecimalPlaces: 2 })  @Min(0)
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   warrantyMonths?: number;
 
-  /* ---------- nueva propiedad ---------- */
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ServiceItemDto)
-  items!: ServiceItemDto[];
+  items: ServiceItemDto[];
 }

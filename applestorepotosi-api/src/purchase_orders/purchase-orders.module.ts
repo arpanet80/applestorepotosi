@@ -13,13 +13,16 @@ import { ProductsModule } from '../products/products.module';
     MongooseModule.forFeature([
       { name: PurchaseOrder.name, schema: PurchaseOrderSchema },
     ]),
-    SuppliersModule,  // exporta SuppliersService + MongooseModule (Supplier schema)
+    SuppliersModule,  // exporta SuppliersService + modelo Supplier
     UsersModule,      // exporta UsersService
-    ProductsModule,   // ✅ FIX #2: necesitamos Product model para actualizar stock
+    ProductsModule,   // exporta modelo Product (necesario para actualizar stock)
+    // MongooseModule.forFeature de los módulos anteriores ya registra
+    // los modelos Supplier y Product en el contexto — no es necesario re-registrarlos.
+    // La Connection de Mongoose (usada para transacciones y la colección counters)
+    // la provee MongooseModule.forRoot() en el módulo raíz; @InjectConnection() la obtiene
+    // automáticamente sin necesidad de importar nada extra aquí.
   ],
   controllers: [PurchaseOrdersController],
-  // ✅ FIX #7: SuppliersService y UsersService removidos de providers[]
-  // ya los provee sus respectivos módulos — registrarlos aquí crea instancias duplicadas
   providers: [PurchaseOrdersService],
   exports: [PurchaseOrdersService, MongooseModule],
 })

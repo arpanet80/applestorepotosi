@@ -1,5 +1,4 @@
 // src/app/products/models/product.model.ts
-// src/app/products/models/product.model.ts
 export interface Product {
   _id: string;
   sku: string;
@@ -27,7 +26,7 @@ export interface Product {
   profitMargin?: number;
   stockStatus?: string;
 
-  // ✅ Agrega esto
+  // Imágenes con fileId de ImageKit
   images?: {
     url: string;
     fileId: string;
@@ -35,7 +34,7 @@ export interface Product {
     sortOrder?: number;
   }[];
 
-  imageUrl?: string;    // imagen por defecto
+  imageUrl?: string;
   
   // Timestamps
   createdAt: Date;
@@ -46,6 +45,7 @@ export interface ProductImage {
   _id: string;
   productId: string;
   url: string;
+  fileId?: string;        // ← AGREGADO: necesario para eliminar de ImageKit
   altText?: string;
   isPrimary: boolean;
   sortOrder: number;

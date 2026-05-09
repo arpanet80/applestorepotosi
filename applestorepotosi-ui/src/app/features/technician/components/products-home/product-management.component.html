@@ -1,0 +1,250 @@
+<!--begin::Content container-->
+<div id="kt_app_content_container" class="app-container container-xxl">
+
+  <!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+    <h3 class="fw-bold my-2">
+      Productos
+      <span class="fs-6 text-gray-500 fw-semibold ms-1">({{ totalItems }})</span>
+    </h3>
+
+    <div class="d-flex align-items-center gap-2 my-2">
+      <button routerLink="/dashboard/products/create" class="btn btn-primary btn-sm">
+        <i class="ki-duotone ki-plus fs-2 me-2"></i>Nuevo Producto
+      </button>
+      <button (click)="onBulkAction('export')" class="btn btn-secondary btn-sm">
+        <i class="bi bi-download fs-2 me-2"></i>Exportar
+      </button>
+      <button (click)="onRefresh()" class="btn btn-outline btn-outline-primary btn-sm" [disabled]="loading">
+        <i class="bi bi-arrow-repeat fs-2"></i>Actualizar
+      </button>
+    </div>
+  </div>
+  <!--end::Toolbar-->
+
+  <!-- Filtros Avanzados -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title">Filtros Avanzados</h3>
+      <div class="card-toolbar">
+        <span *ngIf="getActiveFiltersCount() > 0" class="text-muted me-3">
+          {{ getActiveFiltersCount() }} filtro(s) activo(s)
+        </span>
+        <button *ngIf="getActiveFiltersCount() > 0" (click)="clearAllFilters()" class="btn btn-sm btn-light-danger">
+          🗑️ Limpiar filtros
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-4">
+
+        <!-- Búsqueda -->
+        <!-- FIX 2: (input) emite al Subject con debounce — no dispara HTTP por cada tecla -->
+        <div class="col-md-4">
+          <label class="form-label">Búsqueda</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Buscar por nombre, SKU, descripción..."
+            [value]="searchTerm"
+            (input)="onSearch($any($event.target).value)"
+          />
+        </div>
+
+        <!-- Estado -->
+        <!-- FIX 6: [(ngModel)] + (ngModelChange) reemplaza el anti-patrón
+             (change) + $any($event.target).value — tipado y compilable -->
+        <div class="col-md-2">
+          <label class="form-label">Estado</label>
+          <select
+            class="form-select"
+            [(ngModel)]="statusFilter"
+            (ngModelChange)="onStatusFilterChange($event)">
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
+
+        <!-- Stock -->
+        <div class="col-md-2">
+          <label class="form-label">Stock</label>
+          <select
+            class="form-select"
+            [(ngModel)]="stockFilter"
+            (ngModelChange)="onStockFilterChange($event)">
+            <option value="all">Todo</option>
+            <option value="in-stock">En stock</option>
+            <option value="low-stock">Stock bajo</option>
+            <option value="out-of-stock">Sin stock</option>
+            <option value="over-stock">Sobre stock</option>
+          </select>
+        </div>
+
+        <!-- Categoría -->
+        <div class="col-md-2">
+          <label class="form-label">Categoría</label>
+          <select
+            class="form-select"
+            [(ngModel)]="categoryFilter"
+            (ngModelChange)="onCategoryFilterChange($event)"
+            [disabled]="!filtersLoaded">
+            <option value="">Todas</option>
+            <option *ngFor="let cat of categories" [value]="cat._id">
+              {{ cat.name }}
+            </option>
+          </select>
+          <small *ngIf="!filtersLoaded" class="text-muted">Cargando...</small>
+        </div>
+
+        <!-- Marca -->
+        <div class="col-md-2">
+          <label class="form-label">Marca</label>
+          <select
+            class="form-select"
+            [(ngModel)]="brandFilter"
+            (ngModelChange)="onBrandFilterChange($event)"
+            [disabled]="!filtersLoaded">
+            <option value="">Todas</option>
+            <option *ngFor="let brand of brands" [value]="brand._id">
+              {{ brand.name }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!--begin::Card body-->
+  <div class="card">
+    <div class="card-body pt-0">
+
+      <!-- Spinner de carga -->
+      <div *ngIf="loading" class="text-center py-10">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="error && !loading" class="alert alert-danger">
+        {{ error }}
+      </div>
+
+      <!-- Sin resultados -->
+      <div *ngIf="!loading && !error && products.length === 0" class="alert alert-info">
+        No se encontraron productos con los filtros aplicados.
+      </div>
+
+      <!-- Tabla -->
+      <div *ngIf="!loading && !error && products.length > 0" class="table-responsive">
+        <table class="table align-middle table-row-dashed fs-6 gy-5" id="kt_ecommerce_products_table">
+          <thead>
+            <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+              <th>Producto</th>
+              <th>SKU</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="fw-semibold text-gray-600">
+            <tr *ngFor="let product of products; trackBy: trackByProductId">
+
+              <!-- Producto + imagen -->
+              <td>
+                <div class="d-flex align-items-center">
+                  <a [routerLink]="['/dashboard/technician-products-detail', product._id]" class="symbol symbol-50px">
+                    <span
+                      class="symbol-label"
+                      [style.background-image]="'url(' + (product.imageUrl || '/assets/imgs/product-no-image.png') + ')'">
+                    </span>
+                  </a>
+                  <div class="ms-5">
+                    <a [routerLink]="['/dashboard/technician-products-detail', product._id]"
+                      class="text-gray-800 text-hover-primary fs-5 fw-bold">
+                      {{ product.name }}
+                    </a>
+                    <!-- FIX 7: categoryId es un objeto populado {name, slug},
+                        se accede con optional chaining para evitar errores si no está populado -->
+                    <div class="text-muted fs-7">{{ product.categoryId?.name }}</div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- SKU -->
+              <td>
+                <span class="fw-bold">{{ product.sku }}</span>
+              </td>
+
+              <!-- Precio -->
+              <td>
+                <span class="fw-bold">${{ product.salePrice | number:'1.2-2' }}</span>
+              </td>
+
+              <!-- Stock -->
+              <td>
+                <span class="badge" [ngClass]="{
+                  'badge-light-success': product.stockStatus === 'in-stock',
+                  'badge-light-warning': product.stockStatus === 'low-stock',
+                  'badge-light-danger':  product.stockStatus === 'out-of-stock',
+                  'badge-light-info':    product.stockStatus === 'over-stock'
+                }">
+                  <!-- FIX 8: availableQuantity es un virtual calculado manualmente
+                      en el backend (lean()), no puede ser null — pero stockQuantity
+                      sí puede ser 0. Se usa ?? 0 solo en stockQuantity por seguridad -->
+                  {{ product.availableQuantity }} / {{ product.stockQuantity | number }}
+                </span>
+              </td>
+
+              <!-- Estado -->
+              <td>
+                <span class="badge" [ngClass]="{
+                  'badge-light-success': product.isActive,
+                  'badge-light-danger':  !product.isActive
+                }">
+                  {{ product.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+
+              <!-- Acciones -->
+              <td>
+                <button
+                  (click)="onProductSelected(product)"
+                  class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                  title="Ver detalle">
+                  <i class="bi bi-eye fs-2"></i>
+                </button>
+              </td>
+
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <div class="d-flex justify-content-between align-items-center mt-6" *ngIf="totalPages > 1">
+        <span class="text-muted">Mostrando {{ getDisplayedRange() }}</span>
+        <ul class="pagination mb-0">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="onPageChange(currentPage - 1)" role="button">Anterior</a>
+          </li>
+          <li
+            class="page-item"
+            *ngFor="let page of getPages()"
+            [class.active]="page === currentPage">
+            <a class="page-link" (click)="onPageChange(page)" role="button">{{ page }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="onPageChange(currentPage + 1)" role="button">Siguiente</a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -1,4 +1,4 @@
-// src/app/products/components/product-detail/product-detail.component.ts - CORREGIDO DEFINITIVAMENTE
+// src/app/products/components/product-detail/product-detail.component.ts
 import { Component, OnInit, inject, OnDestroy, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -8,24 +8,25 @@ import { Product, ProductImage } from '../../models/product.model';
 import { AuthService } from '../../../../auth/services/auth.service';
 import { UserRole } from '../../../../auth/models/user.model';
 import { KeenImageViewerComponent } from '../../../../shared/components/keen-image-viewer/keen-image-viewer/keen-image-viewer';
+import { ToastrService } from 'ngx-toastr';
 
 declare var bootstrap: any;
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, KeenImageViewerComponent ], 
+  imports: [CommonModule, RouterModule, KeenImageViewerComponent],
   templateUrl: './product-detail.component.html',
   styleUrls: ['./product-detail.component.css']
 })
-export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewChecked  {
+export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewChecked {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private productService = inject(ProductService);
   private authService = inject(AuthService);
-  
+  private toastr = inject(ToastrService);
+
   private destroy$ = new Subject<void>();
-  
   private tooltipsCreated = false;
 
   product!: Product;
@@ -33,24 +34,27 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
   loading = true;
   error = '';
 
-  imageUrls: string[] = []; 
-  
+  imageUrls: string[] = [];
+
   // Estados de UI
   activeTab: 'details' | 'specifications' | 'stock' | 'images' = 'details';
   primaryImage?: ProductImage;
   selectedImage?: ProductImage;
-  
+
   // Permisos
   canEdit = false;
   canManageStock = false;
   canDelete = false;
 
-  ngOnInit() {
-    this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      const productId = params['id'];
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const productId = params.get('id');
       if (productId) {
         this.loadProduct(productId);
         this.loadProductImages(productId);
+      } else {
+        this.error = 'ID de producto no proporcionado';
+        this.loading = false;
       }
     });
 
@@ -69,12 +73,12 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
     }
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  private checkPermissions() {
+  private checkPermissions(): void {
     const user = this.authService.getCurrentUser();
     if (!user) return;
 
@@ -83,7 +87,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
     this.canDelete = this.authService.hasAnyRole([UserRole.ADMIN]);
   }
 
-  private loadProduct(productId: string) {
+  private loadProduct(productId: string): void {
     this.loading = true;
     this.error = '';
 
@@ -92,101 +96,112 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
         this.product = product;
         this.loading = false;
       },
-      error: (err) => {
-        this.error = 'Error al cargar el producto';
+      error: (err: Error) => {
+        this.error = 'Error al cargar el producto. Intenta nuevamente.';
         this.loading = false;
+        this.toastr.error(this.error, 'Error');
         console.error('Error loading product:', err);
       }
     });
   }
 
-  private loadProductImages(productId: string) {
+  private loadProductImages(productId: string): void {
     this.productService.getProductImages(productId).subscribe({
       next: (images) => {
         this.productImages = images;
-        this.imageUrls = images.map(img => img.url); 
+        this.imageUrls = images.map(img => img.url);
         this.primaryImage = images.find(img => img.isPrimary) || images[0];
         this.selectedImage = this.primaryImage;
       },
-      error: (err) => {
+      error: (err: Error) => {
         console.error('Error loading product images:', err);
+        this.toastr.warning('No se pudieron cargar las imágenes del producto', 'Advertencia');
       }
     });
   }
 
-  onEditProduct() {
+  onEditProduct(): void {
     this.router.navigate(['/dashboard', 'products', 'edit', this.product._id]);
   }
 
-  onManageStock() {
+  onManageStock(): void {
     this.router.navigate(['/dashboard', 'products', 'stock', this.product._id]);
   }
 
-  onToggleActive() {
+  onToggleActive(): void {
     if (!this.product) return;
 
     this.productService.toggleActive(this.product._id).subscribe({
       next: (updatedProduct) => {
         this.product = updatedProduct;
+        this.toastr.success(
+          `Producto ${this.product.isActive ? 'activado' : 'desactivado'}`,
+          'Estado actualizado'
+        );
       },
-      error: (err) => {
+      error: (err: Error) => {
         console.error('Error toggling product active status:', err);
-        alert('Error al cambiar el estado del producto');
+        this.toastr.error('Error al cambiar el estado del producto', 'Error');
       }
     });
   }
 
-  onToggleFeatured() {
+  onToggleFeatured(): void {
     if (!this.product) return;
 
     this.productService.toggleFeatured(this.product._id).subscribe({
       next: (updatedProduct) => {
         this.product = updatedProduct;
+        this.toastr.success(
+          this.product.isFeatured ? 'Producto destacado' : 'Producto quitado de destacados',
+          'Destacado actualizado'
+        );
       },
-      error: (err) => {
+      error: (err: Error) => {
         console.error('Error toggling product featured status:', err);
-        alert('Error al cambiar el estado destacado');
+        this.toastr.error('Error al cambiar el estado destacado', 'Error');
       }
     });
   }
 
-  onDeleteProduct() {
+  onDeleteProduct(): void {
     if (!this.product) return;
 
     const confirmMessage = `¿Estás seguro de eliminar el producto "${this.product.name}"?\nEsta acción no se puede deshacer.`;
-    
+
     if (confirm(confirmMessage)) {
       this.productService.delete(this.product._id).subscribe({
         next: () => {
-          this.router.navigate(['/products'], {
-            queryParams: { deleted: true }
+          this.toastr.success(`Producto "${this.product.name}" eliminado`, 'Eliminado');
+          this.router.navigate(['/dashboard', 'products'], {
+            queryParams: { deleted: 'true' }
           });
         },
-        error: (err) => {
+        error: (err: Error) => {
           console.error('Error deleting product:', err);
-          alert('Error al eliminar el producto');
+          this.toastr.error('Error al eliminar el producto', 'Error');
         }
       });
     }
   }
 
-  selectImage(image: ProductImage) {
+  selectImage(image: ProductImage): void {
     this.selectedImage = image;
   }
 
-  setActiveTab(tab: 'details' | 'specifications' | 'stock' | 'images') {
+  setActiveTab(tab: 'details' | 'specifications' | 'stock' | 'images'): void {
     this.activeTab = tab;
   }
 
-  // === MÉTODOS CORREGIDOS DEFINITIVAMENTE ===
+  // ========== HELPERS ==========
 
   hasSpecifications(): boolean {
     return !!this.product?.specifications && Object.keys(this.product.specifications).length > 0;
   }
 
-  getSpecifications(): { key: string; value: any }[] {
+  getSpecifications(): Array<{ key: string; value: any }> {
     if (!this.product?.specifications) return [];
-    
+
     return Object.entries(this.product.specifications).map(([key, value]) => ({
       key: this.formatSpecificationKey(key),
       value
@@ -195,7 +210,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
 
   getStockStatusClass(): string {
     if (!this.product) return 'status-unknown';
-    
+
     switch (this.product.stockStatus) {
       case 'out-of-stock': return 'status-out-of-stock';
       case 'low-stock': return 'status-low-stock';
@@ -206,7 +221,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
 
   getStockStatusText(): string {
     if (!this.product) return 'Desconocido';
-    
+
     switch (this.product.stockStatus) {
       case 'out-of-stock': return 'Sin Stock';
       case 'low-stock': return 'Stock Bajo';
@@ -217,16 +232,16 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
 
   getStockLevelPercentage(): number {
     if (!this.product) return 0;
-    
+
     const available = this.product.availableQuantity || 0;
     const maxStock = this.product.maxStock || this.product.stockQuantity || 1;
-    
+
     return Math.min((available / maxStock) * 100, 100);
   }
 
   getStockLevelClass(): string {
     const percentage = this.getStockLevelPercentage();
-    
+
     if (percentage === 0) return 'level-empty';
     if (percentage <= 25) return 'level-low';
     if (percentage <= 75) return 'level-medium';
@@ -243,11 +258,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewCheck
   get toggleTextDesactivar(): string {
     return this.product?.isActive ? 'Desactivar producto' : 'Activar producto';
   }
-  
+
   get toggleTextDestacado(): string {
     return this.product?.isFeatured ? 'Quitar Destacado' : 'Destacar';
   }
-
-
-
 }

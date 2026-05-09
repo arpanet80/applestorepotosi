@@ -1,33 +1,54 @@
 <div class="product-list">
-  <div *ngIf="loading" class="loading">
+  <!-- Loading: estado de carga pasado desde el padre -->
+  <div *ngIf="loading()" class="loading">
     <div class="spinner"></div>
     <p>Cargando productos...</p>
   </div>
 
-  <div *ngIf="error && !loading" class="error">
-    <p>{{ error }}</p>
-    <button (click)="loadProducts()" class="btn-retry">Reintentar</button>
+  <!-- Error: solo si NO está cargando Y hay error -->
+  <div *ngIf="error() && !loading()" class="error">
+    <p>{{ error() }}</p>
+    <button (click)="onRetry()" class="btn-retry">Reintentar</button>
   </div>
 
-  <div *ngIf="!loading && !error && products.length === 0" class="empty">
-    <p>No se encontraron productos</p>
+  <!-- Empty state -->
+  <div *ngIf="!loading() && !error() && products().length === 0" class="empty">
+    <p *ngIf="searchTerm() || hasFilters()">
+      No se encontraron productos con los filtros aplicados.
+    </p>
+    <p *ngIf="!searchTerm() && !hasFilters()">
+      No hay productos registrados en el sistema.
+    </p>
   </div>
 
-  <div *ngIf="!loading && !error && products.length > 0" class="products-grid">
-    <div *ngFor="let product of products" class="product-card">
+  <!-- Grid de productos -->
+  <div *ngIf="!loading() && !error() && products().length > 0" class="products-grid">
+    <div *ngFor="let product of products()" class="product-card">
       <div class="product-image-wrapper">
-        <img [src]="product.imageUrl || '/assets/imgs/product-no-image.png'" alt="{{ product.name }}" class="product-image" />
+        <img
+          [src]="product.imageUrl || '/assets/imgs/product-no-image.png'"
+          [alt]="product.name"
+          class="product-image"
+          loading="lazy"
+        />
       </div>
       <div class="product-content">
         <h5 class="product-name">{{ product.name }}</h5>
         <p class="product-price">${{ product.salePrice | number:'1.2-2' }}</p>
-        <div class="product-rating">
-          <span class="stars">★★★★★</span>
-          <span class="rating-text">(2)</span>
+
+        <!-- Badge de estado de stock -->
+        <span class="stock-status" [class]="getStockStatusClass(product)">
+          {{ getStockStatusText(product) }}
+        </span>
+
+        <!-- Acciones -->
+        <div *ngIf="showActions()" class="product-actions">
+          <button
+            class="btn btn-primary btn-sm btn-add-cart"
+            (click)="onSelectProduct(product)">
+            Ver Producto
+          </button>
         </div>
-        <button class="btn btn-primary btn-sm btn-add-cart" (click)="onSelectProduct(product)">
-          Ver Producto
-        </button>
       </div>
     </div>
   </div>

@@ -8,7 +8,7 @@ import { StockMovement } from '../../../stock-movements/models/stock-movement.mo
   selector: 'app-technician-stock-movement-detail',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  templateUrl: './technician-stock-movement-detail.component.html'
+  templateUrl: './technician-stock-movement-detail.component.html',
 })
 export class TechnicianStockMovementDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -20,14 +20,30 @@ export class TechnicianStockMovementDetailComponent implements OnInit {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return this.goBack();
+    if (!id) {
+      this.goBack();
+      return;
+    }
     this.service.findOne(id).subscribe({
-      next: m => { this.movement = m; this.loading = false; },
-      error: () => this.goBack()
+      next: (m) => {
+        this.movement = m;
+        this.loading = false;
+      },
+      // BUG FIX 7: El error no reseteaba loading = false antes de navegar,
+      // dejando el spinner activo si goBack() fallase por alguna razón.
+      error: () => {
+        this.loading = false;
+        this.goBack();
+      },
     });
   }
 
   goBack(): void {
-    this.router.navigate(['/dashboard/stock-movements']);
+    // BUG FIX 8 (CRÍTICO): La ruta de regreso apuntaba a
+    // '/dashboard/stock-movements' (ruta del módulo admin/sales),
+    // en lugar de '/dashboard/technician-stock-movements' (ruta del técnico).
+    // Esto causaba que al pulsar "Volver" o cuando fallaba la carga,
+    // el técnico era redirigido fuera de su módulo.
+    this.router.navigate(['/dashboard/technician-stock-movements']);
   }
 }

@@ -48,10 +48,15 @@ export class BrandService {
   }
 
   deactivate(uid: string): Observable<Brand> {
-      return this.http.put<Brand>(`${this.apiUrl}/${uid}/deactivate`, {});
-    }
-  
-    activate(uid: string): Observable<Brand> {
-      return this.http.put<Brand>(`${this.apiUrl}/${uid}/activate`, {});
-    }
+    return this.http.put<Brand>(`${this.apiUrl}/${uid}/deactivate`, {});
+  }
+
+  activate(uid: string): Observable<Brand> {
+    return this.http.put<Brand>(`${this.apiUrl}/${uid}/activate`, {});
+  }
+
+  /** Retorna todas las marcas activas para usar en selectores */
+  getActiveOptions(): Observable<BrandResponse> {
+    return this.findAll({ isActive: true, limit: 200, page: 1 });
+  }
 }

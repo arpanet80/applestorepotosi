@@ -1,10 +1,13 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+// src/service-orders/dto/customer-device.dto.ts
+import { IsString, IsOptional, IsArray, IsNotEmpty } from 'class-validator';
 
 export class CustomerDeviceDto {
   @IsString()
+  @IsNotEmpty()
   type: string;
 
   @IsString()
+  @IsNotEmpty()
   model: string;
 
   @IsOptional()
@@ -22,5 +25,6 @@ export class CustomerDeviceDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   accessoriesLeft?: string[];
 }

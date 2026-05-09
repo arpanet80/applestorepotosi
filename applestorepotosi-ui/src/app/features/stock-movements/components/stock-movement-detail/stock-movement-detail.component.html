@@ -6,8 +6,26 @@
       <!-- begin::Page -->
       <div class="content fs-6 d-flex flex-column flex-column-fluid" id="kt_content">
         <div class="container-xxl">
-          <!-- begin::Card -->
-          <div class="card card-flush">
+
+          <!-- Loading State -->
+          <div *ngIf="loading" class="d-flex justify-content-center py-10">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="error && !loading" class="d-flex justify-content-center py-10">
+            <div class="alert alert-danger w-auto mb-0">
+              <em class="bi bi-exclamation-triangle me-2"></em>{{ error }}
+              <a routerLink="/dashboard/stock-movements" class="btn btn-sm btn-light-danger ms-3">
+                Volver al listado
+              </a>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div *ngIf="!loading && !error && movement" class="card card-flush">
             <div class="card-header align-items-center py-5 gap-2 gap-md-5">
               <div class="card-title">
                 <h2 class="d-flex align-items-center fs-2 fw-bold">
@@ -17,10 +35,10 @@
                   Movimiento
                 </h2>
                 <span class="badge badge-light-primary ms-3">
-                  {{ movement?.type | uppercase }}
+                  {{ movement.type | uppercase }}
                 </span>
                 <span class="badge badge-light-secondary ms-2">
-                  {{ movement?.reason }}
+                  {{ movement.reason }}
                 </span>
               </div>
               <div class="card-toolbar">
@@ -52,24 +70,27 @@
                     <table class="table table-row-bordered align-middle gs-4 gy-3">
                       <tbody>
                         <tr>
-                          <td class="text-gray-600 fw-bold min-w-150px">Producto ID</td>
-                          <td class="text-gray-900">{{ movement?.productId?.name}}</td>
+                          <td class="text-gray-600 fw-bold min-w-150px">Producto</td>
+                          <!-- CORRECCIÓN: productId puede ser string o objeto populado -->
+                          <td class="text-gray-900">
+                             {{ (movement.productId && typeof movement.productId === 'object') ? movement.productId.name : movement.productId }}
+                          </td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Cantidad</td>
-                          <td class="text-gray-900">{{ movement?.quantity }}</td>
+                          <td class="text-gray-900">{{ movement.quantity }}</td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Stock anterior</td>
-                          <td class="text-gray-900">{{ movement?.previousStock }}</td>
+                          <td class="text-gray-900">{{ movement.previousStock }}</td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Stock nuevo</td>
-                          <td class="text-gray-900">{{ movement?.newStock }}</td>
+                          <td class="text-gray-900">{{ movement.newStock }}</td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Fecha</td>
-                          <td class="text-gray-900">{{ movement?.timestamp | date:'medium' }}</td>
+                          <td class="text-gray-900">{{ movement.timestamp | date:'medium' }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -83,15 +104,15 @@
                       <tbody>
                         <tr>
                           <td class="text-gray-600 fw-bold min-w-150px">Referencia</td>
-                          <td class="text-gray-900">{{ movement?.reference || '—' }}</td>
+                          <td class="text-gray-900">{{ movement.reference || '—' }}</td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Modelo de referencia</td>
-                          <td class="text-gray-900">{{ movement?.referenceModel || '—' }}</td>
+                          <td class="text-gray-900">{{ movement.referenceModel || '—' }}</td>
                         </tr>
                         <tr>
                           <td class="text-gray-600 fw-bold">Notas</td>
-                          <td class="text-gray-900">{{ movement?.notes || '—' }}</td>
+                          <td class="text-gray-900">{{ movement.notes || '—' }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -105,7 +126,7 @@
                       <tbody>
                         <tr>
                           <td class="text-gray-600 fw-bold min-w-150px">Usuario ID</td>
-                          <td class="text-gray-900">{{ movement?.userId }}</td>
+                          <td class="text-gray-900">{{ movement.userId || '—' }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -123,19 +144,3 @@
   </div>
 </div>
 <!-- end::Root -->
-
-<!-- Loading & Error states -->
-<div *ngIf="loading" class="d-flex justify-content-center py-10">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Cargando...</span>
-  </div>
-</div>
-
-<div *ngIf="error && !loading" class="d-flex justify-content-center py-10">
-  <div class="alert alert-danger w-auto mb-0">
-    <em class="bi bi-exclamation-triangle me-2"></em>{{ error }}
-    <a routerLink="/dashboard/stock-movements" class="btn btn-sm btn-light-danger ms-3">
-      Volver al listado
-    </a>
-  </div>
-</div>

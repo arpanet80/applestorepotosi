@@ -1,5 +1,5 @@
+// src/service-orders/schemas/service-item.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
 
 @Schema({ _id: false })
 export class ServiceItem {

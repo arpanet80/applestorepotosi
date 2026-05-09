@@ -1,175 +1,300 @@
 <div class="card card-flush">
-  <!-- Cabecera -->
-  <div class="card-header align-items-center py-5 gap-2 gap-md-5">
-    <div class="card-title">
-      <h2 class="fw-bold text-gray-900 mb-0">Orden #{{ order.orderNumber }}</h2>
+  <!-- loading -->
+  <div *ngIf="loading" class="card-body text-center py-10">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
     </div>
-    <div class="card-toolbar">
-      <a routerLink="/service-orders" class="btn btn-sm btn-light">
-        <i class="ki-duotone ki-arrow-left fs-2"></i> Volver
-      </a>
-    </div>
+    <div class="text-muted mt-3">Cargando orden de servicio...</div>
   </div>
 
-  <!-- Cuerpo -->
-  <div class="card-body fs-6">
-    <!-- Datos principales -->
-    <div class="row mb-6">
-      <div class="col-md-3">
-        <label class="text-muted">Cliente</label>
-        <div class="fw-bold fs-5">{{ getCustomerName() }}</div>
-      </div>
-      <div class="col-md-3">
-        <label class="text-muted">Técnico</label>
-        <div class="fw-bold fs-5">{{ getTechnicianName() }}</div>
-      </div>
-      <div class="col-md-3">
-        <label class="text-muted">Estado actual</label>
-        <div>
+  <!-- error -->
+  <div *ngIf="errorMsg && !loading" class="alert alert-danger mx-6 mt-4 mb-0 d-flex justify-content-between align-items-center">
+    <span>{{ errorMsg }}</span>
+    <button class="btn btn-sm btn-light" (click)="loadOrder(order?._id || '')">Reintentar</button>
+  </div>
+
+  <!-- contenido -->
+  <ng-container *ngIf="!loading && order">
+    <!-- Cabecera -->
+    <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+      <div class="card-title">
+        <div class="d-flex align-items-center gap-3">
+          <h2 class="fw-bold text-gray-900 mb-0">Orden #{{ order.orderNumber }}</h2>
           <span class="badge badge-light-{{ mapColor(safeStatus) }} fs-6">
-            {{ safeStatus }}
+            {{ getStatusLabel(safeStatus) }}
           </span>
         </div>
       </div>
-      <div class="col-md-3">
-        <label class="text-muted">Total orden</label>
-        <div class="fw-bold fs-5">Bs {{ order.totalCost }}</div>
+      <div class="card-toolbar">
+        <a routerLink="/dashboard/service-orders" class="btn btn-sm btn-light">
+          <i class="ki-duotone ki-arrow-left fs-2"></i> Volver al listado
+        </a>
       </div>
     </div>
 
-    <!-- Dispositivo -->
-    <div class="row mb-6">
-      <div class="col-md-4">
-        <label class="text-muted">Dispositivo</label>
-        <div class="fw-bold">{{ order.device.type }} {{ order.device.model }}</div>
-      </div>
-      <div class="col-md-4">
-        <label class="text-muted">IMEI</label>
-        <div>{{ order.device.imei || '—' }}</div>
-      </div>
-      <div class="col-md-4">
-        <label class="text-muted">Serial</label>
-        <div>{{ order.device.serial || '—' }}</div>
-      </div>
-    </div>
-
-    <!-- Síntoma / Descripción -->
-    <div class="row mb-6">
-      <div class="col-12">
-        <label class="text-muted">Síntoma</label>
-        <div class="fw-bold">{{ order.symptom }}</div>
-      </div>
-      <div class="col-12 mt-3">
-        <label class="text-muted">Descripción</label>
-        <div>{{ order.description || 'Sin descripción' }}</div>
-      </div>
-    </div>
-
-    <!-- Cambiar estado -->
-    <div class="separator separator-dashed my-6"></div>
-    <h5 class="mb-4">Cambiar estado</h5>
-    <form [formGroup]="statusForm" class="row align-items-end gy-3">
-      <div class="col-md-4">
-        <label class="form-label">Nuevo estado</label>
-        <select formControlName="status" class="form-select form-select-solid">
-          <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
-        </select>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Notas (opcional)</label>
-        <input type="text" formControlName="notes" class="form-control form-control-solid" />
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-primary w-100" (click)="updateStatus()">
-          Actualizar
-        </button>
-      </div>
-    </form>
-
-    <!-- Items / repuestos -->
-    <div class="separator separator-dashed my-6"></div>
-    <div class="d-flex align-items-center mb-4">
-      <h5 class="mb-0">Repuestos / Items</h5>
-      <button
-        type="button"
-        class="btn btn-sm btn-light-primary ms-auto"
-        (click)="addItem()"
-      >
-        <i class="ki-duotone ki-plus fs-2"></i> Agregar item
-      </button>
-    </div>
-
-    <form [formGroup]="itemForm" class="row align-items-end gy-3 mb-4">
-      <div class="col-md-4">
-        <label class="form-label">Repuesto</label>
-        <input type="text" formControlName="partName" class="form-control form-control-solid" placeholder="Ej. Pantalla iPhone 13 Pro" />
-      </div>
-      <div class="col-md-1">
-        <label class="form-label">Cant</label>
-        <input type="number" formControlName="quantity" class="form-control form-control-solid" min="1" />
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Costo (Bs)</label>
-        <input type="number" formControlName="unitCost" class="form-control form-control-solid" min="0" step="0.01" />
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Precio (Bs)</label>
-        <input type="number" formControlName="unitPrice" class="form-control form-control-solid" min="0" step="0.01" />
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Notas</label>
-        <input type="text" formControlName="notes" class="form-control form-control-solid" />
-      </div>
-      <div class="col-md-1">
-        <button type="button" class="btn btn-icon btn-light-success" (click)="addItem()">
-          <i class="ki-duotone ki-check fs-2"></i>
-        </button>
-      </div>
-    </form>
-
-    <!-- Tabla de items -->
-    <div class="table-responsive">
-      <table class="table table-row-dashed align-middle gs-4 gy-3">
-        <thead>
-          <tr class="text-gray-500 fw-bold fs-7">
-            <th>Repuesto</th>
-            <th>Cant</th>
-            <th>P. Unit</th>
-            <th>Total</th>
-            <th>Notas</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let i of order.items">
-            <td class="fw-bold">{{ i.partName }}</td>
-            <td>{{ i.quantity }}</td>
-            <td>Bs {{ i.unitPrice }}</td>
-            <td>Bs {{ i.quantity * i.unitPrice }}</td>
-            <td>{{ i.notes || '—' }}</td>
-          </tr>
-          <tr *ngIf="!order.items?.length">
-            <td colspan="5" class="text-muted text-center">Sin repuestos agregados</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Resumen -->
-    <div class="d-flex justify-content-end mt-6">
-      <div class="w-250px">
-        <div class="d-flex justify-content-between mb-3">
-          <span class="text-muted">Sub-total items:</span>
-          <span class="fw-bold">Bs {{ getTotalItems() }}</span>
+    <!-- Cuerpo -->
+    <div class="card-body fs-6">
+      <!-- Info principal en cards -->
+      <div class="row g-4 mb-6">
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 h-100">
+            <div class="text-muted fs-7 mb-1">Cliente</div>
+            <div class="fw-bold fs-5">{{ getCustomerName() }}</div>
+            <div class="text-muted fs-7">{{ getCustomerPhone() }}</div>
+          </div>
         </div>
-        <div class="d-flex justify-content-between mb-3">
-          <span class="text-muted">Mano de obra:</span>
-          <span class="fw-bold">Bs {{ order.laborCost }}</span>
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 h-100">
+            <div class="text-muted fs-7 mb-1">Técnico asignado</div>
+            <div class="fw-bold fs-5">{{ getTechnicianName() }}</div>
+          </div>
         </div>
-        <div class="d-flex justify-content-between">
-          <span class="fs-5 fw-bold text-gray-800">Total:</span>
-          <span class="fs-5 fw-bold text-gray-800">Bs {{ order.totalCost }}</span>
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 h-100">
+            <div class="text-muted fs-7 mb-1">Fecha de ingreso</div>
+            <div class="fw-bold fs-5">{{ order.createdAt | date:'dd/MM/yyyy' }}</div>
+            <div class="text-muted fs-7">{{ order.createdAt | date:'HH:mm' }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="bg-light rounded p-4 h-100">
+            <div class="text-muted fs-7 mb-1">Total orden</div>
+            <div class="fw-bold fs-3 text-primary">Bs {{ order.totalCost | number:'1.2-2' }}</div>
+          </div>
         </div>
       </div>
+
+      <!-- Dispositivo -->
+      <div class="mb-6">
+        <h5 class="fw-bold mb-3">Dispositivo</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="border rounded p-3">
+              <div class="text-muted fs-7">Tipo / Modelo</div>
+              <div class="fw-bold">{{ order.device.type }} {{ order.device.model }}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3">
+              <div class="text-muted fs-7">IMEI</div>
+              <div class="fw-bold">{{ order.device.imei || '—' }}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3">
+              <div class="text-muted fs-7">Serial</div>
+              <div class="fw-bold">{{ order.device.serial || '—' }}</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="border rounded p-3">
+              <div class="text-muted fs-7">Condición</div>
+              <div class="fw-bold">{{ order.device.aestheticCondition || '—' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Síntoma y Descripción -->
+      <div class="row mb-6">
+        <div class="col-md-6">
+          <div class="border rounded p-4 h-100">
+            <h6 class="fw-bold text-muted mb-2">Síntoma reportado</h6>
+            <p class="mb-0">{{ order.symptom }}</p>
+          </div>
+        </div>
+        <div class="col-md-6" *ngIf="order.description">
+          <div class="border rounded p-4 h-100">
+            <h6 class="fw-bold text-muted mb-2">Descripción adicional</h6>
+            <p class="mb-0">{{ order.description }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fotos -->
+      <div class="mb-6" *ngIf="order.photos && order.photos.length > 0">
+        <h5 class="fw-bold mb-3">Fotos del dispositivo</h5>
+        <div class="d-flex gap-3 flex-wrap">
+          <a *ngFor="let photo of order.photos" [href]="photo" target="_blank" class="d-block">
+            <img [src]="photo" class="rounded shadow-sm" style="width: 150px; height: 150px; object-fit: cover;" />
+          </a>
+        </div>
+      </div>
+
+      <!-- Historial de estados -->
+      <div class="mb-6">
+        <h5 class="fw-bold mb-3">Historial de estados</h5>
+        <div class="table-responsive" *ngIf="order.statusHistory && order.statusHistory.length > 0">
+          <table class="table table-sm table-row-dashed align-middle">
+            <thead class="fs-7 text-gray-500 fw-bold">
+              <tr>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Usuario</th>
+                <th>Notas</th>
+              </tr>
+            </thead>
+            <tbody class="fs-6">
+              <tr *ngFor="let h of order.statusHistory">
+                <td>{{ h.changedAt | date:'short' }}</td>
+                <td>
+                  <span class="badge badge-light-{{ mapColor(h.status) }}">{{ getStatusLabel(h.status) }}</span>
+                </td>
+                <td>{{ $any(h.changedBy)?.displayName || '—' }}</td>
+                <td>{{ h.notes || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="!order.statusHistory || order.statusHistory.length === 0" class="text-muted bg-light rounded p-3">
+          <i class="ki-duotone ki-information-5 me-2"></i> Sin historial de cambios registrado
+        </div>
+      </div>
+
+      <!-- Cambiar estado -->
+      <div class="mb-6">
+        <h5 class="fw-bold mb-3">Cambiar estado</h5>
+
+        <div *ngIf="isFinalized" class="alert alert-info d-flex align-items-center">
+          <i class="ki-duotone ki-lock me-3 fs-2"></i>
+          <div>
+            <strong>Orden {{ order.status === 'completada' ? 'completada' : 'cancelada' }}</strong>
+            <div class="fs-7">Esta orden no puede modificarse porque ya fue {{ order.status === 'completada' ? 'completada' : 'cancelada' }}.</div>
+          </div>
+        </div>
+
+        <div *ngIf="!isFinalized" class="border rounded p-4">
+          <form [formGroup]="statusForm" class="row align-items-end gy-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Nuevo estado</label>
+              <select formControlName="status" class="form-select form-select-solid">
+                <option *ngFor="let s of allowedStatuses" [value]="s">{{ getStatusLabel(s) }}</option>
+              </select>
+              <div class="form-text text-muted mt-1">
+                <i class="ki-duotone ki-information-5 fs-7 me-1"></i>
+                Desde "{{ getStatusLabel(safeStatus) }}" puedes cambiar a: {{ allowedStatuses.slice(1).map(getStatusLabel).join(', ') || 'ninguno' }}
+              </div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold">Notas del cambio</label>
+              <input type="text" formControlName="notes" class="form-control form-control-solid"
+                     placeholder="Ej. Cliente aprobó presupuesto..." />
+            </div>
+            <div class="col-md-3">
+              <button type="button" class="btn btn-primary w-100" (click)="updateStatus()" [disabled]="savingStatus">
+                <span *ngIf="savingStatus" class="spinner-border spinner-border-sm me-1"></span>
+                <i class="ki-duotone ki-arrow-right fs-2" *ngIf="!savingStatus"></i>
+                {{ savingStatus ? 'Actualizando...' : 'Actualizar estado' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Items / repuestos -->
+      <div class="mb-6">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="fw-bold mb-0">Repuestos / Items</h5>
+          <span class="badge badge-light-primary">{{ order.items.length }} item(s)</span>
+        </div>
+
+        <!-- Formulario para agregar item -->
+        <div *ngIf="!isFinalized" class="border rounded p-4 mb-4 bg-light">
+          <h6 class="fw-bold mb-3">Agregar nuevo repuesto</h6>
+          <form [formGroup]="itemForm" class="row align-items-end gy-3">
+            <div class="col-md-4">
+              <label class="form-label">Nombre del repuesto</label>
+              <input type="text" formControlName="partName" class="form-control form-control-solid"
+                     placeholder="Ej. Pantalla iPhone 13 Pro" />
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">Cant</label>
+              <input type="number" formControlName="quantity" class="form-control form-control-solid" min="1" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Costo (Bs)</label>
+              <input type="number" formControlName="unitCost" class="form-control form-control-solid" min="0" step="0.01" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Precio (Bs)</label>
+              <input type="number" formControlName="unitPrice" class="form-control form-control-solid" min="0" step="0.01" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Notas</label>
+              <input type="text" formControlName="notes" class="form-control form-control-solid"
+                     placeholder="Opcional" />
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-icon btn-light-success w-100" (click)="addItem()" [disabled]="addingItem"
+                      title="Agregar repuesto">
+                <i class="ki-duotone ki-plus fs-2" *ngIf="!addingItem"></i>
+                <span *ngIf="addingItem" class="spinner-border spinner-border-sm"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tabla de items -->
+        <div class="table-responsive">
+          <table class="table table-row-dashed align-middle gs-4 gy-3">
+            <thead class="fs-7 text-gray-500 fw-bold">
+              <tr>
+                <th>Repuesto</th>
+                <th class="text-center">Cant</th>
+                <th class="text-end">Costo Unit</th>
+                <th class="text-end">P. Unit</th>
+                <th class="text-end">Total</th>
+                <th>Notas</th>
+                <th *ngIf="!isFinalized" class="text-center" width="60">Acción</th>
+              </tr>
+            </thead>
+            <tbody class="fs-6">
+              <tr *ngFor="let i of order.items; let idx = index">
+                <td class="fw-bold">{{ i.partName }}</td>
+                <td class="text-center">{{ i.quantity }}</td>
+                <td class="text-end">Bs {{ i.unitCost | number:'1.2-2' }}</td>
+                <td class="text-end">Bs {{ i.unitPrice | number:'1.2-2' }}</td>
+                <td class="text-end fw-bold">Bs {{ i.quantity * i.unitPrice | number:'1.2-2' }}</td>
+                <td>{{ i.notes || '—' }}</td>
+                <td *ngIf="!isFinalized" class="text-center">
+                  <button type="button" class="btn btn-icon btn-sm btn-light-danger" (click)="removeItem(idx)"
+                          title="Eliminar repuesto">
+                    <i class="ki-duotone ki-trash fs-2"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!order.items.length">
+                <td colspan="7" class="text-muted text-center py-4">
+                  <i class="ki-duotone ki-information-5 fs-3 me-2"></i>
+                  Sin repuestos agregados
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resumen financiero -->
+      <div class="d-flex justify-content-end">
+        <div class="card w-350px">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3">Resumen de costos</h6>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Sub-total repuestos:</span>
+              <span class="fw-bold">Bs {{ getTotalItems() | number:'1.2-2' }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-muted">Mano de obra:</span>
+              <span class="fw-bold">Bs {{ order.laborCost | number:'1.2-2' }}</span>
+            </div>
+            <div class="separator separator-dashed my-3"></div>
+            <div class="d-flex justify-content-between">
+              <span class="fs-5 fw-bold text-gray-800">Total:</span>
+              <span class="fs-5 fw-bold text-primary">Bs {{ order.totalCost | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </ng-container>
 </div>

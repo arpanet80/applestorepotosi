@@ -1,15 +1,5 @@
 <!-- src/app/products/components/product-form/product-form.component.html -->
 <div class="card">
-  <!-- <div class="card-header">
-    <h3 class="card-title">{{ isEditMode ? 'Editar Producto' : 'Crear Nuevo Producto' }}</h3>
-    <div class="card-toolba ms-auto">
-      <button type="button" class="btn btn-sm btn-secondary" (click)="onCancel()">
-        <i class="ki-duotone ki-arrow-left fs-2"></i>
-        Cancelar
-      </button>
-    </div>
-  </div> -->
-
   <div class="card-body">
     <!-- Loading State -->
     <div *ngIf="loading" class="d-flex justify-content-center align-items-center h-300px">
@@ -19,7 +9,7 @@
     </div>
 
     <!-- Error State -->
-    <div *ngIf="error && !loading" class="alert alert-danger d-flex align-items-center p-5">
+    <div *ngIf="error && !loading && !submitting" class="alert alert-danger d-flex align-items-center p-5">
       <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4">
         <span class="path1"></span>
         <span class="path2"></span>
@@ -58,7 +48,7 @@
             <span class="spinner-border spinner-border-sm me-2"></span>
             Verificando SKU...
           </div>
-          <div *ngIf="!skuChecking && skuAvailable && productForm.get('sku')?.valid" class="form-text text-success">
+          <div *ngIf="!skuChecking && skuAvailable && productForm.get('sku')?.valid && productForm.get('sku')?.value" class="form-text text-success">
             <i class="ki-duotone ki-check-circle fs-2"></i> SKU disponible
           </div>
           <div *ngIf="isFieldInvalid('sku')" class="invalid-feedback">
@@ -78,7 +68,7 @@
             <span class="spinner-border spinner-border-sm me-2"></span>
             Verificando código...
           </div>
-          <div *ngIf="!barcodeChecking && barcodeAvailable && productForm.get('barcode')?.valid" class="form-text text-success">
+          <div *ngIf="!barcodeChecking && barcodeAvailable && productForm.get('barcode')?.valid && productForm.get('barcode')?.value" class="form-text text-success">
             <i class="ki-duotone ki-check-circle fs-2"></i> Código disponible
           </div>
           <div *ngIf="isFieldInvalid('barcode')" class="invalid-feedback">
@@ -121,8 +111,8 @@
           <select class="form-select form-select-solid" 
                   formControlName="categoryId"
                   [class.is-invalid]="isFieldInvalid('categoryId')">
-            <option value="">Seleccionar categoría</option>
-            <option *ngFor="let category of categories" [value]="category._id">
+            <option [ngValue]="null">Seleccionar categoría</option>
+            <option *ngFor="let category of categories" [ngValue]="category._id">
               {{ category.name }}
             </option>
           </select>
@@ -136,8 +126,8 @@
           <select class="form-select form-select-solid" 
                   formControlName="brandId"
                   [class.is-invalid]="isFieldInvalid('brandId')">
-            <option value="">Seleccionar marca</option>
-            <option *ngFor="let brand of brands" [value]="brand._id">
+            <option [ngValue]="null">Seleccionar marca</option>
+            <option *ngFor="let brand of brands" [ngValue]="brand._id">
               {{ brand.name }}
             </option>
           </select>
@@ -151,8 +141,8 @@
           <select class="form-select form-select-solid" 
                   formControlName="supplierId"
                   [class.is-invalid]="isFieldInvalid('supplierId')">
-            <option value="">Seleccionar proveedor</option>
-            <option *ngFor="let supplier of suppliers" [value]="supplier._id">
+            <option [ngValue]="null">Seleccionar proveedor</option>
+            <option *ngFor="let supplier of suppliers" [ngValue]="supplier._id">
               {{ supplier.name }}
             </option>
           </select>
@@ -201,7 +191,7 @@
             <input type="text" 
                    class="form-control form-control-solid"
                    formControlName="screenSize"
-                   placeholder="Ej: 6.1&quot;">
+                   placeholder='Ej: 6.1"'>
           </div>
 
           <div class="col-md-4">
@@ -426,7 +416,7 @@
       </div>
 
       <!-- Global Form Error -->
-      <div *ngIf="error" class="alert alert-danger mt-6">
+      <div *ngIf="error && !submitting" class="alert alert-danger mt-6">
         <i class="ki-duotone ki-shield-cross fs-2hx text-danger me-4"></i>
         {{ error }}
       </div>

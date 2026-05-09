@@ -32,3 +32,9 @@ export interface CategoryResponse {
   page: number;
   totalPages: number;
 }
+
+/** Opción simplificada para selectores */
+export interface CategoryOption {
+  _id: string;
+  name: string;
+}
