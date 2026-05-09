@@ -122,7 +122,7 @@ export class BrandsController {
 
   @Post('upload-logo')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 4 * 1024 * 1024 } }))
-  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(@UploadedFile() file: any) {
     const { url } = await this.imageKitService.uploadFile(file);
     return { url };
   }
