@@ -1,0 +1,68 @@
+/* src/app/categories/components/category-tree/category-tree.component.css */
+.tree,
+.tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.node-content:hover {
+  background: #f8f9fa;
+}
+
+.node-content.inactive {
+  opacity: 0.6;
+  background: #fdfdfd;
+}
+
+.icon {
+  font-size: 0.8rem;
+  width: 14px;
+  text-align: center;
+}
+
+.name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.slug {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+}
+
+.indent {
+  display: inline-block;
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.08);
+}

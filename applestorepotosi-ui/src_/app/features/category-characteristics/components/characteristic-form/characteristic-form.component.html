@@ -1,0 +1,196 @@
+<!-- begin::Form card -->
+<div class="card card-flush">
+  <!-- begin::Card header -->
+  <div class="card-header">
+    <div class="card-title">
+      <h2 class="fw-bold text-gray-800">
+        {{ isEditMode ? 'Editar Característica' : 'Crear Característica' }}
+      </h2>
+    </div>
+    <div class="card-toolbar">
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="btn btn-sm btn-light-secondary"
+      >
+        <i class="ki-duotone ki-arrow-left fs-2"></i>Cancelar
+      </button>
+    </div>
+  </div>
+  <!-- end::Card header -->
+
+  <!-- begin::Card body -->
+  <div class="card-body">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      
+      <!-- Categoría -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Categoría</label>
+        <div class="col-lg-9">
+          <select 
+            appSelect2 data-control="select2" 
+            data-placeholder="Seleccione una categoria"
+            formControlName="categoryId" 
+            class="form-select form-select-solid" 
+            [class.is-invalid]="form.get('categoryId')?.invalid && form.get('categoryId')?.touched"
+            >
+            <option [ngValue]="null" disabled selected>Seleccionar categoría</option>
+            <option *ngFor="let c of categories" [value]="c._id">{{ c.name }}</option>
+          </select>
+          
+          <span
+            *ngIf="form.get('categoryId')?.invalid && form.get('categoryId')?.touched"
+            class="invalid-feedback"
+          >
+            Campo requerido
+          </span>
+        </div>
+      </div>
+
+      <!-- Nombre -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Nombre</label>
+        <div class="col-lg-9">
+          <input
+            type="text"
+            formControlName="name"
+            class="form-control form-control-solid"
+            placeholder="Color, Tamaño, Peso..."
+            [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched"
+          />
+          <span
+            *ngIf="form.get('name')?.invalid && form.get('name')?.touched"
+            class="invalid-feedback"
+          >
+            Nombre requerido (mín. 2 caracteres)
+          </span>
+        </div>
+      </div>
+
+      <!-- Tipo -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Tipo</label>
+        <div class="col-lg-9">
+          <select
+            formControlName="type"
+            class="form-select form-select-solid"
+            (change)="onTypeChange()"
+          >
+            <option value="text">Texto</option>
+            <option value="number">Número</option>
+            <option value="boolean">Sí / No</option>
+            <option value="select">Selección única</option>
+            <option value="multiselect">Selección múltiple</option>
+            <option value="date">Fecha</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Valores posibles -->
+      <div class="row mb-6" *ngIf="needsPossibleValues">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Valores posibles</label>
+        <div class="col-lg-9">
+          <textarea
+            formControlName="possibleValues"
+            rows="3"
+            class="form-control form-control-solid"
+            placeholder='["Rojo", "Azul", "Verde"]'
+          ></textarea>
+          <div class="form-text text-muted">
+            Escriba un array JSON válido. Solo para tipos "select" o "multiselect".
+          </div>
+        </div>
+      </div>
+
+      <!-- Requerido -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Requerido</label>
+        <div class="col-lg-9">
+          <label class="form-check form-check-custom form-check-solid">
+            <input
+              type="checkbox"
+              formControlName="isRequired"
+              class="form-check-input"
+            />
+            <span class="form-check-label">La característica es obligatoria</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Activa -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Estado</label>
+        <div class="col-lg-9">
+          <label class="form-check form-check-custom form-check-solid">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+              class="form-check-input"
+            />
+            <span class="form-check-label">Característica activa</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Descripción</label>
+        <div class="col-lg-9">
+          <textarea
+            formControlName="description"
+            rows="3"
+            class="form-control form-control-solid"
+            placeholder="Opcional"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Orden -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Orden</label>
+        <div class="col-lg-9">
+          <input
+            type="number"
+            formControlName="sortOrder"
+            class="form-control form-control-solid"
+          />
+        </div>
+      </div>
+
+      <!-- Mensaje de error -->
+      <div *ngIf="error" class="alert alert-danger">
+        <i class="ki-duotone ki-information-2 fs-2hx text-danger me-4"></i>
+        <span>{{ error }}</span>
+      </div>
+    </form>
+  </div>
+  <!-- end::Card body -->
+
+  <!-- begin::Card footer -->
+  <div class="card-footer d-flex justify-content-end py-6">
+    <button
+      type="button"
+      (click)="onCancel()"
+      class="btn btn-light-secondary me-3"
+    >
+      Cancelar
+    </button>
+    <button
+      type="submit"
+      [disabled]="form.invalid || submitting"
+      (click)="onSubmit()"
+      class="btn btn-primary"
+    >
+      <span *ngIf="!submitting">
+        <i class="ki-duotone ki-save-2 fs-2 me-2"></i>
+        {{ isEditMode ? 'Actualizar' : 'Crear' }}
+      </span>
+      <span *ngIf="submitting">
+        <span class="spinner-border spinner-border-sm align-middle me-2"></span>
+        Guardando...
+      </span>
+    </button>
+  </div>
+  <!-- end::Card footer -->
+</div>
+<!-- end::Form card -->

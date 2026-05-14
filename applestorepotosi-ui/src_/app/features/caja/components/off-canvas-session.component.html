@@ -1,0 +1,100 @@
+<!-- Off-canvas lateral -->
+<div class="offcanvas offcanvas-end" [class.show]="visible" *ngIf="visible" style="width: 450px">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Detalle de sesión</h5>
+    <button type="button" class="btn-close" (click)="close()"></button>
+  </div>
+
+  <div class="offcanvas-body" *ngIf="session">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between mb-3">
+      <span class="text-muted">ID</span>
+      <span class="fw-bold">{{ session.sessionId }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-3">
+      <span class="text-muted">Apertura</span>
+      <span>{{ session.openedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-3">
+      <span class="text-muted">Cierre</span>
+      <span>{{ session.closedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-3">
+      <span class="text-muted">Cajero</span>
+      <span>{{ session.openedBy }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-4">
+      <span class="text-muted">Tipo de corte</span>
+      <span class="badge badge-light-{{ session.closeType === 'Z' ? 'primary' : 'warning' }}">
+        {{ session.closeType }}
+      </span>
+    </div>
+
+    <!-- Montos -->
+    <h6 class="mb-3">Montos</h6>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Saldo inicial</span>
+      <span>$ {{ session.openingBalance }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Ventas efectivo</span>
+      <span>$ {{ session.cashSales }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Devoluciones</span>
+      <span>$ {{ session.cashRefunds }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Ajustes manuales</span>
+      <span>$ {{ session.cashInOut }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span class="fw-bold">Esperado</span>
+      <span class="fw-bold">$ {{ session.expectedCash }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span class="fw-bold">Contado</span>
+      <span class="fw-bold">$ {{ session.actualCash || 0 }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-4">
+      <span class="fw-bold">Diferencia</span>
+      <span class="fw-bold"
+            [class.text-success]="diferencia >= 0"
+            [class.text-danger]="diferencia < 0">
+        $ {{ diferencia.toFixed(2) }}
+      </span>
+    </div>
+
+    <!-- Medios electrónicos -->
+    <h6 class="mb-3">Medios de pago</h6>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Tarjeta</span>
+      <span>$ {{ session.medios.tarjeta }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Transferencia</span>
+      <span>$ {{ session.medios.transfer }}</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+      <span>Depósito</span>
+      <span>$ {{ session.medios.deposito }}</span>
+    </div>
+
+    <!-- Notas -->
+    <div class="mb-4" *ngIf="session.notes">
+      <h6>Notas</h6>
+      <p class="mb-0">{{ session.notes }}</p>
+    </div>
+
+    <!-- Botones -->
+    <div class="d-grid gap-2">
+      <button class="btn btn-primary" (click)="print.emit(session)">
+        <i class="ki-duotone ki-printer fs-2"></i> Re-imprimir corte
+      </button>
+      <button class="btn btn-light" (click)="close()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backdrop -->
+<div class="offcanvas-backdrop fade show" *ngIf="visible" (click)="close()"></div>

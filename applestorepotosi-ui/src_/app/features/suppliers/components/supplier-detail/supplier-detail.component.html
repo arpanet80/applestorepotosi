@@ -1,0 +1,83 @@
+<div class="card mb-5 mb-xl-10" *ngIf="!loading && supplier">
+
+  <!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+      <!--begin::Title-->
+      <div>
+        <h3 class="fw-bold fs-3 text-gray-800 mb-1">{{ supplier.name }}</h3>
+        <span
+          class="badge"
+          [ngClass]="supplier.isActive ? 'badge-light-success' : 'badge-light-danger'">
+          {{ supplier.isActive ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <!--end::Title-->
+
+      <!--begin::Controls-->
+      <div class="d-flex align-items-center my-2">
+
+        <button (click)="onEdit()" class="btn btn-sm btn-primary">
+          <i class="ki-duotone ki-pencil fs-2"></i>Editar
+        </button>
+        <button (click)="onToggleActive()" class="btn btn-sm btn-danger">
+          <i class="ki-duotone ki-switch fs-2"></i>
+          {{ supplier.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onVolver()" class="btn btn-sm btn-info">
+          <i class="ki-duotone ki-trash fs-2"></i>Volver
+        </button>
+
+      </div>
+      <!--end::Controls-->
+  </div>
+  <!--end::Toolbar-->
+
+  <div class="card-body">
+    <div class="row mb-6">
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Información General</h5>
+        <div class="d-flex flex-column gap-2">
+          <span><strong>Representante:</strong> {{ supplier.representative || '—' }}</span>
+          <span><strong>Email:</strong> {{ supplier.contactEmail }}</span>
+          <span><strong>Teléfono:</strong> {{ supplier.contactPhone }}</span>
+          <span><strong>Tax ID:</strong> {{ supplier.taxId || '—' }}</span>
+          <span><strong>RFC:</strong> {{ supplier.rfc || '—' }}</span>
+          <span><strong>Términos de pago:</strong> {{ supplier.paymentTerms || '—' }}</span>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Dirección</h5>
+        <div class="d-flex flex-column gap-2">
+          <span><strong>Calle:</strong> {{ supplier.address?.street || '—' }}</span>
+          <span><strong>Ciudad:</strong> {{ supplier.address?.city || '—' }}</span>
+          <span><strong>Estado:</strong> {{ supplier.address?.state || '—' }}</span>
+          <span><strong>Código postal:</strong> {{ supplier.address?.zipCode || '—' }}</span>
+          <span><strong>País:</strong> {{ supplier.address?.country || '—' }}</span>
+        </div>
+      </div>
+
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Información Bancaria</h5>
+        <div class="d-flex flex-column gap-2">
+          <span><strong>Banco:</strong> {{ supplier.bankInfo?.bankName || '—' }}</span>
+          <span><strong>Número de cuenta:</strong> {{ supplier.bankInfo?.accountNumber || '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estado de carga -->
+<div *ngIf="loading" class="d-flex justify-content-center align-items-center py-10">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<!-- Estado de error -->
+<div *ngIf="error && !loading" class="alert alert-danger text-center py-5">
+  <h5 class="fw-bold">Error</h5>
+  <p>{{ error }}</p>
+  <a routerLink="/dashboard/suppliers" class="btn btn-sm btn-primary mt-3">Volver</a>
+</div>

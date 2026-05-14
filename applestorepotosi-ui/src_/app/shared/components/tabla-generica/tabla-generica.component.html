@@ -1,0 +1,188 @@
+<div class="card card-flush h-xl-100">
+  @if (showBtnNuevo() || showBuscador()) {
+    <div class="card-header pt-6">
+      <div class="card-title">
+        <!-- Buscador -->
+        @if (showBuscador()) {
+          <div class="d-flex align-items-center position-relative my-1">
+            <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-3"></i>
+            <input type="text" class="form-control form-control-solid w-250px ps-10"
+                  placeholder="Buscar..."
+                  (input)="onSearch($any($event.target).value)">
+          </div>
+        }
+      </div>
+
+      <div class="card-toolbar d-flex gap-2">
+        <!-- Botones extra configurables -->
+        @for (b of botonesExtra(); track b.id) {
+          <button type="button"
+                  class="btn btn-sm {{ b.colorClass }}"
+                  [title]="b.tooltip ?? ''"
+                  (click)="btnExtra.emit(b.id)">
+            <i [class]="b.icon"></i>{{ b.label }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="card-body pt-0">
+    <div class="table-responsive">
+      <table class="table align-middle table-row-dashed fs-6 gy-5 mb-0">
+        <thead>
+          <tr class="text-start text-muted fw-bold fs-7 text-uppercase gs-0">
+            @for (col of tablaColumns; track col.key) {
+              <th [hidden]="col.hidden"
+                  (click)="sort(col.key)" style="cursor:pointer;" class="text-center">
+                {{ col.label }}
+                @if (sortState().column === col.key) {
+                  <i class="ki-duotone ki-arrow-{{ sortState().direction === 'asc' ? 'up' : 'down' }} fs-8 ms-1"></i>
+                }
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of paginatedData(); track trackByFn($index, row)) {
+            <tr>
+              @for (col of tablaColumns; track col.key) {
+                <td [class]="col.style ?? ''" [hidden]="col.hidden">
+                  @let editing = $any(row).isEdit && col.type !== 'button';
+                  <!-- ----------- Modo Edicion de la fila ------------------ -->
+                  @if (editing) {
+                    @if (col.readonly) {               <!-- solo lectura -->
+                      <span class="d-inline-block w-100 px-2 bg-secondary bg-opacity-10 rounded">
+                        {{ col.keysubnivel ? row[col.key]?.[col.keysubnivel!] : row[col.key] }}
+                      </span>
+                    } @else {                          <!-- editable -->
+                      @switch (col.type) {
+                        @case ('date') {
+                          <input type="date" class="form-control form-control-sm"
+                                [value]="toInputDate(row[col.key])"
+                                (input)="updateDate(row, col.key, $any($event.target).value)"
+                                [required]="col.required ?? false"
+                                [disabled]="col.disabled ?? false">
+                        }
+                        @case ('subnivel') {
+                          <input type="text" class="form-control form-control-sm"
+                                [(ngModel)]="row[col.key][col.keysubnivel!]"
+                                [required]="col.required ?? false"
+                                [disabled]="col.disabled ?? false">
+                        }
+                        @default {
+                          <input class="form-control form-control-sm"
+                                [type]="col.type"
+                                [(ngModel)]="row[col.key]"
+                                [required]="col.required ?? false"
+                                [disabled]="col.disabled ?? false">
+                        }
+                      }
+                    }
+                  } @else {
+                    @switch (col.type) {
+                      @case ('button') {
+                        <div class="d-flex gap-1">
+                          @if (isEditing(row)) {
+                            <button class="btn btn-light-success btn-sm" (click)="saveRow(row)"><i class="bi bi-check-lg"></i></button>
+                            <button class="btn btn-light-danger btn-sm" (click)="cancelRow(row)"><i class="bi bi-x"></i></button>
+                          } @else {
+                            <!-- Lápiz inlineEdit -->
+                            @if (showBtnEdit()) {
+                              <button class="btn btn-sm btn-light-warning"
+                                      (click)="startEdit(row)"
+                                      title="Editar">
+                                <i class="bi bi-pencil"></i>
+                              </button>
+                            }
+
+                            <!-- Resto de botones declarados en columns -->
+                            @for (btn of col.buttons; track btn.id) {
+                              @if (btn.show ? btn.show(row) : true) {
+                                <button class="btn btn-sm {{ btn.colorClass }}"
+                                        (click)="btnTableAction.emit({ action: btn.id, row })"
+                                        [title]="btn.tooltip ?? ''">
+                                  <i [class]="btn.icon"></i>
+                                </button>
+                              }
+                            }
+                          }
+                        </div>
+                      }
+                      @case ('avatar') {
+                        <div class="d-flex align-items-center">
+                          <div class="symbol symbol-circle symbol-40px overflow-hidden me-2">
+                            <img src="assets/img/svg/avatar/blank-image.svg" alt="avatar" class="w-100">
+                          </div>
+                          <div class="d-flex flex-column">
+                            <span class="text-gray-800 mb-1">{{ row[col.key] }}</span>
+                          </div>
+                        </div>
+                      }
+                      @case ('date') {
+                        {{ row[col.key] | date:'dd/MM/yyyy' }}
+                      }
+                      @case ('checkbox') {
+                        <div class="form-check form-check-solid">
+                          <input class="form-check-input" type="checkbox" [checked]="row[col.key]" disabled>
+                        </div>
+                      }
+                      @case ('subnivel') {
+                        {{ row[col.key]?.[col.keysubnivel!] }}
+                      }
+                      @case ('badge') {
+                        @let badge = col.badgeStyle?.(row[col.key], row);
+                        @if (badge) {
+                            <span class="badge badge-light-{{ badge.color }} fs-base">
+                            @if (badge.icon) {
+                                <i class="{{ badge.icon }} fs-5 text-{{ badge.color }} ms-n1">
+                                <span class="path1"></span><span class="path2"></span>
+                                </i>
+                            }
+                            {{ badge.text ?? row[col.key] }}
+                            </span>
+                        } @else {
+                            {{ row[col.key] }}
+                        }
+                        }
+                      @default {
+                        {{ col.keysubnivel ? row[col.key]?.[col.keysubnivel!] : row[col.key] }}
+                      }
+                    }
+                  }
+                </td>
+              }
+            </tr>
+          }
+          @empty {
+            <tr>
+              <td [colSpan]="columnasMostradas().length" class="text-center text-muted py-5">
+                No hay datos que coincidan con el filtro
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- paginación -->
+    <div class="d-flex justify-content-between align-items-center py-4">
+      <span class="text-muted fs-7">
+        Pág {{ currentPage() }} de {{ totalPages() }} ({{ filteredData().length }} registros)
+      </span>
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-light"
+                [disabled]="currentPage() === 1"
+                (click)="goPage(currentPage() - 1)">Anterior</button>
+        @for (p of [].constructor(totalPages()); track $index) {
+          <button class="btn btn-light"
+                  [class.active]="currentPage() === $index + 1"
+                  (click)="goPage($index + 1)">{{ $index + 1 }}</button>
+        }
+        <button class="btn btn-light"
+                [disabled]="currentPage() === totalPages()"
+                (click)="goPage(currentPage() + 1)">Siguiente</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+<!-- src/app/categories/components/category-tree/category-tree.component.html -->
+<ul class="tree">
+  <ng-container *ngFor="let node of nodes; trackBy: trackByFn">
+    <li class="node">
+      <div
+        class="node-content"
+        [class.inactive]="!node.isActive"
+        (click)="toggle(node)"
+      >
+        <!-- indentación + icono expandible -->
+        <span class="indent" [style.margin-left.px]="depth * 24"></span>
+        <span class="icon" *ngIf="node.children?.length">
+          {{ isExpanded(node) ? '▼' : '▶' }}
+        </span>
+        <span class="icon" *ngIf="!node.children?.length">&nbsp;</span>
+
+        <span class="name">{{ node.name }}</span>
+        <span class="slug">({{ node.slug }})</span>
+
+        <!-- acciones rápidas -->
+        <span class="actions" *ngIf="showActions" (click)="$event.stopPropagation()">
+          <button (click)="onEdit(node, $event)" class="btn-icon" title="Editar">✏️</button>
+          <button (click)="onAddChild(node, $event)" class="btn-icon" title="Agregar hijo">➕</button>
+          <button (click)="onDelete(node, $event)" class="btn-icon" title="Eliminar">🗑️</button>
+        </span>
+      </div>
+
+      <!-- hijos (recursivo) -->
+      <app-category-tree
+        *ngIf="isExpanded(node) && node.children?.length"
+        [nodes]="node.children ?? []"
+        [showActions]="showActions"
+        [depth]="depth + 1"
+        (nodeToggle)="nodeToggle.emit($event)"
+        (nodeEdit)="nodeEdit.emit($event)"
+        (nodeDelete)="nodeDelete.emit($event)"
+        (nodeAddChild)="nodeAddChild.emit($event)"
+      ></app-category-tree>
+    </li>
+  </ng-container>
+</ul>

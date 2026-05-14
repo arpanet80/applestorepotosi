@@ -1,74 +1,52 @@
-// src/app/auth/guards/auth.guard.ts - OPTIMIZADO
+// src/app/auth/guards/auth.guard.ts
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-// Cache para evitar verificaciones repetidas innecesarias
-let lastAuthCheck = 0;
-let lastAuthResult = false;
-const AUTH_CHECK_CACHE_DURATION = 1000; // 1 segundo
+// FIX #1 - CACHÉ DEL GUARD (el bug principal del "botón atrás"):
+//
+// El caché anterior de 1 segundo era el responsable del comportamiento donde
+// el usuario podía hacer "atrás + refresh" y seguir dentro del sistema con
+// un token expirado:
+//
+//   1. Token expira → Firebase emite null → cleanupExpiredSession() → /login
+//   2. Usuario pulsa "atrás" → Angular navega a la ruta protegida
+//   3. AuthGuard se ejecuta → lastAuthResult=false (ya limpiado) → redirect /login ✓
+//
+// PERO si el refresh ocurría dentro de la ventana de 1s del caché:
+//   3. AuthGuard lee caché → lastAuthResult=true → ¡deja pasar! ✗
+//
+// Adicionalmente, el caché era a nivel de módulo (variable global), lo que
+// significa que persistía entre navegaciones y podía devolver "autenticado"
+// incluso después del logout si el usuario navegaba rápido.
+//
+// SOLUCIÓN: Eliminar el caché de 1 segundo. En su lugar, el guard espera a que
+// AuthService termine su inicialización usando waitForAuthReady(), que resuelve
+// en cuanto loading$ emite false. Esto es eficiente porque:
+//   - Si el usuario ya está cargado: resuelve inmediatamente (filter + take(1))
+//   - Si está cargando: espera el observable, sin setTimeout ni polling
 
 export const authGuard: CanActivateFn = async (route, state): Promise<boolean | UrlTree> => {
   const authService = inject(AuthService);
-  const router = inject(Router);
+  const router      = inject(Router);
 
-  console.log('🛡️ AuthGuard: Verificando autenticación para:', state.url);
+  // Esperar a que la inicialización de Firebase/AuthService termine.
+  // waitForAuthReady() filtra el BehaviorSubject de loading$ y resuelve cuando
+  // loading es false, devolviendo el usuario actual (o null).
+  const user = await authService.waitForAuthReady();
 
-  // Si la verificación es muy reciente y fue exitosa, usar cache
-  const now = Date.now();
-  if (now - lastAuthCheck < AUTH_CHECK_CACHE_DURATION && lastAuthResult) {
-    console.log('✅ AuthGuard: Usando resultado en cache (autenticado)');
+  if (user) {
     return true;
   }
 
-  // Verificación rápida primero
-  if (authService.isAuthenticated()) {
-    console.log('✅ AuthGuard: Usuario autenticado (verificación rápida)');
-    lastAuthCheck = now;
-    lastAuthResult = true;
-    return true;
-  }
-
-  // Si está cargando, esperar un máximo de 2 segundos
-  if (authService.isLoading()) {
-    console.log('⏳ AuthGuard: Esperando inicialización (max 2s)...');
-    
-    const waitStart = Date.now();
-    const maxWait = 2000;
-
-    await new Promise<void>((resolve) => {
-      const subscription = authService.loading$.subscribe(loading => {
-        if (!loading || (Date.now() - waitStart) > maxWait) {
-          subscription.unsubscribe();
-          resolve();
-        }
-      });
-    });
-  }
-
-  // Verificación final
-  const isAuthenticated = authService.isAuthenticated();
-  
-  if (!isAuthenticated) {
-    console.log('🔐 AuthGuard: Usuario no autenticado, redirigiendo a login');
-    lastAuthCheck = now;
-    lastAuthResult = false;
-    
-    // Guardar la URL intentada para redirigir después del login
-    return router.createUrlTree(['/login'], {
-      queryParams: { returnUrl: state.url }
-    });
-  }
-
-  console.log('✅ AuthGuard: Usuario autenticado, acceso permitido');
-  lastAuthCheck = now;
-  lastAuthResult = true;
-  return true;
+  // Guardar la URL intentada para redirigir después del login
+  return router.createUrlTree(['/login'], {
+    queryParams: { returnUrl: state.url },
+  });
 };
 
-// Función para limpiar el cache (útil en logout)
+// Se mantiene la función de limpieza de caché por compatibilidad con el logout,
+// pero ahora no hay caché real que limpiar (no-op).
 export function clearAuthGuardCache(): void {
-  lastAuthCheck = 0;
-  lastAuthResult = false;
-  console.log('🧹 AuthGuard: Cache limpiado');
+  // no-op: el guard ya no usa caché
 }

@@ -1,0 +1,67 @@
+/* src/app/purchase-orders/components/purchase-order-detail/purchase-order-detail.component.css */
+
+/* Keenthemes card */
+.card {
+  border: 0;
+  box-shadow: 0 0 20px 0 rgba(76, 87, 125, 0.1);
+  border-radius: 0.65rem;
+}
+
+.card-header {
+  border-bottom: 1px solid #e9ecef;
+  background: transparent;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Keen badges */
+.badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.badge-pending { background-color: #f39c12; color: #fff; }
+.badge-approved { background-color: #3498db; color: #fff; }
+.badge-completed { background-color: #27ae60; color: #fff; }
+.badge-rejected,
+.badge-cancelled { background-color: #e74c3c; color: #fff; }
+
+/* Keen buttons */
+.btn-light-primary {
+  color: #009ef7;
+  background-color: #f1faff;
+  border-color: #f1faff;
+}
+
+.btn-light-primary:hover {
+  background-color: #009ef7;
+  border-color: #009ef7;
+  color: #fff;
+}
+
+/* Keen table */
+.table-row-dashed > tbody > tr {
+  border-bottom: 1px dashed #e4e6ef;
+}
+
+.table-row-gray-300 > tbody > tr {
+  border-color: #e4e6ef;
+}
+
+/* Keen icons */
+.ki-duotone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ki-duotone:before {
+  font-size: 1.1rem;
+}
+
+/* Utility */
+.h-300px { height: 300px; }

@@ -1,0 +1,95 @@
+<!-- ============================================================ -->
+<!-- REPORTE DE INGRESOS - Servicio Técnico                      -->
+<!-- Compatible con flujo simplificado: solo órdenes COMPLETADA  -->
+<!-- generan ingreso (filtrado automáticamente por backend).       -->
+<!-- ============================================================ -->
+
+<div class="card card-flush">
+  <div class="card-header">
+    <h2 class="card-title fw-bold">Reporte de ingresos – Servicio técnico</h2>
+  </div>
+
+  <div class="card-body">
+    <form [formGroup]="form" class="row gy-3 mb-6" (ngSubmit)="load()">
+      <div class="col-md-3">
+        <label class="form-label">Desde</label>
+        <input type="date" formControlName="startDate" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Hasta</label>
+        <input type="date" formControlName="endDate" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Técnico ID</label>
+        <input type="text" formControlName="technicianId" class="form-control" placeholder="ID del técnico (opcional)">
+      </div>
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ loading ? 'Consultando...' : 'Consultar' }}
+        </button>
+        <button type="button" class="btn btn-light" (click)="reset()">Reset</button>
+      </div>
+    </form>
+
+    <!-- error -->
+    <div *ngIf="errorMsg" class="alert alert-danger mb-4">{{ errorMsg }}</div>
+
+    <!-- loading -->
+    <div *ngIf="loading && !report" class="text-center py-6">
+      <div class="spinner-border text-primary"></div>
+      <div class="text-muted mt-2">Cargando reporte...</div>
+    </div>
+
+    <!-- resultados -->
+    <div *ngIf="report" class="row g-6">
+      <!-- KPIs -->
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Órdenes completadas</div>
+          <div class="fs-2x fw-bolder">{{ report.orderCount }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Mano de obra</div>
+          <div class="fs-2x fw-bolder">{{ report.totalLabor | currency:'BOB ':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Ingreso repuestos</div>
+          <div class="fs-2x fw-bolder">{{ report.totalPartsRevenue | currency:'BOB ':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="bg-light rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Facturado total</div>
+          <div class="fs-2x fw-bolder">{{ report.totalInvoiced | currency:'BOB ':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+
+      <!-- Costos y margen detallado -->
+      <div class="col-md-4">
+        <div class="bg-white border rounded p-4">
+          <div class="text-gray-600 fw-bold mb-2">Costo repuestos</div>
+          <div class="fs-3x fw-bolder text-danger">{{ report.totalPartsCost | currency:'BOB ':'symbol':'1.0-2' }}</div>
+          <div class="text-muted fs-7">Costo real de los repuestos utilizados</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="bg-secondary rounded p-4 text-white">
+          <div class="fw-bold mb-2">Margen bruto</div>
+          <div class="fs-1 fw-bolder">{{ report.grossMargin | currency:'BOB ':'symbol':'1.0-2' }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="bg-dark rounded p-4 text-white">
+          <div class="fw-bold mb-2">Margen %</div>
+          <div class="fs-1 fw-bolder">{{ report.grossMarginPercent | number:'1.1-1' }}%</div>
+          <div class="text-white-50 fs-7">Sobre el total facturado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

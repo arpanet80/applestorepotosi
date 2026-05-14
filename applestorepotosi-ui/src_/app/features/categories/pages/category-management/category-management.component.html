@@ -1,0 +1,158 @@
+<!-- src/app/categories/pages/category-management/category-management.component.html -->
+<div class="card card-flush">
+  <!--begin::Card header-->
+  <div class="card-header align-items-center py-5 gap-2 gap-md-5">
+    <!--begin::Card title-->
+    <div class="card-title">
+      <h2 class="d-flex align-items-center fs-4 fw-bold text-gray-900">
+        Categorías disponibles
+        <span class="text-gray-600 fs-6 ms-2">({{ categories.length }})</span>
+      </h2>
+    </div>
+    <!--end::Card title-->
+
+    <!--begin::Card toolbar-->
+    <div class="card-toolbar d-flex align-items-center gap-3">
+      <!-- 🔍 Buscador con debounce -->
+      <div class="position-relative">
+        <i class="bi bi-search fs-2 position-absolute ms-3"></i>
+        <input
+          type="text"
+          class="form-control form-control-solid w-250px ps-10 pe-10"
+          placeholder="Buscar categoría..."
+          [formControl]="searchControl"
+        />
+        <i
+          *ngIf="searchControl.value"
+          (click)="clearSearch()"
+          class="bi bi-x-lg fs-4 position-absolute end-0 top-50 translate-middle-y me-3 cursor-pointer text-hover-primary"
+        ></i>
+      </div>
+
+      <!-- ➕ Nueva categoría -->
+      <button (click)="onCreate()" class="btn btn-primary d-flex align-items-center">
+        <i class="ki-duotone ki-plus fs-2 me-2"></i>
+        Nueva Categoría
+      </button>
+    </div>
+    <!--end::Card toolbar-->
+  </div>
+  <!--end::Card header-->
+
+  <!--begin::Card body-->
+  <div class="card-body pt-0">
+    <!--begin::Loading-->
+    <div *ngIf="loading" class="d-flex justify-content-center py-10">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+    <!--end::Loading-->
+
+    <!--begin::Table wrapper-->
+    <div class="table-responsive" *ngIf="!loading">
+      <!--begin::Table-->
+      <table
+        class="table align-middle table-row-dashed fs-6 gy-5"
+        *ngIf="categories.length > 0"
+      >
+        <thead>
+          <tr class="text-start text-gray-500 fw-bold fs-7 text-uppercase gs-0">
+            <th>Nombre</th>
+            <th>Slug</th>
+            <th>Estado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="fw-semibold text-gray-600">
+          <tr *ngFor="let cat of categories">
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="symbol symbol-50px me-3">
+                  <span class="symbol-label bg-light-primary text-primary fw-bold">
+                    {{ cat.name.charAt(0).toUpperCase() }}
+                  </span>
+                </div>
+                <div class="d-flex flex-column">
+                  <span class="text-gray-800 mb-1">{{ cat.name }}</span>
+                  <small class="text-gray-600">{{ cat.description }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <code class="text-gray-700">{{ cat.slug }}</code>
+            </td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="cat.isActive ? 'badge-light-success' : 'badge-light-danger'"
+              >
+                {{ cat.isActive ? 'Activa' : 'Inactiva' }}
+              </span>
+            </td>
+            <td class="text-end">
+              <button
+                  (click)="onView(cat)"
+                  class="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+                  title="Ver detalle">
+                  <i class="bi bi-eye fs-2"></i>
+              </button>
+              <button
+                (click)="onEdit(cat)"
+                class="btn btn-icon btn-bg-light btn-active-color-warning btn-sm me-2"
+                title="Editar"
+              >
+                <i class="ki-duotone ki-pencil fs-2">
+                  <span class="path1"></span>
+                  <span class="path2"></span>
+                </i>
+              </button>
+              <button (click)="toggleActive(cat)" title="Activar / Desactivar" class="btn btn-icon btn-bg-light btn-active-color-danger">
+                <i class="fas fa-toggle-on fs-3" *ngIf="cat.isActive"></i>
+                <i class="fas fa-toggle-off fs-3" *ngIf="!cat.isActive"></i>
+              </button>
+              <!-- <button
+                (click)="onDelete(cat)"
+                class="btn btn-icon btn-bg-light btn-active-color-danger btn-sm"
+                title="Eliminar"
+              >
+                <i class="ki-duotone ki-trash fs-2">
+                  <span class="path1"></span>
+                  <span class="path2"></span>
+                  <span class="path3"></span>
+                  <span class="path4"></span>
+                  <span class="path5"></span>
+                </i>
+              </button> -->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!--end::Table-->
+
+      <!--begin::Empty state-->
+      <div
+        *ngIf="categories.length === 0"
+        class="text-center py-10"
+      >
+        <img
+          src="./assets/media/illustrations/empty-state.png"
+          class="h-150px mb-5"
+          alt="Sin categorías"
+        />
+        <div class="fw-semibold text-gray-600 fs-5 mb-5">
+          No hay categorías registradas
+        </div>
+        <button
+          (click)="onCreate()"
+          class="btn btn-primary"
+        >
+          Crear la primera
+        </button>
+      </div>
+      <!--end::Empty state-->
+    </div>
+    <!--end::Table wrapper-->
+  </div>
+  <!--end::Card body-->
+</div>

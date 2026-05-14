@@ -1,0 +1,10 @@
+<div class="app-loading" *ngIf="authService.loading$ | async; else appContent">
+    <div class="loading-spinner">
+    <div class="spinner"></div>
+    <p>Cargando aplicación...</p>
+    </div>
+</div>
+    
+<ng-template #appContent>
+    <router-outlet></router-outlet>
+</ng-template>

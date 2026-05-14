@@ -1,0 +1,51 @@
+<div class="image-viewer">
+
+  <!-- MÓVIL  ––– swipe con Swiper -->
+  <swiper-container
+    *ngIf="images.length > 1"
+    class="d-md-none"
+    [slidesPerView]="1"
+    [loop]="true"
+    (slidechange)="onSlideChange($event)">
+    <swiper-slide *ngFor="let img of images">
+      <img [src]="img" class="w-100 rounded" alt="Product" />
+    </swiper-slide>
+  </swiper-container>
+
+  <!-- DESKTOP ––– zoom + flechas -->
+  <div class="d-none d-md-block position-relative">
+    <div
+      class="main-image-wrapper"
+      (mouseenter)="showZoom = true"
+      (mouseleave)="showZoom = false"
+      (mousemove)="onMouseMove($event, mainContainer)"
+      #mainContainer>
+      <img [src]="images[selectedIndex]" class="main-image" alt="Product" />
+      <div class="zoom-lens" *ngIf="showZoom"
+           [style.left.%]="zoomPosition.x"
+           [style.top.%]="zoomPosition.y"></div>
+      <div class="zoomed-image"
+           *ngIf="showZoom"
+           [style.backgroundImage]="'url(' + images[selectedIndex] + ')'"
+           [style.backgroundPosition]="zoomPosition.x + '% ' + zoomPosition.y + '%'"></div>
+    </div>
+
+    <button class="btn btn-icon btn-light btn-sm arrow left" (click)="prev()">
+      <i class="ki-duotone ki-left fs-2"></i>
+    </button>
+    <button class="btn btn-icon btn-light btn-sm arrow right" (click)="next()">
+      <i class="ki-duotone ki-right fs-2"></i>
+    </button>
+  </div>
+
+  <!-- Miniaturas siempre visibles -->
+  <div class="thumbnails mt-4">
+    <div *ngFor="let img of images; let i = index"
+         class="symbol symbol-60px symbol-2by3 cursor-pointer me-2"
+         [class.border-primary]="i === selectedIndex"
+         [class.border-3]="i === selectedIndex"
+         (click)="selectImage(i)">
+      <img [src]="img" class="w-100" alt="Thumb" />
+    </div>
+  </div>
+</div>

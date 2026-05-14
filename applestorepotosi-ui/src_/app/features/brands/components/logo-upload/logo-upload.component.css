@@ -1,0 +1,25 @@
+/* src/app/brands/components/logo-upload/logo-upload.component.css */
+.dashed-border-area {
+  border: 2px dashed var(--kt-gray-400);
+  background-color: var(--kt-gray-100);
+  transition: border-color 0.3s, background-color 0.3s;
+}
+
+.dashed-border-area:hover {
+  border-color: var(--kt-primary);
+  background-color: var(--kt-gray-200);
+}
+
+[data-theme="dark"] .dashed-border-area {
+  background-color: var(--kt-gray-900);
+  border-color: var(--kt-gray-700);
+}
+
+[data-theme="dark"] .dashed-border-area:hover {
+  background-color: var(--kt-gray-800);
+  border-color: var(--kt-primary);
+}
+
+.w-150px { width: 150px !important; }
+.h-75px  { height: 75px  !important; }
+.object-fit-contain { object-fit: contain; }

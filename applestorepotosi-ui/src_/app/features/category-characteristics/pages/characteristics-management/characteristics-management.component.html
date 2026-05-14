@@ -1,0 +1,40 @@
+<!-- src/app/category-characteristics/pages/characteristics-management/characteristics-management.component.html -->
+<div class="management">
+  <div class="header">
+    <h1>Gestión de Características</h1>
+    <button (click)="onCreate()" class="btn btn-primary">➕ Nueva Característica</button>
+  </div>
+
+  <div *ngIf="loading" class="loading">Cargando características...</div>
+
+  <table *ngIf="!loading && characteristics.length > 0" class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Tipo</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let c of characteristics">
+        <td>{{ c.name }}</td>
+        <td>{{ c.type }}</td>
+        <td>
+          <span class="badge" [class.active]="c.isActive">
+            {{ c.isActive ? 'Activa' : 'Inactiva' }}
+          </span>
+        </td>
+        <td>
+          <button (click)="onEdit(c)" class="btn btn-sm btn-warning">Editar</button>
+          <button (click)="onDelete(c)" class="btn btn-sm btn-danger">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && characteristics.length === 0" class="empty">
+    No hay características registradas.
+    <button (click)="onCreate()" class="btn-link">Crear la primera</button>
+  </div>
+</div>

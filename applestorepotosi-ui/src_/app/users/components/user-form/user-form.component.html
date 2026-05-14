@@ -1,0 +1,121 @@
+<div class="card card-flush bgi-position-y-end bgi-no-repeat mb-5 mb-xl-10">
+  <!--begin::Card header-->
+  <div class="card-header pt-5">
+    <div class="d-flex align-items-center justify-content-between">
+      <h3 class="fw-bolder text-gray-900">
+        {{ isEdit ? 'Editar Perfil de Usuario' : 'Crear Usuario' }}
+      </h3>
+      <!-- <div>
+        <button class="btn btn-sm btn-light" routerLink="/dashboard/users">
+          <i class="ki-duotone ki-arrow-left fs-2"></i> Regresar
+        </button>
+      </div> -->
+    </div>
+  </div>
+  <!--end::Card header-->
+
+  <!--begin::Card body-->
+  <div class="card-body pt-5">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <!-- Rol -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Rol</label>
+        <div class="col-lg-9">
+          <select class="form-select form-select-lg form-select-solid" formControlName="role">
+            <option value="customer">Cliente</option>
+            <option value="technician">Técnico</option>
+            <option value="sales">Ventas</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Nombre -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Nombre</label>
+        <div class="col-lg-9">
+          <input
+            type="text"
+            class="form-control form-control-lg form-control-solid"
+            formControlName="firstName"
+            placeholder="Ej: Juan"
+          />
+        </div>
+      </div>
+
+      <!-- Apellido -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Apellido</label>
+        <div class="col-lg-9">
+          <input
+            type="text"
+            class="form-control form-control-lg form-control-solid"
+            formControlName="lastName"
+            placeholder="Ej: Pérez"
+          />
+        </div>
+      </div>
+
+      <!-- Teléfono -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Teléfono</label>
+        <div class="col-lg-9">
+          <input
+            type="text"
+            class="form-control form-control-lg form-control-solid"
+            formControlName="phone"
+            placeholder="Ej: +34 600 000 000"
+          />
+        </div>
+      </div>
+
+      <!-- Fecha de nacimiento -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Fecha de nacimiento</label>
+        <div class="col-lg-9">
+          <input
+            type="date"
+            class="form-control form-control-lg form-control-solid"
+            formControlName="dateOfBirth"
+          />
+        </div>
+      </div>
+
+      <!-- Género -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label required fw-semibold fs-6">Género</label>
+        <div class="col-lg-9">
+          <select class="form-select form-select-lg form-select-solid" formControlName="gender">
+            <option value="">Seleccionar</option>
+            <option value="male">Masculino</option>
+            <option value="female">Femenino</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Avatar -->
+      <div class="row mb-6">
+        <label class="col-lg-3 col-form-label fw-semibold fs-6">Avatar URL</label>
+        <div class="col-lg-9">
+          <input
+            type="text"
+            class="form-control form-control-lg form-control-solid"
+            formControlName="avatar"
+            placeholder="https://example.com/avatar.jpg"
+          />
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-light me-3" (click)="onCancel()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+          <i class="ki-duotone ki-check fs-2"></i> Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+  <!--end::Card body-->
+</div>

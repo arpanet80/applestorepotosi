@@ -1,0 +1,28 @@
+<!-- Spinner -->
+<app-spinner *ngIf="loading" message="Cargando órdenes..."></app-spinner>
+
+<div *ngIf="error && !loading" class="error-state">
+  <h3>Error al cargar clientes</h3>
+  <p>{{ error }}</p>
+  <button (click)="loadCustomers()" class="btn btn-primary">Reintentar</button>
+</div>
+
+<!-- LISTADO -->
+<div *ngIf="!loading && !error" class="orders-section">
+  
+  <app-stats-cards [cards]="statsCards" columnClass="col-xl-3"></app-stats-cards>
+
+  <app-tabla-generica
+    [data]="customers"
+    [tablaColumns]="columns"
+    [tablaOpciones]="tablaOpciones"
+    (btnTableAction)="onTableAction($event)"
+    (btnExtra)="onBtnExtra($event)"
+  ></app-tabla-generica>
+
+  <div *ngIf="customers.length === 0" class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>No se encontraron clientes</h3>
+  </div>
+</div>
+

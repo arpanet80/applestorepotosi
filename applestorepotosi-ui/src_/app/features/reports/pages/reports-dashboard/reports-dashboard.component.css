@@ -1,0 +1,45 @@
+/* src/app/features/reports/pages/reports-dashboard/reports-dashboard.component.css */
+.card-dashed {
+  border: 1px dashed #E4E6EF;
+}
+
+.nav-tabs .nav-link {
+  cursor: pointer;
+  border: none;
+  color: #7E8299;
+  padding: 1rem 1.5rem;
+}
+
+.nav-tabs .nav-link.active {
+  color: #009EF7;
+  border-bottom: 2px solid #009EF7;
+  background: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #009EF7;
+}
+
+.progress.h-6px {
+  height: 6px;
+}
+
+.table-row-dashed tbody tr {
+  border-bottom: 1px dashed #E4E6EF;
+}
+
+.badge-light-secondary {
+  color: #7E8299;
+  background-color: #F5F8FA;
+}
+
+/* Print styles */
+@media print {
+  .btn, .nav-tabs, .card-toolbar {
+    display: none !important;
+  }
+  
+  .card {
+    break-inside: avoid;
+  }
+}

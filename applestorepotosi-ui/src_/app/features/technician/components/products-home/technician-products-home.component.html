@@ -1,0 +1,25 @@
+<div class="card card-flush">
+  <div class="card-header">
+    <div class="card-title"><h3>Catálogo de Productos</h3></div>
+  </div>
+
+  <div class="card-body pt-0">
+    <app-spinner *ngIf="loading" message="Cargando productos…" size="md"></app-spinner>
+
+    <!-- estadísticas -->
+    <!-- <app-stats-cards [cards]="statsCards" columnClass="col-xl-3" class="mb-6"></app-stats-cards> -->
+
+    <!-- tabla solo-lectura -->
+    <div class="table-responsive" *ngIf="!loading">
+      <app-tabla-generica [data]="products"
+                          [tablaColumns]="columns"
+                          [tablaOpciones]="tablaOpciones"
+                          (btnTableAction)="onTableAction($event)">
+      </app-tabla-generica>
+    </div>
+
+    <div *ngIf="!loading && products.length === 0" class="text-center text-muted py-10">
+      No hay productos activos
+    </div>
+  </div>
+</div>

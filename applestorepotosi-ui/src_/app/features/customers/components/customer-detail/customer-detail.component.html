@@ -1,0 +1,108 @@
+<div *ngIf="!loading && customer">
+
+<!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+      <!--begin::Title-->
+      <div>
+        <h3 class="fw-bold fs-3 text-gray-800 mb-1">{{ customer.fullName }}</h3>
+        <span
+          class="badge"
+          [ngClass]="customer.isActive ? 'badge-light-success' : 'badge-light-danger'">
+          {{ customer.isActive ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <!--end::Title-->
+
+      <!--begin::Controls-->
+      <div class="d-flex align-items-center my-2">
+
+        <button (click)="onEdit()" class="btn btn-sm btn-primary">
+          <i class="bi bi-pencil fs-2"></i>Editar
+        </button>
+        <button (click)="onToggleActive()" class="btn btn-sm btn-danger">
+          <i class="fas fa-toggle-on fs-2"></i>
+          {{ customer.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button (click)="onVolver()" class="btn btn-sm btn-info">
+          <i class="bi bi-arrow-left fs-2"></i>Volver
+        </button>
+
+      </div>
+      <!--end::Controls-->
+  </div>
+  <!--end::Toolbar-->
+</div>
+
+
+<div class="card mb-5 mb-xl-10" *ngIf="!loading && customer">
+  <div class="card-body">
+    <div class="row">
+      <!-- Información General -->
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Información General</h5>
+        <div class="d-flex flex-column gap-2">
+          <span><strong>Email:</strong> {{ customer.email }}</span>
+          <span><strong>Teléfono:</strong> {{ customer.phone }}</span>
+          <span><strong>Tax ID:</strong> {{ customer.taxId || '—' }}</span>
+          <span><strong>Puntos de lealtad:</strong> {{ customer.loyaltyPoints }}</span>
+        </div>
+      </div>
+
+      <!-- Dirección -->
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Dirección</h5>
+        <div class="d-flex flex-column gap-2">
+          <span><strong>Calle:</strong> {{ customer.address?.street || '—' }}</span>
+          <span><strong>Ciudad:</strong> {{ customer.address?.city || '—' }}</span>
+          <span><strong>Estado:</strong> {{ customer.address?.state || '—' }}</span>
+          <span><strong>Código postal:</strong> {{ customer.address?.zipCode || '—' }}</span>
+          <span><strong>País:</strong> {{ customer.address?.country || '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Usuario asociado -->
+      <div class="col-md-4 mb-5">
+        <h5 class="fw-semibold text-gray-700 mb-3">Usuario asociado</h5>
+        <div *ngIf="!customer.userId" class="text-muted">
+          <p>Sin usuario vinculado</p>
+          <button *ngIf="canEdit" (click)="onAssignUser()" class="btn btn-sm btn-primary">
+            Asignar usuario
+          </button>
+        </div>
+
+        <div *ngIf="customer.userId">
+          <div *ngIf="userLoading" class="d-flex justify-content-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+          </div>
+          <div *ngIf="!userLoading && user">
+            <p><strong>Nombre:</strong> {{ user.displayName }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Teléfono:</strong> {{ user.phoneNumber || '—' }}</p>
+            <button *ngIf="canEdit" (click)="onRemoveUser()" class="btn btn-sm btn-danger mt-2">
+              Quitar usuario
+            </button>
+          </div>
+          <div *ngIf="!userLoading && !user">
+            <p class="text-danger">Usuario no encontrado</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estado de carga -->
+<div *ngIf="loading" class="d-flex justify-content-center py-10">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<!-- Estado de error -->
+<div *ngIf="error && !loading" class="alert alert-danger text-center py-5">
+  <h5 class="fw-bold">Error</h5>
+  <p>{{ error }}</p>
+  <a routerLink="/dashboard/customers" class="btn btn-sm btn-primary mt-3">Volver</a>
+</div>

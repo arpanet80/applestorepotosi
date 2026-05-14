@@ -1,0 +1,224 @@
+<!--begin::Content container-->
+<div id="kt_app_content_container" class="app-container  container-xxl ">
+
+  <!--begin::Toolbar-->
+  <div class="d-flex flex-wrap flex-stack mb-6">
+      <!--begin::Title-->
+      <h3 class="fw-bold my-2">Caracteristicas 
+          <span class="fs-6 text-gray-500 fw-semibold ms-1">({{ characteristics.length }})</span>
+      </h3>
+      <!--end::Title-->
+
+      <!--begin::Controls-->
+      <div class="d-flex align-items-center my-2">
+
+        <!-- ➕ Nuevo producto -->
+        <button routerLink="/dashboard/category-characteristics/create" class="btn btn-primary btn-sm" >
+          <i class="ki-duotone ki-plus fs-2 me-2"></i>Nuevo Producto
+        </button>
+
+        <!-- (click)="onBulkAction('export')" -->
+        <!-- ⚙️ Exportar -->
+        <button   class="btn btn-secondary btn-sm" >
+          <i class="bi bi-download fs-2 me-2"></i>Exportar
+        </button>
+
+        <!-- 🔄 Actualizar -->
+        <button (click)="onRefresh()" class="btn btn-outline btn-outline-primary btn-sm" [disabled]="loading" >
+          <i class="bi bi-arrow-repeat fs-2"></i>Actualizar
+        </button>
+
+      </div>
+      <!--end::Controls-->
+  </div>
+  <!--end::Toolbar-->
+</div>
+
+<!-- Statistics Cards -->
+  <div *ngIf="stats">
+    <div class="row g-5 g-xl-8 mb-4 justify-content-center">
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="shrink-0">
+              <i class="bi bi-journal-text fs-2x text-primary"></i>
+            </div>
+            <div class="grow ms-4">
+              <span class="text-gray-900 fw-bolder fs-2hx">{{ stats.total }}</span>
+              <span class="text-gray-700 fw-bold fs-6 d-block">Total Caract.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="shrink-0">
+              <i class="bi bi-check-square-fill fs-2x text-success"></i>
+            </div>
+            <div class="grow ms-4">
+              <span class="text-gray-900 fw-bolder fs-2hx">{{ stats.active }}</span>
+              <span class="text-gray-700 fw-bold fs-6 d-block">Activas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-3">
+        <div class="card card-dashed h-xl-100">
+          <div class="card-body d-flex align-items-center">
+            <div class="shrink-0">
+              <i class="bi-lock-fill fs-2x text-warning"></i>
+            </div>
+            <div class="grow ms-4">
+              <span class="text-gray-900 fw-bolder fs-2hx">{{stats.required}} </span>
+              <span class="text-gray-700 fw-bold fs-6 d-block">Requeridas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros Avanzados -->
+  <div class="card mb-6">
+    <div class="card-header">
+      <h3 class="card-title">Filtros Avanzados</h3>
+      <div class="card-toolbar">
+        <span *ngIf="getActiveFiltersCount() > 0" class="text-muted me-3">
+          {{ getActiveFiltersCount() }} filtro(s) activo(s)
+        </span>
+        <button *ngIf="getActiveFiltersCount() > 0"
+                (click)="clearAllFilters()"
+                class="btn btn-sm btn-light-danger">
+          🗑️ Limpiar filtros
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row mb-6">
+        <!-- Búsqueda -->
+        <div class="col-md-4">
+          <label class="form-label">Búsqueda</label>
+          <input type="text"
+                class="form-control"
+                placeholder="Buscar por nombre o descripción..."
+                [value]="searchTerm"
+                (input)="onSearch($any($event.target).value)" />
+        </div>
+
+        <!-- Estado -->
+        <div class="col-md-2">
+          <label class="form-label">Estado</label>
+          <select class="form-select"
+                  [value]="statusFilter"
+                  (change)="onStatusFilterChange($any($event.target).value)">
+            <option value="all">Todas</option>
+            <option value="active">Activas</option>
+            <option value="inactive">Inactivas</option>
+          </select>
+        </div>
+
+        <!-- Tipo -->
+        <div class="col-md-2">
+          <label class="form-label">Tipo</label>
+          <select class="form-select"
+                  [value]="typeFilter"
+                  (change)="onTypeFilterChange($any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="text">Texto</option>
+            <option value="number">Número</option>
+            <option value="boolean">Sí/No</option>
+            <option value="select">Selección única</option>
+            <option value="multiselect">Selección múltiple</option>
+            <option value="date">Fecha</option>
+          </select>
+        </div>
+
+        <!-- Requerido -->
+        <div class="col-md-2">
+          <label class="form-label">Requerido</label>
+          <select class="form-select"
+                  [value]="requiredFilter"
+                  (change)="onRequiredFilterChange($any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+
+        <!-- Categoría -->
+        <div class="col-md-2">
+          <label class="form-label">Categoría</label>
+          <select class="form-select"
+                  [value]="categoryFilter"
+                  (change)="onCategoryFilterChange($any($event.target).value)">
+            <option value="">Todas</option>
+            <option *ngFor="let c of categories" [value]="c._id">{{ c.name }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--begin::Content container-->
+<div id="kt_app_content_container" class="app-container  container-xxl ">
+
+  <!-- Estados -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando características...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <h3>Error al cargar características</h3>
+    <p>{{ error }}</p>
+    <button (click)="loadCharacteristics()" class="btn btn-primary">Reintentar</button>
+  </div>
+
+  <!-- Listado -->
+  <div *ngIf="!loading && !error" class="characteristics-section">
+    <app-characteristic-list
+      [characteristics]="characteristics"
+      [showActions]="true"
+      (characteristicSelected)="onSelectCharacteristic($event)"
+      (characteristicEdit)="onEditCharacteristic($event)"
+      (characteristicDelete)="onDeleteCharacteristic($event)"
+    ></app-characteristic-list>
+
+    <div *ngIf="characteristics.length === 0" class="empty-state">
+      <div class="empty-icon">📂</div>
+      <h3>No se encontraron características</h3>
+      <p *ngIf="searchTerm || activeFilter !== 'all' || statusFilter !== 'all' || typeFilter || requiredFilter || categoryFilter">
+        Ajusta los filtros o
+        <button (click)="clearAllFilters()" class="btn-link">muestra todas</button>.
+      </p>
+      <p *ngIf="!searchTerm && activeFilter === 'all' && !typeFilter && !requiredFilter && !categoryFilter">
+        No hay características registradas.
+        <button *ngIf="canCreate" (click)="onCreateCharacteristic()" class="btn-link">Crear la primera</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <div class="d-flex justify-content-between align-items-center mt-6" *ngIf="totalPages > 1">
+    <span class="text-muted">Mostrando {{ getDisplayedRange() }} de {{ totalItems }} características</span>
+    <ul class="pagination">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" (click)="onPageChange(currentPage - 1)">Anterior</a>
+      </li>
+      <li class="page-item" *ngFor="let page of getPages()" [class.active]="page === currentPage">
+        <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <a class="page-link" (click)="onPageChange(currentPage + 1)">Siguiente</a>
+      </li>
+    </ul>
+  </div>
+  
+  <br />
+  <br />
+
+</div>
+
+
+  
